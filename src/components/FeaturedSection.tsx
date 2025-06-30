@@ -4,73 +4,40 @@ import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MangaCard from './MangaCard';
+import { useManga } from '@/hooks/useManga';
 
 const FeaturedSection = () => {
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const { mangas, favorites, isLoading } = useManga();
 
-  const featuredMangas = [
-    {
-      title: "Attack on Titan",
-      author: "Hajime Isayama",
-      rating: 4.9,
-      views: "2.5M",
-      status: "completed" as const,
-      genre: ["Action", "Drama", "Fantasy"],
-      imageUrl: "photo-1578662996442-48f60103fc96",
-      lastUpdate: "2j"
-    },
-    {
-      title: "One Piece",
-      author: "Eiichiro Oda", 
-      rating: 4.8,
-      views: "5.2M",
-      status: "ongoing" as const,
-      genre: ["Adventure", "Comedy", "Action"],
-      imageUrl: "photo-1578662947824-f3c5e11c1a9d",
-      lastUpdate: "1j"
-    },
-    {
-      title: "Demon Slayer",
-      author: "Koyoharu Gotouge",
-      rating: 4.7,
-      views: "3.1M", 
-      status: "completed" as const,
-      genre: ["Action", "Supernatural", "Historical"],
-      imageUrl: "photo-1578668073920-8e3f50102b3b",
-      lastUpdate: "3j"
-    },
-    {
-      title: "My Hero Academia",
-      author: "Kohei Horikoshi",
-      rating: 4.6,
-      views: "1.8M",
-      status: "ongoing" as const,
-      genre: ["Action", "School", "Superhero"],
-      imageUrl: "photo-1578668164071-a6b5c3e3b8c5",
-      lastUpdate: "1j"
-    },
-    {
-      title: "Jujutsu Kaisen",
-      author: "Gege Akutami",
-      rating: 4.8,
-      views: "2.9M",
-      status: "ongoing" as const,
-      genre: ["Action", "Supernatural", "School"],
-      imageUrl: "photo-1578668164426-6b8b7e8f6e7d",
-      lastUpdate: "2j"
-    },
-    {
-      title: "Chainsaw Man",
-      author: "Tatsuki Fujimoto",
-      rating: 4.7,
-      views: "2.2M",
-      status: "hiatus" as const,
-      genre: ["Action", "Horror", "Supernatural"],
-      imageUrl: "photo-1578668164780-9e9d8e4e5e5e",
-      lastUpdate: "1sem"
-    }
-  ];
+  if (isLoading) {
+    return (
+      <section className="py-16 section-padding">
+        <div className="container mx-auto">
+          <div className="text-center">
+            <div className="animate-pulse">
+              <div className="h-8 bg-white/10 rounded w-64 mx-auto mb-4"></div>
+              <div className="h-4 bg-white/10 rounded w-96 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const displayedMangas = (mangas || []).map(manga => ({
+    id: manga.id,
+    title: manga.title,
+    author: manga.author || 'Auteur inconnu',
+    rating: manga.rating || 0,
+    views: manga.views ? `${Math.floor(manga.views / 1000)}k` : '0',
+    status: (manga.status as 'ongoing' | 'completed' | 'hiatus') || 'ongoing',
+    genre: manga.genre || [],
+    imageUrl: manga.cover_image || '',
+    lastUpdate: new Date(manga.created_at).toLocaleDateString('fr-FR'),
+    isFavorite: favorites.includes(manga.id)
+  }));
 
   return (
     <section className="py-16 section-padding">
@@ -132,11 +99,17 @@ const FeaturedSection = () => {
 
         {/* Manga Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-          {featuredMangas.map((manga, index) => (
-            <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-              <MangaCard {...manga} />
+          {displayedMangas.length > 0 ? (
+            displayedMangas.map((manga, index) => (
+              <div key={manga.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <MangaCard {...manga} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground text-lg">Aucun manga trouvé</p>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Load More */}
