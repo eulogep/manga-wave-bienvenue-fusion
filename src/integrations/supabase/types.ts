@@ -22,7 +22,7 @@ export type Database = {
         Insert: {
           chapter_number: number
           created_at?: string
-          id: number
+          id?: number
           manga_id: number
           pages_count?: number | null
           release_date?: string | null
@@ -37,7 +37,15 @@ export type Database = {
           release_date?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chapters_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mangas: {
         Row: {
@@ -45,39 +53,39 @@ export type Database = {
           cover_image: string | null
           created_at: string
           description: string | null
-          genre: string[] | null
+          genre: string[]
           id: number
           manga_type: string | null
           rating: number | null
-          status: string | null
+          status: string
           title: string
-          views: number | null
+          views: number
         }
         Insert: {
           author?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
-          genre?: string[] | null
-          id: number
+          genre?: string[]
+          id?: number
           manga_type?: string | null
           rating?: number | null
-          status?: string | null
+          status?: string
           title: string
-          views?: number | null
+          views?: number
         }
         Update: {
           author?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
-          genre?: string[] | null
+          genre?: string[]
           id?: number
           manga_type?: string | null
           rating?: number | null
-          status?: string | null
+          status?: string
           title?: string
-          views?: number | null
+          views?: number
         }
         Relationships: []
       }
@@ -103,7 +111,15 @@ export type Database = {
           image_url?: string
           page_number?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pages_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_favorites: {
         Row: {
@@ -124,7 +140,22 @@ export type Database = {
           manga_id?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_history: {
         Row: {
@@ -145,7 +176,22 @@ export type Database = {
           read_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_history_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_progress: {
         Row: {
@@ -159,7 +205,7 @@ export type Database = {
         Insert: {
           chapter_id: number
           id?: number
-          page_number: number
+          page_number?: number
           total_pages?: number | null
           updated_at?: string
           user_id: string
@@ -172,14 +218,32 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_updated_at: {
+        Args: Record<PropertyKey, never>
+        Returns: unknown
+      }
     }
     Enums: {
       [_ in never]: never
@@ -235,7 +299,7 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    ? Database[DefaultSchemaTableNameOrOptions["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -258,10 +322,10 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+    ? Database[DefaultSchemaTableNameOrOptions["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer I
       }
-      ? U
+      ? I
       : never
     : never
 
