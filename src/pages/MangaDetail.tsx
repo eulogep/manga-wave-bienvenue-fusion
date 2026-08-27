@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMangaDexChapters, useMangaDexDetail } from '@/hooks/useMangaDex';
+import { useRecordReading } from '@/hooks/useReadingProgress';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import type { MangaDexChapter } from '@/integrations/mangadex/client';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -27,6 +31,9 @@ const MangaDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [language, setLanguage] = useState('fr');
   const [chapterOffset, setChapterOffset] = useState(0);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { recordReading } = useRecordReading();
   const { data: manga, isLoading: isMangaLoading, isError: isMangaError, error: mangaError, refetch: refetchManga } = useMangaDexDetail(id);
   const { data: chapterData, isLoading: isChaptersLoading, isError: isChaptersError, error: chaptersError, refetch: refetchChapters } = useMangaDexChapters(id, {
     translatedLanguage: language,
@@ -37,6 +44,24 @@ const MangaDetail = () => {
   const retry = () => {
     void refetchManga();
     void refetchChapters();
+  };
+
+  const handleReadChapter = (chapter: MangaDexChapter) => {
+    if (!user || !manga) {
+      toast({
+        title: 'Lecture non enregistrée',
+        description: 'Connectez-vous pour retrouver ce chapitre dans « Continuer la lecture ».',
+      });
+      return;
+    }
+
+    void recordReading.mutateAsync({ manga, chapter }).catch(() => {
+      toast({
+        variant: 'destructive',
+        title: 'Reprise non enregistrée',
+        description: 'Le chapitre s’ouvre sur MangaDex, mais il ne pourra pas encore apparaître dans votre historique.',
+      });
+    });
   };
 
   if (isMangaLoading) {
@@ -229,7 +254,7 @@ const MangaDetail = () => {
                           </div>
                         </div>
                         <Button variant="outline" className="border-white/30 shrink-0" asChild>
-                          <a href={chapter.externalUrl || chapter.mangaDexUrl} target="_blank" rel="noreferrer">
+                          <a href={chapter.externalUrl || chapter.mangaDexUrl} target="_blank" rel="noreferrer" onClick={() => handleReadChapter(chapter)}>
                             Lire sur MangaDex <ExternalLink className="h-4 w-4 ml-2" />
                           </a>
                         </Button>

@@ -47,6 +47,11 @@ const Header = () => {
             <Link to="/search" className="text-foreground hover:text-manga-purple transition-colors font-medium">
               Mangas
             </Link>
+            {user && (
+              <Link to="/library" className="text-foreground hover:text-manga-purple transition-colors font-medium">
+                Ma bibliothèque
+              </Link>
+            )}
             <a href="#mangas" className="text-foreground hover:text-manga-purple transition-colors font-medium">
               Webtoons
             </a>
@@ -81,7 +86,7 @@ const Header = () => {
             </div>
 
             {user && (
-              <Button variant="ghost" size="icon" className="hover:bg-white/10" aria-label="Mes favoris">
+              <Button variant="ghost" size="icon" className="hover:bg-white/10" aria-label="Ma bibliothèque" onClick={() => navigate('/library')}>
                 <Heart className="h-5 w-5" />
               </Button>
             )}
@@ -94,6 +99,10 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-manga-dark border-white/20">
+                  <DropdownMenuItem onClick={() => navigate('/library')} className="text-white hover:bg-white/10">
+                    <Heart className="h-4 w-4 mr-2" />
+                    Ma bibliothèque
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-white hover:bg-white/10">
                     <LogOut className="h-4 w-4 mr-2" />
                     Se déconnecter

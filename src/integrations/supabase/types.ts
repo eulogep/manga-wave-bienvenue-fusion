@@ -15,27 +15,36 @@ export type Database = {
           created_at: string
           id: number
           manga_id: number
+          mangadex_id: string | null
           pages_count: number | null
           release_date: string | null
           title: string | null
+          translated_language: string | null
+          volume: string | null
         }
         Insert: {
           chapter_number: number
           created_at?: string
           id?: number
           manga_id: number
+          mangadex_id?: string | null
           pages_count?: number | null
           release_date?: string | null
           title?: string | null
+          translated_language?: string | null
+          volume?: string | null
         }
         Update: {
           chapter_number?: number
           created_at?: string
           id?: number
           manga_id?: number
+          mangadex_id?: string | null
           pages_count?: number | null
           release_date?: string | null
           title?: string | null
+          translated_language?: string | null
+          volume?: string | null
         }
         Relationships: [
           {

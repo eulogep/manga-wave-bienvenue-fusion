@@ -97,6 +97,7 @@ export const useFavorites = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['library', user?.id] });
     },
   });
 

@@ -130,7 +130,7 @@ const MangaCard = ({
         <Button
           size="icon"
           variant="ghost"
-          aria-label={`Ajouter ${title} aux favoris`}
+          aria-label={`${isFavorite ? 'Retirer' : 'Ajouter'} ${title} ${isFavorite ? 'des' : 'aux'} favoris`}
           className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           onClick={handleFavoriteClick}
         >
