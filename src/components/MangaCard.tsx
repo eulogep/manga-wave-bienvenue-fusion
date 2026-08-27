@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useFavorites } from '@/hooks/useManga';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 interface MangaCardProps {
   id: string | number;
@@ -18,6 +19,7 @@ interface MangaCardProps {
   isFavorite?: boolean;
   favoriteId?: number;
   externalUrl?: string;
+  detailUrl?: string;
 }
 
 const MangaCard = ({
@@ -33,6 +35,7 @@ const MangaCard = ({
   isFavorite,
   favoriteId,
   externalUrl,
+  detailUrl,
 }: MangaCardProps) => {
   const { user } = useAuth();
   const { toggleFavorite } = useFavorites();
@@ -136,9 +139,17 @@ const MangaCard = ({
       </div>
 
       <div className="p-4">
-        <h3 className="font-bold text-lg mb-1 line-clamp-2 group-hover:text-manga-purple transition-colors">
-          {title}
-        </h3>
+        {detailUrl ? (
+          <Link to={detailUrl} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-manga-purple rounded">
+            <h3 className="font-bold text-lg mb-1 line-clamp-2 group-hover:text-manga-purple transition-colors">
+              {title}
+            </h3>
+          </Link>
+        ) : (
+          <h3 className="font-bold text-lg mb-1 line-clamp-2 group-hover:text-manga-purple transition-colors">
+            {title}
+          </h3>
+        )}
         <p className="text-sm text-muted-foreground mb-3">{author}</p>
 
         <div className="flex flex-wrap gap-1 mb-3 min-h-5">

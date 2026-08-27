@@ -263,3 +263,103 @@ export async function getMangaById(id: string): Promise<MangaDexManga> {
 
   return mapManga(response.data);
 }
+
+
+type MangaDexChapterAttributes = {
+  volume: string | null;
+  chapter: string | null;
+  title: string | null;
+  translatedLanguage: string;
+  externalUrl: string | null;
+  isUnavailable: boolean;
+  publishAt: string;
+  readableAt: string;
+  updatedAt: string;
+  pages: number;
+};
+
+type MangaDexChapterResource = {
+  id: string;
+  type: 'chapter';
+  attributes: MangaDexChapterAttributes;
+  relationships: MangaDexRelationship[];
+};
+
+type MangaDexChapterCollectionResponse = {
+  result: 'ok';
+  response: 'collection';
+  data: MangaDexChapterResource[];
+  limit: number;
+  offset: number;
+  total: number;
+};
+
+export type MangaDexChapter = {
+  id: string;
+  volume: string | null;
+  chapter: string | null;
+  title: string | null;
+  translatedLanguage: string;
+  scanlationGroups: string[];
+  pageCount: number;
+  readableAt: string;
+  isUnavailable: boolean;
+  externalUrl: string | null;
+  mangaDexUrl: string;
+};
+
+export type MangaDexChapterOptions = {
+  limit?: number;
+  offset?: number;
+  translatedLanguage?: string;
+};
+
+function mapChapter(resource: MangaDexChapterResource): MangaDexChapter {
+  const scanlationGroups = resource.relationships
+    .filter((relationship) => relationship.type === 'scanlation_group')
+    .map((relationship) => relationship.attributes?.name)
+    .filter((name): name is string => Boolean(name));
+
+  return {
+    id: resource.id,
+    volume: resource.attributes.volume,
+    chapter: resource.attributes.chapter,
+    title: resource.attributes.title,
+    translatedLanguage: resource.attributes.translatedLanguage,
+    scanlationGroups,
+    pageCount: resource.attributes.pages,
+    readableAt: resource.attributes.readableAt,
+    isUnavailable: resource.attributes.isUnavailable,
+    externalUrl: resource.attributes.externalUrl,
+    mangaDexUrl: `https://mangadex.org/chapter/${resource.id}`,
+  };
+}
+
+export async function getMangaChapters(
+  mangaId: string,
+  options: MangaDexChapterOptions = {},
+): Promise<{ chapters: MangaDexChapter[]; total: number }> {
+  const parameters = new URLSearchParams();
+  const limit = Math.min(Math.max(options.limit || 100, 1), 500);
+
+  parameters.set('limit', String(limit));
+  parameters.set('offset', String(Math.max(options.offset || 0, 0)));
+  parameters.set('includeEmptyPages', '0');
+  parameters.set('includeFuturePublishAt', '0');
+  parameters.set('includeExternalUrl', '0');
+  parameters.set('order[readableAt]', 'desc');
+  parameters.append('includes[]', 'scanlation_group');
+  if (options.translatedLanguage) {
+    parameters.append('translatedLanguage[]', options.translatedLanguage);
+  }
+
+  const response = await request<MangaDexChapterCollectionResponse>(
+    `/manga/${encodeURIComponent(mangaId)}/feed`,
+    parameters,
+  );
+
+  return {
+    chapters: response.data.map(mapChapter),
+    total: response.total,
+  };
+}

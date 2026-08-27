@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
       '/mangadex-covers': {
         target: 'https://uploads.mangadex.org',
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(/^\/mangadex-covers/, '/covers'),
+        rewrite: (requestPath) => requestPath.replace(/^\/mangadex-covers\/cover/, '/covers'),
         headers: { 'User-Agent': mangaDexUserAgent },
       },
     },
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), mode === 'development' && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 }));

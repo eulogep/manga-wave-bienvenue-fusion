@@ -1,10 +1,9 @@
-
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Menu, User, Heart, BookOpen, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +13,7 @@ import {
 
 const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -22,70 +22,74 @@ const Header = () => {
     navigate('/');
   };
 
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (query.length < 2) return;
+
+    navigate(`/search?q=${encodeURIComponent(query)}`);
+    setIsSearchOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-manga-dark/80 backdrop-blur-md border-b border-white/10">
       <div className="container mx-auto section-padding">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+        <div className="flex items-center justify-between h-16 gap-4">
+          <button className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')} aria-label="Retour à l’accueil">
             <BookOpen className="h-8 w-8 text-manga-purple" />
-            <h1 className="text-2xl font-bold font-japanese glow-text">
-              Bienvenue
-            </h1>
-          </div>
+            <span className="text-2xl font-bold font-japanese glow-text">Bienvenue</span>
+          </button>
 
-          {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-foreground hover:text-manga-purple transition-colors font-medium">
+            <Link to="/" className="text-foreground hover:text-manga-purple transition-colors font-medium">
               Accueil
-            </a>
-            <a href="#" className="text-foreground hover:text-manga-purple transition-colors font-medium">
+            </Link>
+            <Link to="/search" className="text-foreground hover:text-manga-purple transition-colors font-medium">
               Mangas
-            </a>
-            <a href="#" className="text-foreground hover:text-manga-purple transition-colors font-medium">
+            </Link>
+            <a href="#mangas" className="text-foreground hover:text-manga-purple transition-colors font-medium">
               Webtoons
             </a>
-            <a href="#" className="text-foreground hover:text-manga-purple transition-colors font-medium">
+            <a href="#mangas" className="text-foreground hover:text-manga-purple transition-colors font-medium">
               Nouveautés
             </a>
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Search */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="relative">
               {isSearchOpen ? (
-                <Input
-                  type="text"
-                  placeholder="Rechercher un manga..."
-                  className="w-64 bg-white/10 border-white/20 text-white placeholder:text-white/60"
-                  autoFocus
-                  onBlur={() => setIsSearchOpen(false)}
-                />
+                <form onSubmit={submitSearch}>
+                  <Input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Rechercher un manga..."
+                    minLength={2}
+                    className="w-48 sm:w-64 bg-white/10 border-white/20 text-white placeholder:text-white/60"
+                    autoFocus
+                    onBlur={() => {
+                      if (!searchQuery.trim()) setIsSearchOpen(false);
+                    }}
+                    aria-label="Rechercher un manga"
+                  />
+                </form>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsSearchOpen(true)}
-                  className="hover:bg-white/10"
-                >
+                <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)} className="hover:bg-white/10" aria-label="Ouvrir la recherche">
                   <Search className="h-5 w-5" />
                 </Button>
               )}
             </div>
 
-            {/* Favorites */}
             {user && (
-              <Button variant="ghost" size="icon" className="hover:bg-white/10">
+              <Button variant="ghost" size="icon" className="hover:bg-white/10" aria-label="Mes favoris">
                 <Heart className="h-5 w-5" />
               </Button>
             )}
 
-            {/* Profile */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hover:bg-white/10">
+                  <Button variant="ghost" size="icon" className="hover:bg-white/10" aria-label="Mon compte">
                     <User className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -97,18 +101,12 @@ const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hover:bg-white/10"
-                onClick={() => navigate('/auth')}
-              >
+              <Button variant="ghost" size="icon" className="hover:bg-white/10" onClick={() => navigate('/auth')} aria-label="Se connecter">
                 <User className="h-5 w-5" />
               </Button>
             )}
 
-            {/* Mobile Menu */}
-            <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10">
+            <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10" aria-label="Ouvrir le menu mobile">
               <Menu className="h-5 w-5" />
             </Button>
           </div>

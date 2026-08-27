@@ -30,7 +30,7 @@ function extractResourcePath(requestUrl: URL): string | null {
 }
 
 function isSafeMangaPath(resourcePath: string): boolean {
-  return /^\/manga(?:\/[0-9a-f-]{36})?$/.test(resourcePath);
+  return /^\/manga(?:\/[0-9a-f-]{36}(?:\/feed)?)?$/.test(resourcePath);
 }
 
 function getCoverTarget(resourcePath: string): string | null {

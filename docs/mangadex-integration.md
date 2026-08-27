@@ -22,10 +22,12 @@ Les appels passent par un proxy parce que MangaDex ne fournit pas les en-têtes 
 | Fichier | Responsabilité |
 |---|---|
 | `src/integrations/mangadex/client.ts` | Modèles typés, appels HTTP, gestion des erreurs et conversion du format MangaDex vers le modèle de l’interface. |
-| `src/hooks/useMangaDex.ts` | Clés de cache et hooks TanStack Query pour les titres populaires, la recherche et le détail. |
+| `src/hooks/useMangaDex.ts` | Clés de cache et hooks TanStack Query pour les titres populaires, la recherche, le détail et les chapitres. |
 | `supabase/functions/mangadex-proxy/index.ts` | Proxy de production sécurisé entre Manga Wave, l’API MangaDex et le CDN de couvertures. |
 | `vite.config.ts` | Proxy local pour les requêtes de développement. |
 | `src/components/FeaturedSection.tsx` | Affichage, filtrage local par genre/statut et pagination de la sélection MangaDex. |
+| `src/pages/Search.tsx` | Recherche avancée par titre et statut, avec URL partageable et pagination. |
+| `src/pages/MangaDetail.tsx` | Fiche détaillée, crédits de scanlation, choix de langue et pagination des chapitres. |
 
 ## Déployer le proxy de production
 
@@ -44,9 +46,9 @@ VITE_MANGADEX_COVER_PROXY_URL=https://votre-projet.supabase.co/functions/v1/mang
 
 ## Limites de la première intégration
 
-Cette tranche couvre l’adaptateur, le catalogue populaire, la recherche programmatiquement accessible via `useMangaDexSearch`, les couvertures et les filtres sur l’accueil. La navigation vers les chapitres et le lecteur intégré ne sont volontairement pas encore ajoutés.
+Cette tranche couvre l’adaptateur, le catalogue populaire, la recherche, les couvertures, les filtres de l’accueil, la fiche détaillée et la liste de chapitres via `/manga/:id/feed`. La fiche permet de choisir la langue et crédite les groupes de scanlation. Le lecteur intégré n’est volontairement pas encore ajouté.
 
-L’étape suivante devra exposer le flux `/manga/:id/feed`, sélectionner une langue et un groupe de scanlation, puis demander un serveur MangaDex@Home juste avant le chargement des pages. Les URL d’images de chapitre étant temporaires, elles ne doivent jamais être mises en cache comme des URL permanentes.
+L’étape suivante devra demander un serveur MangaDex@Home juste avant le chargement des pages d’un chapitre. Les URL d’images de chapitre étant temporaires, elles ne doivent jamais être mises en cache comme des URL permanentes.
 
 ## Références
 

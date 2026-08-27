@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,15 +33,11 @@ const FeaturedSection = () => {
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredMangas.length / PAGE_SIZE));
-  const visibleMangas = filteredMangas.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  useEffect(() => {
-    setPage(0);
-  }, [selectedGenre, selectedStatus]);
-
-  useEffect(() => {
-    if (page > totalPages - 1) setPage(totalPages - 1);
-  }, [page, totalPages]);
+  const currentPage = Math.min(page, totalPages - 1);
+  const visibleMangas = filteredMangas.slice(
+    currentPage * PAGE_SIZE,
+    (currentPage + 1) * PAGE_SIZE,
+  );
 
   if (isLoading) {
     return (
@@ -73,6 +69,14 @@ const FeaturedSection = () => {
     );
   }
 
+  const goToPreviousPage = () => {
+    setPage((activePage) => Math.max(0, activePage - 1));
+  };
+
+  const goToNextPage = () => {
+    setPage((activePage) => Math.min(totalPages - 1, activePage + 1));
+  };
+
   return (
     <section id="mangas" className="py-16 section-padding">
       <div className="container mx-auto">
@@ -92,7 +96,13 @@ const FeaturedSection = () => {
               <span className="text-sm text-muted-foreground">Filtrer :</span>
             </div>
 
-            <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+            <Select
+              value={selectedGenre}
+              onValueChange={(genre) => {
+                setSelectedGenre(genre);
+                setPage(0);
+              }}
+            >
               <SelectTrigger className="w-40 bg-white/10 border-white/20">
                 <SelectValue placeholder="Genre" />
               </SelectTrigger>
@@ -106,7 +116,13 @@ const FeaturedSection = () => {
               </SelectContent>
             </Select>
 
-            <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as 'all' | MangaDexStatus)}>
+            <Select
+              value={selectedStatus}
+              onValueChange={(value) => {
+                setSelectedStatus(value as 'all' | MangaDexStatus);
+                setPage(0);
+              }}
+            >
               <SelectTrigger className="w-36 bg-white/10 border-white/20">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
@@ -131,21 +147,21 @@ const FeaturedSection = () => {
               size="icon"
               aria-label="Afficher les titres précédents"
               className="border-white/30 hover:bg-white/10"
-              disabled={page === 0}
-              onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              onClick={goToPreviousPage}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm text-muted-foreground min-w-12 text-center">
-              {page + 1} / {totalPages}
+              {currentPage + 1} / {totalPages}
             </span>
             <Button
               variant="outline"
               size="icon"
               aria-label="Afficher les titres suivants"
               className="border-white/30 hover:bg-white/10"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage((currentPage) => Math.min(totalPages - 1, currentPage + 1))}
+              disabled={currentPage >= totalPages - 1}
+              onClick={goToNextPage}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -167,6 +183,7 @@ const FeaturedSection = () => {
                     new Date(manga.updatedAt),
                   )}
                   externalUrl={manga.externalUrl}
+                  detailUrl={`/manga/${manga.id}`}
                 />
               </div>
             ))
@@ -183,8 +200,8 @@ const FeaturedSection = () => {
               size="lg"
               variant="outline"
               className="border-white/30 hover:bg-white/10"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage((currentPage) => Math.min(totalPages - 1, currentPage + 1))}
+              disabled={currentPage >= totalPages - 1}
+              onClick={goToNextPage}
             >
               Voir plus de mangas
             </Button>
