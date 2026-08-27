@@ -1,4 +1,7 @@
-project_id = "yuebnijezlpyolmwfylx"
+project_id = "ilmsomiaqthhfyvgqnsp"
 
 [functions.mangadex-proxy]
+verify_jwt = false
+
+[functions.catalog-sync]
 verify_jwt = false
