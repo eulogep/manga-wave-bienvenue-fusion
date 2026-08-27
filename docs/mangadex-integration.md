@@ -37,13 +37,19 @@ Installer la CLI Supabase, s’authentifier avec un compte autorisé sur le proj
 supabase functions deploy mangadex-proxy --project-ref ilmsomiaqthhfyvgqnsp --no-verify-jwt
 ```
 
-L’application utilise automatiquement l’URL de cette fonction en build de production. Le nouveau projet Manga Wave conserve l’authentification et les favoris sur le projet Supabase existant ; seule l’intégration MangaDex pointe vers ce proxy dédié. La passerelle Supabase requiert une clé **Publishable** dans les appels HTTP. Pour utiliser un autre projet Supabase ou un autre proxy, définir les variables suivantes dans l’environnement de build :
+L’application utilise automatiquement l’URL de cette fonction en build de production. Le projet Supabase **Manga wave** (`ilmsomiaqthhfyvgqnsp`) est désormais la source unique du catalogue local, de l’authentification et des données utilisateur. La passerelle Supabase requiert une clé **Publishable** dans les appels HTTP. Pour utiliser un autre projet Supabase ou un autre proxy, définir les variables suivantes dans l’environnement de build :
 
 ```bash
 VITE_MANGADEX_API_PROXY_URL=https://votre-projet.supabase.co/functions/v1/mangadex-proxy
 VITE_MANGADEX_COVER_PROXY_URL=https://votre-projet.supabase.co/functions/v1/mangadex-proxy
 VITE_MANGADEX_PROXY_PUBLISHABLE_KEY=sb_publishable_votre_cle_publique
 ```
+
+## Déploiement Vercel
+
+Le projet est déployé sur [Vercel](https://manga-wave-bienvenue-fusion.vercel.app/) à partir de la branche `main` du dépôt GitHub. Le préréglage **Vite**, la racine `./`, la commande `npm run build` et le répertoire de sortie `dist` sont utilisés. Les cinq variables `VITE_*` — les trois variables MangaDex ci-dessus, `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` — sont définies avec la portée **Production and Preview**. Aucune clé Supabase secrète n’est définie dans l’hébergeur.
+
+Le fichier `vercel.json` réécrit les URL applicatives vers `index.html`, ce qui permet de charger ou d’actualiser directement les routes React telles que `/search` et `/manga/:id`.
 
 ## Limites de la première intégration
 
