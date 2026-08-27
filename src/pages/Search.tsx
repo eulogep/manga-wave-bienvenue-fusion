@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMangaDexSearch } from '@/hooks/useMangaDex';
+import { useCatalogSearch } from '@/hooks/useCatalogSearch';
 import type { MangaDexStatus } from '@/integrations/mangadex/client';
+import type { UnifiedCatalogItem } from '@/integrations/catalog/providers';
 
 const PAGE_SIZE = 24;
 
@@ -37,6 +39,20 @@ const Search = () => {
     offset: (initialPage - 1) * PAGE_SIZE,
     limit: PAGE_SIZE,
   });
+  const providersQuery = useCatalogSearch({
+    query: initialQuery,
+    provider: 'all',
+    mediaType: 'manga',
+    limit: 8,
+  });
+
+  const providerStatus = (item: UnifiedCatalogItem): MangaDexStatus => {
+    const status = item.status?.toLowerCase();
+    if (status?.includes('complete') || status === 'finished' || status === 'finished_airing') return 'completed';
+    if (status?.includes('hiatus')) return 'hiatus';
+    if (status?.includes('cancel')) return 'cancelled';
+    return 'ongoing';
+  };
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -191,6 +207,33 @@ const Search = () => {
                 </div>
               )}
             </>
+          )}
+
+          {hasSearch && providersQuery.data && providersQuery.data.length > 0 && (
+            <section className="mt-16 pt-10 border-t border-white/10" aria-labelledby="other-providers-title">
+              <div className="mb-7">
+                <p className="text-manga-cyan font-medium mb-2">AUTRES CATALOGUES</p>
+                <h2 id="other-providers-title" className="text-3xl font-bold font-japanese">Résultats <span className="glow-text">multi-sources</span></h2>
+                <p className="text-muted-foreground mt-2">Métadonnées publiques réunies depuis AniList, Jikan et Kitsu. La lecture reste proposée uniquement via les liens officiels.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+                {providersQuery.data.map((item) => (
+                  <div key={`${item.provider}-${item.sourceId}`} className="relative">
+                    <span className="absolute z-10 top-2 left-2 rounded-full bg-manga-dark/90 border border-white/20 px-2 py-1 text-[10px] uppercase tracking-wide text-white/80">{item.provider}</span>
+                    <MangaCard
+                      id={`${item.provider}-${item.sourceId}`}
+                      title={item.title}
+                      author={item.provider === 'jikan' ? 'MyAnimeList via Jikan' : item.provider === 'anilist' ? 'AniList' : 'Kitsu'}
+                      status={providerStatus(item)}
+                      genre={item.genres}
+                      imageUrl={item.coverImageUrl}
+                      lastUpdate={item.year ? String(item.year) : 'Métadonnées'}
+                      externalUrl={item.officialUrl || undefined}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </div>
       </main>
