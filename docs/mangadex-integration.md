@@ -34,19 +34,20 @@ Les appels passent par un proxy parce que MangaDex ne fournit pas les en-têtes 
 Installer la CLI Supabase, s’authentifier avec un compte autorisé sur le projet puis exécuter les commandes suivantes depuis la racine du dépôt :
 
 ```bash
-supabase functions deploy mangadex-proxy --project-ref yuebnijezlpyolmwfylx --no-verify-jwt
+supabase functions deploy mangadex-proxy --project-ref ilmsomiaqthhfyvgqnsp --no-verify-jwt
 ```
 
-L’application utilise automatiquement l’URL de cette fonction en build de production. Pour utiliser un autre projet Supabase ou un autre proxy, définir les deux variables suivantes dans l’environnement de build :
+L’application utilise automatiquement l’URL de cette fonction en build de production. Le nouveau projet Manga Wave conserve l’authentification et les favoris sur le projet Supabase existant ; seule l’intégration MangaDex pointe vers ce proxy dédié. La passerelle Supabase requiert une clé **Publishable** dans les appels HTTP. Pour utiliser un autre projet Supabase ou un autre proxy, définir les variables suivantes dans l’environnement de build :
 
 ```bash
 VITE_MANGADEX_API_PROXY_URL=https://votre-projet.supabase.co/functions/v1/mangadex-proxy
 VITE_MANGADEX_COVER_PROXY_URL=https://votre-projet.supabase.co/functions/v1/mangadex-proxy
+VITE_MANGADEX_PROXY_PUBLISHABLE_KEY=sb_publishable_votre_cle_publique
 ```
 
 ## Limites de la première intégration
 
-Cette tranche couvre l’adaptateur, le catalogue populaire, la recherche, les couvertures, les filtres de l’accueil, la fiche détaillée et la liste de chapitres via `/manga/:id/feed`. La fiche permet de choisir la langue et crédite les groupes de scanlation. Le lecteur intégré n’est volontairement pas encore ajouté.
+Cette tranche couvre l’adaptateur, le catalogue populaire, la recherche, les couvertures, les filtres de l’accueil, la fiche détaillée et la liste de chapitres via `/manga/:id/feed`. Les couvertures sont téléchargées via `fetch` avec la clé Publishable, puis affichées comme des URL objet : elles respectent ainsi la passerelle Supabase sans exposer de clé secrète ni dépendre d’un hotlink direct. La fiche permet de choisir la langue et crédite les groupes de scanlation. Le lecteur intégré n’est volontairement pas encore ajouté.
 
 L’étape suivante devra demander un serveur MangaDex@Home juste avant le chargement des pages d’un chapitre. Les URL d’images de chapitre étant temporaires, elles ne doivent jamais être mises en cache comme des URL permanentes.
 

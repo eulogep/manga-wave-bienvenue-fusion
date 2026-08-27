@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileText, Languages, LoaderCircle, Users } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MangaCover from '@/components/MangaCover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -99,8 +100,8 @@ const MangaDetail = () => {
 
           <section className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-8 lg:gap-12">
             <div className="mx-auto md:mx-0 w-full max-w-[300px]">
-              <img
-                src={manga.coverImageUrl || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=900&fit=crop'}
+              <MangaCover
+                src={manga.coverImageUrl}
                 alt={`Couverture de ${manga.title}`}
                 className="w-full aspect-[3/4] object-cover rounded-2xl border border-white/10 shadow-2xl shadow-manga-purple/10"
               />

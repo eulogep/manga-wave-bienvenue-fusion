@@ -1,104 +1,79 @@
-const MANGADEX_API_BASE = 'https://api.mangadex.org';
-const MANGADEX_UPLOADS_BASE = 'https://uploads.mangadex.org';
-const FUNCTION_PATH = '/mangadex-proxy';
-const USER_AGENT = 'MangaWave/0.1 (contact: github.com/eulogep/manga-wave-bienvenue-fusion)';
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  Vary: 'Origin',
+const API_BASE = "https://api.mangadex.org";
+const UPLOADS_BASE = "https://uploads.mangadex.org";
+const FUNCTION_PATH = "/mangadex-proxy";
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Vary": "Origin",
 };
 
-function jsonResponse(status: number, message: string): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
-  });
+function response(status: number, body: BodyInit | null, headers: HeadersInit = {}) {
+  return new Response(body, { status, headers: { ...CORS_HEADERS, ...headers } });
 }
 
-function extractResourcePath(requestUrl: URL): string | null {
-  const functionPathIndex = requestUrl.pathname.indexOf(FUNCTION_PATH);
-  if (functionPathIndex === -1) return null;
-
-  const resourcePath = requestUrl.pathname.slice(functionPathIndex + FUNCTION_PATH.length);
-  return resourcePath || '/';
+function resourcePath(url: URL) {
+  const index = url.pathname.indexOf(FUNCTION_PATH);
+  return index === -1 ? null : url.pathname.slice(index + FUNCTION_PATH.length) || "/";
 }
 
-function isSafeMangaPath(resourcePath: string): boolean {
-  return /^\/manga(?:\/[0-9a-f-]{36}(?:\/feed)?)?$/.test(resourcePath);
+function coverTarget(path: string) {
+  const match = path.match(/^\/cover\/([0-9a-f-]{36})\/([A-Za-z0-9._-]+)$/);
+  return match ? `${UPLOADS_BASE}/covers/${match[1]}/${encodeURIComponent(match[2])}` : null;
 }
 
-function getCoverTarget(resourcePath: string): string | null {
-  const match = resourcePath.match(/^\/cover\/([0-9a-f-]{36})\/([A-Za-z0-9._-]+)$/);
-  if (!match) return null;
-
-  const [, mangaId, fileName] = match;
-  return `${MANGADEX_UPLOADS_BASE}/covers/${mangaId}/${encodeURIComponent(fileName)}`;
+function allowedMangaPath(path: string) {
+  return /^\/manga(?:\/[0-9a-f-]{36}(?:\/feed)?)?$/.test(path);
 }
 
-function forwardResponse(upstream: Response, cacheControl: string): Response {
-  const headers = new Headers(corsHeaders);
-  headers.set('Cache-Control', cacheControl);
+export default {
+  async fetch(request: Request) {
+    if (request.method === "OPTIONS") return response(204, null);
+    if (request.method !== "GET") {
+      return response(405, JSON.stringify({ error: "GET uniquement" }), {
+        "Content-Type": "application/json",
+      });
+    }
 
-  const contentType = upstream.headers.get('Content-Type');
-  if (contentType) headers.set('Content-Type', contentType);
+    const url = new URL(request.url);
+    const path = resourcePath(url);
+    if (!path) {
+      return response(400, JSON.stringify({ error: "Chemin invalide" }), {
+        "Content-Type": "application/json",
+      });
+    }
 
-  const etag = upstream.headers.get('ETag');
-  if (etag) headers.set('ETag', etag);
+    const cover = coverTarget(path);
+    if (!cover && !allowedMangaPath(path)) {
+      return response(404, JSON.stringify({ error: "Ressource non exposée" }), {
+        "Content-Type": "application/json",
+      });
+    }
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers,
-  });
-}
+    try {
+      const upstream = await fetch(cover ?? `${API_BASE}${path}${url.search}`, {
+        headers: {
+          "Accept": cover ? "image/avif,image/webp,image/*,*/*;q=0.8" : "application/json",
+          "User-Agent": "MangaWave/0.1 (contact: github.com/eulogep/manga-wave-bienvenue-fusion)",
+        },
+      });
+      const headers = new Headers(CORS_HEADERS);
+      headers.set(
+        "Cache-Control",
+        cover
+          ? "public, max-age=604800, s-maxage=2592000, immutable"
+          : "public, max-age=300, s-maxage=600",
+      );
+      const contentType = upstream.headers.get("Content-Type");
+      if (contentType) headers.set("Content-Type", contentType);
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
-  if (request.method !== 'GET') {
-    return jsonResponse(405, 'Seules les requêtes GET sont acceptées.');
-  }
-
-  const requestUrl = new URL(request.url);
-  const resourcePath = extractResourcePath(requestUrl);
-
-  if (!resourcePath) {
-    return jsonResponse(400, 'Chemin de proxy MangaDex invalide.');
-  }
-
-  const coverTarget = getCoverTarget(resourcePath);
-  const isCoverRequest = Boolean(coverTarget);
-
-  if (!coverTarget && !isSafeMangaPath(resourcePath)) {
-    return jsonResponse(404, 'Cette ressource MangaDex n’est pas exposée par le proxy.');
-  }
-
-  const targetUrl = coverTarget
-    ? coverTarget
-    : `${MANGADEX_API_BASE}${resourcePath}${requestUrl.search}`;
-
-  try {
-    const upstream = await fetch(targetUrl, {
-      headers: {
-        Accept: isCoverRequest ? 'image/avif,image/webp,image/*,*/*;q=0.8' : 'application/json',
-        'User-Agent': USER_AGENT,
-      },
-    });
-
-    return forwardResponse(
-      upstream,
-      isCoverRequest
-        ? 'public, max-age=604800, s-maxage=2592000, immutable'
-        : 'public, max-age=300, s-maxage=600',
-    );
-  } catch {
-    return jsonResponse(502, 'Le proxy ne peut pas joindre MangaDex pour le moment.');
-  }
-});
+      return new Response(upstream.body, { status: upstream.status, headers });
+    } catch {
+      return response(502, JSON.stringify({ error: "MangaDex est indisponible" }), {
+        "Content-Type": "application/json",
+      });
+    }
+  },
+};

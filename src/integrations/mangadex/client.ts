@@ -89,7 +89,10 @@ export type MangaDexSearchOptions = {
 };
 
 const SUPABASE_MANGADEX_PROXY_URL =
-  'https://yuebnijezlpyolmwfylx.supabase.co/functions/v1/mangadex-proxy';
+  'https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy';
+export const MANGADEX_PROXY_PUBLISHABLE_KEY =
+  import.meta.env.VITE_MANGADEX_PROXY_PUBLISHABLE_KEY ||
+  'sb_publishable_AzWSMR-D5Cu5xvC-WIhxOQ_7aB8EJD3';
 const API_PROXY_URL = normaliseBaseUrl(
   import.meta.env.VITE_MANGADEX_API_PROXY_URL ||
     (import.meta.env.DEV ? '/api/mangadex' : SUPABASE_MANGADEX_PROXY_URL),
@@ -141,6 +144,10 @@ function createCoverUrl(mangaId: string, fileName: string): string {
   return `${COVER_PROXY_URL}/cover/${encodeURIComponent(mangaId)}/${encodeURIComponent(fileName)}.256.jpg`;
 }
 
+export function isMangaDexProxyCover(url: string | null): boolean {
+  return Boolean(url?.startsWith(SUPABASE_MANGADEX_PROXY_URL));
+}
+
 function mapManga(resource: MangaDexMangaResource): MangaDexManga {
   const coverFileName = resource.relationships.find(
     (relationship) => relationship.type === 'cover_art',
@@ -180,7 +187,10 @@ async function request<T>(path: string, parameters?: URLSearchParams): Promise<T
   try {
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        apikey: MANGADEX_PROXY_PUBLISHABLE_KEY,
+      },
       signal: controller.signal,
     });
 

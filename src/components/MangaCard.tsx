@@ -5,6 +5,7 @@ import { useFavorites } from '@/hooks/useManga';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import MangaCover from '@/components/MangaCover';
 
 interface MangaCardProps {
   id: string | number;
@@ -108,10 +109,9 @@ const MangaCard = ({
   return (
     <article className="manga-card group cursor-pointer">
       <div className="relative aspect-[3/4] overflow-hidden">
-        <img
-          src={imageUrl || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop'}
+        <MangaCover
+          src={imageUrl}
           alt={`Couverture de ${title}`}
-          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
 
