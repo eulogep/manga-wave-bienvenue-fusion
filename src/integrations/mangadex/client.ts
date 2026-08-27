@@ -91,8 +91,7 @@ export type MangaDexSearchOptions = {
 const SUPABASE_MANGADEX_PROXY_URL =
   'https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy';
 export const MANGADEX_PROXY_PUBLISHABLE_KEY =
-  import.meta.env.VITE_MANGADEX_PROXY_PUBLISHABLE_KEY ||
-  'sb_publishable_AzWSMR-D5Cu5xvC-WIhxOQ_7aB8EJD3';
+  import.meta.env.VITE_MANGADEX_PROXY_PUBLISHABLE_KEY;
 const API_PROXY_URL = normaliseBaseUrl(
   import.meta.env.VITE_MANGADEX_API_PROXY_URL ||
     (import.meta.env.DEV ? '/api/mangadex' : SUPABASE_MANGADEX_PROXY_URL),
