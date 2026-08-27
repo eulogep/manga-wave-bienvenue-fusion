@@ -1,58 +1,66 @@
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export interface Manga {
   id: number;
+  mangadex_id: string | null;
   title: string;
-  author: string;
-  description: string;
-  cover_image: string;
-  rating: number;
+  author: string | null;
+  artist: string | null;
+  description: string | null;
+  cover_image: string | null;
+  rating: number | null;
   views: number;
-  status: string;
+  status: 'ongoing' | 'completed' | 'hiatus' | 'cancelled';
   genre: string[];
-  manga_type: string;
+  manga_type: string | null;
+  content_rating: string | null;
+  source_updated_at: string | null;
+  last_synced_at: string | null;
   created_at: string;
 }
 
 export const useManga = () => {
   const { user } = useAuth();
 
-  const { data: mangas, isLoading } = useQuery({
+  const catalogQuery = useQuery({
     queryKey: ['mangas'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mangas')
         .select('*')
-        .order('created_at', { ascending: false });
-      
+        .order('source_updated_at', { ascending: false, nullsFirst: false });
+
       if (error) throw error;
       return data as Manga[];
-    }
+    },
   });
 
-  const { data: favorites } = useQuery({
+  const favoritesQuery = useQuery({
     queryKey: ['favorites', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const { data, error } = await supabase
         .from('user_favorites')
         .select('manga_id')
         .eq('user_id', user.id);
-      
+
       if (error) throw error;
-      return data.map(f => f.manga_id);
+      return data.map((favorite) => favorite.manga_id);
     },
-    enabled: !!user
+    enabled: !!user,
   });
 
   return {
-    mangas: mangas || [],
-    favorites: favorites || [],
-    isLoading
+    mangas: catalogQuery.data || [],
+    favorites: favoritesQuery.data || [],
+    isLoading: catalogQuery.isLoading,
+    isError: catalogQuery.isError,
+    error: catalogQuery.error,
+    refetch: catalogQuery.refetch,
+    isFetching: catalogQuery.isFetching,
   };
 };
 
@@ -64,12 +72,14 @@ export const useFavorites = () => {
     mutationFn: async (mangaId: number) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('user_favorites')
         .select('id')
         .eq('user_id', user.id)
         .eq('manga_id', mangaId)
-        .single();
+        .maybeSingle();
+
+      if (existingError) throw existingError;
 
       if (existing) {
         const { error } = await supabase
@@ -87,7 +97,7 @@ export const useFavorites = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
-    }
+    },
   });
 
   return { toggleFavorite };

@@ -50,39 +50,54 @@ export type Database = {
       mangas: {
         Row: {
           author: string | null
+          artist: string | null
+          content_rating: string | null
           cover_image: string | null
           created_at: string
           description: string | null
           genre: string[]
           id: number
+          last_synced_at: string | null
+          mangadex_id: string | null
           manga_type: string | null
           rating: number | null
+          source_updated_at: string | null
           status: string
           title: string
           views: number
         }
         Insert: {
           author?: string | null
+          artist?: string | null
+          content_rating?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
           genre?: string[]
           id?: number
+          last_synced_at?: string | null
+          mangadex_id?: string | null
           manga_type?: string | null
           rating?: number | null
+          source_updated_at?: string | null
           status?: string
           title: string
           views?: number
         }
         Update: {
           author?: string | null
+          artist?: string | null
+          content_rating?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
           genre?: string[]
           id?: number
+          last_synced_at?: string | null
+          mangadex_id?: string | null
           manga_type?: string | null
           rating?: number | null
+          source_updated_at?: string | null
           status?: string
           title?: string
           views?: number
@@ -299,7 +314,7 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? Database[DefaultSchemaTableNameOrOptions["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -322,7 +337,7 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? Database[DefaultSchemaTableNameOrOptions["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer I
       }
       ? I

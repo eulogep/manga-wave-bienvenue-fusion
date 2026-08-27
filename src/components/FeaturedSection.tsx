@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MangaCard from './MangaCard';
-import { usePopularMangaDex } from '@/hooks/useMangaDex';
+import { useManga } from '@/hooks/useManga';
 import type { MangaDexStatus } from '@/integrations/mangadex/client';
 
 const PAGE_SIZE = 6;
@@ -12,11 +12,11 @@ const FeaturedSection = () => {
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | MangaDexStatus>('all');
   const [page, setPage] = useState(0);
-  const { data: mangas = [], isLoading, isError, error, refetch, isFetching } = usePopularMangaDex(36);
+  const { mangas, favorites, isLoading, isError, error, refetch, isFetching } = useManga();
 
   const genres = useMemo(
     () =>
-      [...new Set(mangas.flatMap((manga) => manga.genres))]
+      [...new Set(mangas.flatMap((manga) => manga.genre))]
         .sort((left, right) => left.localeCompare(right, 'fr'))
         .slice(0, 12),
     [mangas],
@@ -25,7 +25,7 @@ const FeaturedSection = () => {
   const filteredMangas = useMemo(
     () =>
       mangas.filter((manga) => {
-        const matchesGenre = selectedGenre === 'all' || manga.genres.includes(selectedGenre);
+        const matchesGenre = selectedGenre === 'all' || manga.genre.includes(selectedGenre);
         const matchesStatus = selectedStatus === 'all' || manga.status === selectedStatus;
         return matchesGenre && matchesStatus;
       }),
@@ -58,7 +58,7 @@ const FeaturedSection = () => {
         <div className="container mx-auto max-w-2xl text-center rounded-xl border border-destructive/40 bg-destructive/10 p-8">
           <h2 className="text-2xl font-bold mb-3">Catalogue indisponible</h2>
           <p className="text-muted-foreground mb-6">
-            {error.message} Vérifiez que le proxy MangaDex est bien déployé puis relancez la requête.
+            {error.message} Vérifiez la connexion au catalogue local puis relancez la requête.
           </p>
           <Button className="btn-gradient" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
@@ -83,10 +83,10 @@ const FeaturedSection = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 gap-6">
           <div>
             <h2 className="text-4xl font-bold mb-4 font-japanese">
-              <span className="glow-text">Sélection</span> MangaDex
+              <span className="glow-text">Sélection</span> locale MangaDex
             </h2>
             <p className="text-xl text-muted-foreground">
-              Les titres les plus suivis disponibles en français
+              Les titres synchronisés depuis MangaDex et disponibles en français
             </p>
           </div>
 
@@ -175,15 +175,17 @@ const FeaturedSection = () => {
                 <MangaCard
                   id={manga.id}
                   title={manga.title}
-                  author={manga.author}
+                  author={manga.author || 'Auteur inconnu'}
                   status={manga.status}
-                  genre={manga.genres}
-                  imageUrl={manga.coverImageUrl}
+                  genre={manga.genre}
+                  imageUrl={manga.cover_image}
                   lastUpdate={new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(
-                    new Date(manga.updatedAt),
+                    new Date(manga.source_updated_at || manga.created_at),
                   )}
-                  externalUrl={manga.externalUrl}
-                  detailUrl={`/manga/${manga.id}`}
+                  isFavorite={favorites.includes(manga.id)}
+                  favoriteId={manga.id}
+                  externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
+                  detailUrl={manga.mangadex_id ? `/manga/${manga.mangadex_id}` : undefined}
                 />
               </div>
             ))
