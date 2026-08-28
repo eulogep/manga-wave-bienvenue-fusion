@@ -7,9 +7,9 @@ import type { MangaSource, SourceChapter, SourceManga, SourceSearchResult } from
 
 export class CrunchyScanSource implements MangaSource {
   public readonly id = 'crunchyscan' as const;
-  public readonly name = 'CrunchyScan';
-  public readonly displayName = 'CrunchyScan (FR)';
-  public readonly baseUrl = 'https://crunchyscan.org';
+  public readonly name = 'LelManga';
+  public readonly displayName = 'LelManga (Scans VF)';
+  public readonly baseUrl = 'https://www.lelmanga.com';
   public readonly lang = 'fr';
   public readonly hasDirectPages = true;
   public readonly supportsSearch = true;

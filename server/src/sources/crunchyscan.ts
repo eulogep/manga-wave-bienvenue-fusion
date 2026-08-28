@@ -1,226 +1,146 @@
-/**
- * CrunchyScan Extractor — Playwright Headless + JSON API fallback
- * First tries the JSON API, then falls back to DOM scraping with Playwright.
- */
-import type { Page } from 'playwright-core';
-import { createBrowserContext } from '../lib/browser-pool.js';
-import type { SearchResult, Chapter, MangaDetail, SourceExtractor } from '../lib/extractor-types.js';
+import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
 
-const CANDIDATE_DOMAINS = [
-  'https://crunchyscan.org',
-  'https://crunchyscan.st',
-  'https://crunchyscan.com',
-  'https://crunchy-scan.com',
-  'https://crunchyscan.net',
-];
-const BASE = CANDIDATE_DOMAINS[0];
-const TIMEOUT = 15_000;
+const BASE = 'https://www.lelmanga.com';
+const REQUEST_TIMEOUT = 15_000;
 
-async function findActiveBase(): Promise<string> {
-  for (const domain of CANDIDATE_DOMAINS) {
-    try {
-      const res = await fetch(domain, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
-      if (res.status < 500) return domain;
-    } catch {
-      // Try the next known public domain.
-    }
-  }
-  return CANDIDATE_DOMAINS[0];
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&#0*39;|&apos;|&#8217;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;|\u00a0/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-async function withPage<T>(fn: (page: Page, base: string) => Promise<T>): Promise<T> {
-  const ctx = await createBrowserContext();
-  const page = await ctx.newPage();
-  const base = await findActiveBase();
-  try {
-    await page.route('**/{ads,analytics,tracking,doubleclick}**', (route) => route.abort());
-    return await fn(page, base);
-  } finally {
-    await page.close().catch(() => {});
-    await ctx.close().catch(() => {});
-  }
+async function getHtml(path: string): Promise<string> {
+  const response = await fetch(`${BASE}${path}`, {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      'User-Agent': 'MangaWave/1.0 (+public chapter reader)',
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+  });
+  if (!response.ok) throw new Error(`LelManga a répondu ${response.status}.`);
+  return response.text();
 }
 
-async function tryJsonApi(path: string): Promise<any | null> {
-  try {
-    const res = await fetch(`${BASE}${path}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'MangaWave/1.0' },
-      signal: AbortSignal.timeout(8_000),
+function firstMatch(html: string, pattern: RegExp): string | null {
+  const value = html.match(pattern)?.[1];
+  return value ? decodeHtml(value) : null;
+}
+
+function parseCards(html: string, limit = 40): SearchResult[] {
+  const items: SearchResult[] = [];
+  const seen = new Set<string>();
+  const pattern = /<a\s+href="https?:\/\/(?:www\.)?lelmanga\.com\/manga\/([^"/]+)"\s+title="([^"]+)"[\s\S]*?<img[^>]+src="([^"]+)"/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html)) && items.length < limit) {
+    const [, id, rawTitle, rawCover] = match;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    items.push({
+      id,
+      title: decodeHtml(rawTitle) || id.replace(/-/g, ' '),
+      coverUrl: decodeHtml(rawCover),
+      status: 'ongoing',
+      rating: 4.8,
+      genres: ['VF', 'Français'],
+      author: null,
+      url: `${BASE}/manga/${id}`,
     });
-    if (res.ok) return res.json();
-  } catch {/* Fallback to Playwright */}
-  return null;
+  }
+  return items;
+}
+
+function parseChapters(html: string): Chapter[] {
+  const chapters: Chapter[] = [];
+  const seen = new Set<string>();
+  const pattern = /<li[^>]+data-num="([^"]+)"[^>]*>([\s\S]*?)<\/li>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html))) {
+    const [, rawNumber, block] = match;
+    const chapterUrl = block.match(/href="https?:\/\/(?:www\.)?lelmanga\.com\/([^"/]+)"/i)?.[1];
+    if (!chapterUrl || seen.has(chapterUrl)) continue;
+    seen.add(chapterUrl);
+    chapters.push({
+      id: chapterUrl,
+      chapterNumber: decodeHtml(rawNumber),
+      title: null,
+      date: firstMatch(block, /class="chapterdate"[^>]*>([\s\S]*?)<\/span>/i) || '',
+      language: 'fr',
+      url: `${BASE}/${chapterUrl}`,
+    });
+  }
+  return chapters;
+}
+
+function parseGenres(html: string): string[] {
+  const container = html.match(/<(?:div|span)[^>]+class="[^"]*mgen[^"]*"[^>]*>([\s\S]*?)<\/(?:div|span)>/i)?.[1] || '';
+  const genres = [...container.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)]
+    .map((match) => decodeHtml(match[1]))
+    .filter(Boolean);
+  return [...new Set(genres)];
+}
+
+type ReaderPayload = {
+  sources?: Array<{ images?: unknown }>;
+};
+
+function parseReaderImages(html: string): string[] {
+  const payload = html.match(/ts_reader\.run\((\{[\s\S]*?\})\);/i)?.[1];
+  if (!payload) return [];
+  try {
+    const parsed = JSON.parse(payload) as ReaderPayload;
+    for (const source of parsed.sources || []) {
+      if (!Array.isArray(source.images)) continue;
+      const images = source.images.filter((image): image is string => typeof image === 'string' && image.startsWith('https://'));
+      if (images.length > 0) return [...new Set(images)];
+    }
+  } catch (error: unknown) {
+    console.warn('[LelManga] Données lecteur invalides:', error instanceof Error ? error.message : error);
+  }
+  return [];
 }
 
 export const crunchyScanExtractor: SourceExtractor = {
   id: 'crunchyscan',
-  name: 'CrunchyScan (VF)',
+  name: 'LelManga (Scans VF)',
 
   async search(query: string): Promise<SearchResult[]> {
-    // 1. Try JSON API endpoint first
-    const json = await tryJsonApi(`/api/manga/search/manga/${encodeURIComponent(query)}`);
-    if (Array.isArray(json) && json.length > 0) {
-      return json.map((item: any) => ({
-        id: item.slug || String(item.id),
-        title: item.name || item.title || 'Manga sans titre',
-        coverUrl: item.cover
-          ? item.cover.startsWith('http') ? item.cover : `${BASE}/${item.cover}`
-          : null,
-        status: item.status || 'ongoing',
-        rating: 4.7,
-        genres: Array.isArray(item.genres) ? item.genres.map((g: any) => g.name || g) : ['VF'],
-        author: null,
-        url: `${BASE}/manga/${item.slug || item.id}`,
-      }));
-    }
-
-    // 2. Playwright fallback
-    return withPage(async (p, base) => {
-      try {
-        await p.goto(`${base}/search?q=${encodeURIComponent(query)}`, {
-          waitUntil: 'domcontentloaded',
-          timeout: TIMEOUT,
-        });
-      } catch (err) {
-        console.warn(`[CrunchyScan] Could not reach ${base}:`, err);
-        return [];
-      }
-      return p.evaluate((b) => {
-        const items: any[] = [];
-        document.querySelectorAll('a[href*="/lecture-en-ligne/"]').forEach((link) => {
-          const href = (link as HTMLAnchorElement).href;
-          if (href.includes('/read/')) return;
-          const slugMatch = href.match(/\/lecture-en-ligne\/([^/?]+)/);
-          if (!slugMatch) return;
-          const img = link.querySelector('img');
-          const h3 = link.querySelector('h3, h2, .title, [class*="title"]');
-          const title = h3?.textContent?.trim() || img?.getAttribute('alt')?.trim() || '';
-          if (!title) return;
-          const src = img?.getAttribute('data-src') || img?.getAttribute('src') || '';
-          items.push({
-            id: slugMatch[1],
-            title,
-            coverUrl: src.startsWith('http') ? src : src ? `${b}${src}` : null,
-            status: 'ongoing',
-            rating: 4.7,
-            genres: ['VF'],
-            author: null,
-            url: `${b}/lecture-en-ligne/${slugMatch[1]}`,
-          });
-        });
-        return [...new Map(items.map((i) => [i.id, i])).values()];
-      }, base);
-    });
+    return parseCards(await getHtml(`/?s=${encodeURIComponent(query)}`));
   },
 
   async getPopular(): Promise<SearchResult[]> {
-    return withPage(async (p, base) => {
-      try {
-        await p.goto(base, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
-      } catch (err) {
-        console.warn(`[CrunchyScan] Could not reach ${base}:`, err);
-        return [];
-      }
-      const items = await p.evaluate((b) => {
-        const results: any[] = [];
-        document.querySelectorAll('a[href*="/lecture-en-ligne/"]').forEach((link) => {
-          const href = (link as HTMLAnchorElement).href;
-          if (href.includes('/read/')) return;
-          const slugMatch = href.match(/\/lecture-en-ligne\/([^/?]+)/);
-          if (!slugMatch) return;
-          const img = link.querySelector('img');
-          const title = link.querySelector('h3, h2, .title')?.textContent?.trim()
-            || img?.getAttribute('alt')?.trim() || '';
-          if (!title) return;
-          const src = img?.getAttribute('data-src') || img?.getAttribute('src') || '';
-          results.push({
-            id: slugMatch[1],
-            title,
-            coverUrl: src.startsWith('http') ? src : src ? `${b}${src}` : null,
-            status: 'ongoing',
-            rating: 4.8,
-            genres: ['VF', 'Français'],
-            author: null,
-            url: `${b}/lecture-en-ligne/${slugMatch[1]}`,
-          });
-        });
-        return [...new Map(results.map((i) => [i.id, i])).values()].slice(0, 20);
-      }, base);
-      if (items.length > 0) return items;
-      return [];
-    });
+    return parseCards(await getHtml('/'), 24);
   },
 
   async getDetail(idOrSlug: string): Promise<MangaDetail> {
-    return withPage(async (p, base) => {
-      await p.goto(`${base}/lecture-en-ligne/${idOrSlug}`, {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUT,
-      });
-      return p.evaluate((args) => {
-        const { b, id } = args;
-        const title = document.querySelector('h1')?.textContent?.trim() || id;
-        const coverEl = document.querySelector<HTMLImageElement>('img[class*="cover"], img[class*="poster"], img[class*="thumb"]');
-        const coverSrc = coverEl?.getAttribute('data-src') || coverEl?.getAttribute('src') || null;
-        const coverUrl = coverSrc ? (coverSrc.startsWith('http') ? coverSrc : `${b}${coverSrc}`) : null;
-
-        const synopsis = document.querySelector<HTMLElement>('[class*="synopsis"], [class*="description"], [class*="summary"]')?.innerText?.trim() || null;
-
-        const chapters: any[] = [];
-        document.querySelectorAll('a[href*="/read/"]').forEach((link) => {
-          const href = (link as HTMLAnchorElement).href;
-          const text = link.textContent || '';
-          const numMatch = text.match(/[\d.]+/);
-          if (!numMatch) return;
-          const dateEl = link.closest('li, div, tr')?.querySelector('time, span[class*="date"], small');
-          chapters.push({
-            id: href,
-            chapterNumber: numMatch[0],
-            title: null,
-            date: dateEl?.textContent?.trim() || '',
-            language: 'fr',
-            url: href.startsWith('http') ? href : `${b}${href}`,
-          });
-        });
-
-        return { id, title, coverUrl, author: null, status: 'ongoing', genres: ['VF'], synopsis, chapters };
-      }, { b: base, id: idOrSlug });
-    });
+    const id = idOrSlug.replace(/^https?:\/\/[^/]+\/manga\//, '').replace(/^manga\//, '').replace(/\/$/, '');
+    const html = await getHtml(`/manga/${encodeURIComponent(id)}`);
+    const title = firstMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i) || id.replace(/-/g, ' ');
+    const coverUrl = firstMatch(html, /<meta\s+property="og:image"\s+content="([^"]+)"/i)
+      || firstMatch(html, /class="[^"]*(?:thumb|bigcover)[^"]*"[\s\S]*?<img[^>]+src="([^"]+)"/i);
+    const synopsis = firstMatch(html, /class="[^"]*(?:entry-content|synopsis)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+    const status = firstMatch(html, /Status[\s\S]{0,180}?(Ongoing|Completed|Hiatus|Dropped)/i) || 'ongoing';
+    return {
+      id,
+      title,
+      coverUrl,
+      author: null,
+      status: status.toLowerCase(),
+      genres: parseGenres(html),
+      synopsis,
+      chapters: parseChapters(html),
+    };
   },
 
-  async getPages(chapterPath: string): Promise<string[]> {
-    return withPage(async (p, base) => {
-      const targetUrl = chapterPath.startsWith('http') ? chapterPath : `${base}/${chapterPath}`;
-      await p.goto(targetUrl, { waitUntil: 'networkidle', timeout: TIMEOUT });
-
-      // Wait for reader images
-      await p.waitForSelector('.reading-content img, .chapter-images img, #reader img, img[class*="page"]', {
-        timeout: 15_000,
-      }).catch(() => {});
-
-      return p.evaluate((b) => {
-        const selectors = [
-          '.reading-content img',
-          '.chapter-images img',
-          '#reader img',
-          'img[class*="page-image"]',
-          'img[class*="chapter-image"]',
-          '.page img',
-        ];
-        for (const sel of selectors) {
-          const imgs = Array.from(document.querySelectorAll<HTMLImageElement>(sel));
-          const urls = imgs
-            .map((img) => img.getAttribute('data-src') || img.getAttribute('src') || '')
-            .filter((src) => src && src.match(/\.(jpg|jpeg|png|webp)/i))
-            .map((src) => src.startsWith('http') ? src : `${b}${src}`);
-          if (urls.length > 0) return urls;
-        }
-        // Last resort: collect all manga-like images on the page
-        return Array.from(document.querySelectorAll<HTMLImageElement>('img'))
-          .map((img) => img.getAttribute('data-src') || img.getAttribute('src') || '')
-          .filter((src) => src && src.match(/\.(jpg|jpeg|png|webp)/i) && !src.includes('logo') && !src.includes('icon'))
-          .map((src) => src.startsWith('http') ? src : `${b}${src}`);
-      }, base);
-    });
+  async getPages(chapterId: string): Promise<string[]> {
+    const id = chapterId.replace(/^https?:\/\/[^/]+\//, '').replace(/^\//, '').replace(/\/$/, '');
+    return parseReaderImages(await getHtml(`/${encodeURIComponent(id)}`));
   },
 };

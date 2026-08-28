@@ -49,7 +49,7 @@ const relativeDate = (value: string) => {
 
 const SOURCE_BADGES: Record<string, { label: string; cls: string }> = {
   originmanga: { label: 'OriginManga', cls: 'badge-vf' },
-  crunchyscan: { label: 'CrunchyScan', cls: 'bg-orange-500/20 text-orange-400 border border-orange-500/30' },
+  crunchyscan: { label: 'LelManga', cls: 'bg-orange-500/20 text-orange-400 border border-orange-500/30' },
   comick: { label: 'Comick.io', cls: 'bg-manga-purple/25 text-manga-purple-light border border-manga-purple/40' },
   mangadex: { label: 'MangaDex', cls: 'bg-manga-cyan/20 text-manga-cyan border border-manga-cyan/30' },
 };

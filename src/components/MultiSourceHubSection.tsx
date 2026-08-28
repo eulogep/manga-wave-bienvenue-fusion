@@ -19,7 +19,7 @@ type SourceTab = 'comick' | 'originmanga' | 'crunchyscan' | 'mangadex' | 'mangaf
 const TABS: Array<{ id: SourceTab; label: string; badge: string; color: string }> = [
   { id: 'comick', label: 'Comick.io', badge: 'VF & EN', color: 'from-purple-500 to-pink-500' },
   { id: 'originmanga', label: 'OriginManga', badge: 'Scans VF', color: 'from-blue-500 to-purple-600' },
-  { id: 'crunchyscan', label: 'CrunchyScan', badge: 'Scans VF', color: 'from-orange-500 to-amber-500' },
+  { id: 'crunchyscan', label: 'LelManga', badge: 'Scans VF', color: 'from-orange-500 to-amber-500' },
   { id: 'mangadex', label: 'MangaDex', badge: 'Officiel', color: 'from-cyan-500 to-blue-600' },
   { id: 'mangafire', label: 'MangaFire', badge: 'Multi', color: 'from-red-500 to-orange-500' },
   { id: 'asurascans', label: 'AsuraScans', badge: 'EN', color: 'from-emerald-500 to-cyan-500' },
@@ -88,7 +88,7 @@ const MultiSourceHubSection = () => {
             id: item.id,
             title: item.title,
             coverUrl: item.coverUrl,
-            author: 'CrunchyScan',
+            author: 'LelManga',
             rating: item.rating,
             genres: item.genres,
             lastUpdate: 'VF',
@@ -176,7 +176,7 @@ const MultiSourceHubSection = () => {
               Catalogue <span className="glow-text">Multi-Sources</span>
             </h2>
             <p className="text-xs md:text-sm text-white/50 mt-1">
-              Explorez et lisez instantanément le contenu de Comick.io, OriginManga, CrunchyScan et MangaDex.
+              Explorez et lisez instantanément le contenu de Comick.io, OriginManga, LelManga, MangaDex, MangaFire et AsuraScans.
             </p>
           </div>
 

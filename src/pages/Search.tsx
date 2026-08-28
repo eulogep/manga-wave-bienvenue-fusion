@@ -49,7 +49,7 @@ const statusOptions: Array<{ value: SearchStatus; label: string }> = [
 const sourceOptions: Array<{ value: SelectedSource; label: string; badge: string; isNew?: boolean }> = [
   { value: 'all', label: 'Toutes les sources (Multi-Sources)', badge: 'Multi' },
   { value: 'comick', label: 'Comick.io (Scans FR/EN + Reader)', badge: 'VF/EN', isNew: true },
-  { value: 'crunchyscan', label: 'CrunchyScan (Scans FR)', badge: 'VF', isNew: true },
+  { value: 'crunchyscan', label: 'LelManga (Scans VF)', badge: 'VF', isNew: true },
   { value: 'originmanga', label: 'OriginManga (Scans FR)', badge: 'VF' },
   { value: 'mangadex', label: 'MangaDex (Catalogue officiel)', badge: 'Multi' },
   { value: 'asurascans', label: 'AsuraScans (Manhwas Action)', badge: 'EN', isNew: true },
@@ -167,7 +167,7 @@ const Search = () => {
                 Recherche <span className="glow-text">Multi-Sources</span>
               </h1>
               <p className="text-sm md:text-base text-white/60 mt-2">
-                Recherchez simultanément sur Comick.io, OriginManga, CrunchyScan, MangaDex, AsuraScans & MangaFire.
+                Recherchez simultanément sur Comick.io, OriginManga, LelManga, MangaDex, AsuraScans et MangaFire.
               </p>
             </div>
 
@@ -344,10 +344,10 @@ const Search = () => {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/40">CrunchyScan</Badge>
+                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/40">LelManga</Badge>
                     <span className="text-xs text-white/50 font-medium">Scans & Webtoons Français</span>
                   </div>
-                  <h2 className="text-2xl font-bold font-japanese">Résultats CrunchyScan</h2>
+                  <h2 className="text-2xl font-bold font-japanese">Résultats LelManga</h2>
                 </div>
               </div>
 
@@ -371,7 +371,7 @@ const Search = () => {
                           <MangaCard
                             id={item.id}
                             title={item.title}
-                            author="CrunchyScan"
+                            author="LelManga"
                             status="ongoing"
                             genre={item.genres}
                             imageUrl={item.coverUrl}
@@ -383,7 +383,7 @@ const Search = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-white/40">Aucun résultat sur CrunchyScan pour « {initialQuery} ».</p>
+                    <p className="text-sm text-white/40">Aucun résultat sur LelManga pour « {initialQuery} ».</p>
                   )}
                 </div>
               )}

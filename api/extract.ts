@@ -22,7 +22,9 @@ const IMAGE_HOST_SUFFIXES = [
   'crunchyscan.st',
   'mangadex.org',
   'mangafire.to',
+  'lelmanga.com',
   'originmanga.com',
+  'wp.com',
 ];
 
 const stringParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value || '';
