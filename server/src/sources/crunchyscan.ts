@@ -29,7 +29,7 @@ async function getRenderedHtml(path: string): Promise<string> {
     if (!response || response.status() >= 400) {
       throw new Error(`LelManga a répondu ${response?.status() || 'sans statut'}.`);
     }
-    return page.content();
+    return await page.content();
   } finally {
     await page.close().catch(() => undefined);
     await context.close().catch(() => undefined);
