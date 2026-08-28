@@ -6,6 +6,7 @@ import {
   type SourceChapter,
   type SourceType,
 } from '@/integrations/sources';
+import { getExtractorHealth } from '@/integrations/common/extractorClient';
 
 export type ChapterSourceAlternative = {
   source: SourceType;
@@ -102,12 +103,20 @@ export function useChapterSourceAlternatives(
       if (!mangaTitle) return [];
       const wantedTitle = normalizeTitle(mangaTitle);
       const wantedChapter = normalizeChapterNumber(chapterNumber);
+      const health = await getExtractorHealth().catch(() => []);
+      const healthBySource = new Map(health.map((item) => [item.sourceId, item]));
       const candidates = sourceList.filter(
         (candidate) => candidate.id !== currentSource
           && candidate.supportsSearch
           && candidate.supportsChapters
           && candidate.hasDirectPages,
-      );
+      ).sort((left, right) => {
+        const leftHealth = healthBySource.get(left.id);
+        const rightHealth = healthBySource.get(right.id);
+        if (leftHealth?.circuit === 'open' && rightHealth?.circuit !== 'open') return 1;
+        if (rightHealth?.circuit === 'open' && leftHealth?.circuit !== 'open') return -1;
+        return (rightHealth?.score ?? 100) - (leftHealth?.score ?? 100);
+      });
 
       const results = await Promise.allSettled(candidates.map(async (candidate) => {
         const matches = await candidate.search(mangaTitle, 1);

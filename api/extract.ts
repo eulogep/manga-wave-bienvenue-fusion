@@ -1,4 +1,5 @@
 import { getExtractor, extractors } from '../server/src/sources/index.js';
+import { sourceManager, SourceCircuitOpenError } from '../server/src/lib/source-manager.js';
 
 type QueryValue = string | string[] | undefined;
 type ApiRequest = {
@@ -29,6 +30,8 @@ const IMAGE_HOST_SUFFIXES = [
 
 const stringParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value || '';
 
+sourceManager.register(Object.keys(extractors));
+
 function allowedImageUrl(rawUrl: string): URL | null {
   try {
     const url = new URL(rawUrl);
@@ -58,7 +61,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   const action = parts[0] || 'health';
 
   if (action === 'health') {
-    return response.status(200).json({ status: 'ok', sources: Object.keys(extractors) });
+    return response.status(200).json({ status: 'ok', sources: sourceManager.snapshots() });
   }
 
   if (action === 'image-proxy') {
@@ -93,14 +96,14 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       const query = stringParam(request.query.q).trim();
       if (query.length < 2) return response.status(400).json({ error: 'Recherche trop courte.' });
       const page = Math.max(Number.parseInt(stringParam(request.query.page) || '1', 10), 1);
-      const results = await extractor.search(query, page);
+      const results = await sourceManager.execute(sourceId, 'search', () => extractor.search(query, page));
       response.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
       return response.status(200).json({ results });
     }
 
     if (action === 'popular') {
       const page = Math.max(Number.parseInt(stringParam(request.query.page) || '1', 10), 1);
-      const results = await extractor.getPopular(page);
+      const results = await sourceManager.execute(sourceId, 'popular', () => extractor.getPopular(page));
       response.setHeader('Cache-Control', 'public, max-age=300, s-maxage=900');
       return response.status(200).json({ results });
     }
@@ -109,13 +112,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     if (!resourceId) return response.status(400).json({ error: 'Identifiant requis.' });
 
     if (action === 'detail') {
-      const manga = await extractor.getDetail(resourceId);
+      const manga = await sourceManager.execute(sourceId, 'detail', () => extractor.getDetail(resourceId));
       response.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600');
       return response.status(200).json({ manga });
     }
 
     if (action === 'pages') {
-      const images = await extractor.getPages(resourceId);
+      const images = await sourceManager.execute(sourceId, 'pages', () => extractor.getPages(resourceId));
       if (images.length === 0) {
         return response.status(404).json({ error: `Aucune page trouvée sur ${extractor.name}.` });
       }
@@ -127,6 +130,12 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erreur d’extraction.';
     console.error(`[extract:${sourceId}:${action}]`, message);
-    return response.status(502).json({ error: message });
+    const status = error instanceof SourceCircuitOpenError ? 503 : 502;
+    return response.status(status).json({
+      error: message,
+      source: sourceId,
+      operation: action,
+      retryAt: error instanceof SourceCircuitOpenError ? error.retryAt : null,
+    });
   }
 }

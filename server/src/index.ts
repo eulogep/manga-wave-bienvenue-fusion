@@ -5,21 +5,27 @@
 import express from 'express';
 import cors from 'cors';
 import { closeBrowser } from './lib/browser-pool.js';
+import { sourceManager, SourceCircuitOpenError } from './lib/source-manager.js';
 import { extractors, getExtractor } from './sources/index.js';
 
 const app = express();
 const PORT = process.env.PORT || process.argv[2] || 3001;
+sourceManager.register(Object.keys(extractors));
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function extractionErrorStatus(error: unknown): number {
+  return error instanceof SourceCircuitOpenError ? 503 : 500;
 }
 
 app.use(cors({ origin: ['http://localhost:8080', 'http://localhost:5173', 'https://ilmsomiaqthhfyvgqnsp.supabase.co'] }));
 app.use(express.json());
 
 // ─── Health check ────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', sources: Object.keys(extractors) });
+app.get(['/health', '/api/extract/health'], (_req, res) => {
+  res.json({ status: 'ok', sources: sourceManager.snapshots() });
 });
 
 // ─── Search ──────────────────────────────────────────────────────────
@@ -34,12 +40,12 @@ app.get('/api/extract/search/:source', async (req, res) => {
 
   try {
     console.log(`[${source}] search: "${query}" page ${page}`);
-    const results = await extractor.search(query, page);
+    const results = await sourceManager.execute(source, 'search', () => extractor.search(query, page));
     return res.json({ results });
   } catch (err: unknown) {
     const message = errorMessage(err);
     console.error(`[${source}] search error:`, message);
-    return res.status(500).json({ error: message || 'Erreur lors de la recherche' });
+    return res.status(extractionErrorStatus(err)).json({ error: message || 'Erreur lors de la recherche' });
   }
 });
 
@@ -53,12 +59,12 @@ app.get('/api/extract/popular/:source', async (req, res) => {
 
   try {
     console.log(`[${source}] popular page ${page}`);
-    const results = await extractor.getPopular(page);
+    const results = await sourceManager.execute(source, 'popular', () => extractor.getPopular(page));
     return res.json({ results });
   } catch (err: unknown) {
     const message = errorMessage(err);
     console.error(`[${source}] popular error:`, message);
-    return res.status(500).json({ error: message || 'Erreur lors du chargement populaire' });
+    return res.status(extractionErrorStatus(err)).json({ error: message || 'Erreur lors du chargement populaire' });
   }
 });
 
@@ -71,12 +77,12 @@ app.get('/api/extract/detail/:source/:mangaId', async (req, res) => {
 
   try {
     console.log(`[${source}] detail: ${mangaId}`);
-    const detail = await extractor.getDetail(mangaId);
+    const detail = await sourceManager.execute(source, 'detail', () => extractor.getDetail(mangaId));
     return res.json({ manga: detail });
   } catch (err: unknown) {
     const message = errorMessage(err);
     console.error(`[${source}] detail error:`, message);
-    return res.status(500).json({ error: message || 'Erreur lors du chargement du manga' });
+    return res.status(extractionErrorStatus(err)).json({ error: message || 'Erreur lors du chargement du manga' });
   }
 });
 
@@ -89,7 +95,7 @@ app.get('/api/extract/pages/:source/:chapterId', async (req, res) => {
 
   try {
     console.log(`[${source}] pages: chapter ${chapterId}`);
-    const images = await extractor.getPages(chapterId);
+    const images = await sourceManager.execute(source, 'pages', () => extractor.getPages(chapterId));
     if (images.length === 0) {
       return res.status(404).json({
         error: `Aucune page trouvée pour ce chapitre sur ${extractor.name}. Le site a peut-être changé de structure.`,
@@ -99,7 +105,7 @@ app.get('/api/extract/pages/:source/:chapterId', async (req, res) => {
   } catch (err: unknown) {
     const message = errorMessage(err);
     console.error(`[${source}] pages error:`, message);
-    return res.status(500).json({ error: message || 'Impossible de charger les pages du chapitre' });
+    return res.status(extractionErrorStatus(err)).json({ error: message || 'Impossible de charger les pages du chapitre' });
   }
 });
 

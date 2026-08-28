@@ -29,6 +29,21 @@ export type ExtractedManga = {
   chapters: ExtractedChapter[];
 };
 
+export type ExtractorSourceHealth = {
+  sourceId: string;
+  circuit: 'closed' | 'open' | 'half-open';
+  score: number;
+  requestCount: number;
+  successCount: number;
+  failureCount: number;
+  consecutiveFailures: number;
+  averageLatencyMs: number;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  lastError: string | null;
+  retryAt: string | null;
+};
+
 export async function extractorFetch<T>(path: string): Promise<T> {
   const response = await fetch(`/api/extract${path}`, {
     headers: { Accept: 'application/json' },
@@ -39,4 +54,9 @@ export async function extractorFetch<T>(path: string): Promise<T> {
     throw new Error(body?.error || `Extracteur indisponible (${response.status}).`);
   }
   return response.json() as Promise<T>;
+}
+
+export async function getExtractorHealth(): Promise<ExtractorSourceHealth[]> {
+  const data = await extractorFetch<{ status: string; sources: ExtractorSourceHealth[] }>('/health');
+  return data.sources;
 }
