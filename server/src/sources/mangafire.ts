@@ -3,6 +3,7 @@
  * High-performance action & fantasy manhwa/manga source
  */
 import type { SearchResult, Chapter, MangaDetail, SourceExtractor } from '../lib/extractor-types.js';
+import { createBrowserContext } from '../lib/browser-pool.js';
 
 const BASE = 'https://flamecomics.xyz';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -19,6 +20,20 @@ async function fetchHtml(urlOrPath: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`MangaFire/Flame HTTP ${res.status}: ${urlOrPath}`);
   return res.text();
+}
+
+async function fetchRenderedHtml(urlOrPath: string): Promise<string> {
+  const url = urlOrPath.startsWith('http') ? urlOrPath : `${BASE}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
+  const context = await createBrowserContext();
+  const page = await context.newPage();
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await page.waitForTimeout(1_500);
+    return page.content();
+  } finally {
+    await page.close().catch(() => undefined);
+    await context.close().catch(() => undefined);
+  }
 }
 
 function parseCards(html: string): SearchResult[] {
@@ -72,14 +87,22 @@ function parseCards(html: string): SearchResult[] {
   return items.slice(0, 24);
 }
 
+async function loadCards(path: string): Promise<SearchResult[]> {
+  const direct = parseCards(await fetchHtml(path));
+  if (direct.length > 0) return direct;
+
+  const rendered = parseCards(await fetchRenderedHtml(path));
+  if (rendered.length === 0) throw new Error('MangaFire/Flame ne contient aucune fiche exploitable.');
+  return rendered;
+}
+
 export const mangaFireExtractor: SourceExtractor = {
   id: 'mangafire',
   name: 'MangaFire',
 
   async search(query: string): Promise<SearchResult[]> {
     try {
-      const html = await fetchHtml('/browse');
-      const all = parseCards(html);
+      const all = await loadCards('/browse');
       const q = query.toLowerCase();
       const filtered = all.filter((item) => item.title.toLowerCase().includes(q));
       return filtered.length > 0 ? filtered : all.slice(0, 10);
@@ -91,11 +114,10 @@ export const mangaFireExtractor: SourceExtractor = {
 
   async getPopular(): Promise<SearchResult[]> {
     try {
-      const html = await fetchHtml('/browse');
-      return parseCards(html);
+      return await loadCards('/browse');
     } catch (err: unknown) {
       console.warn('[MangaFire] popular error:', err);
-      return [];
+      throw err instanceof Error ? err : new Error(String(err));
     }
   },
 
