@@ -14,19 +14,19 @@ import {
   usePopularMangaFire,
 } from '@/hooks/useExternalSources';
 
-type SourceTab = 'comick' | 'originmanga' | 'crunchyscan' | 'mangadex' | 'mangafire' | 'asurascans';
+type SourceTab = 'originmanga' | 'crunchyscan' | 'asurascans' | 'mangafire' | 'mangadex' | 'comick';
 
 const TABS: Array<{ id: SourceTab; label: string; badge: string; color: string }> = [
-  { id: 'comick', label: 'Comick.io', badge: 'VF & EN', color: 'from-purple-500 to-pink-500' },
   { id: 'originmanga', label: 'OriginManga', badge: 'Scans VF', color: 'from-blue-500 to-purple-600' },
-  { id: 'crunchyscan', label: 'LelManga', badge: 'Scans VF', color: 'from-orange-500 to-amber-500' },
+  { id: 'crunchyscan', label: 'LelManga / VF', badge: 'Scans VF', color: 'from-orange-500 to-amber-500' },
+  { id: 'asurascans', label: 'AsuraScans', badge: 'Manhwa EN', color: 'from-emerald-500 to-cyan-500' },
+  { id: 'mangafire', label: 'MangaFire', badge: 'Manga EN', color: 'from-red-500 to-orange-500' },
   { id: 'mangadex', label: 'MangaDex', badge: 'Officiel', color: 'from-cyan-500 to-blue-600' },
-  { id: 'mangafire', label: 'MangaFire', badge: 'Multi', color: 'from-red-500 to-orange-500' },
-  { id: 'asurascans', label: 'AsuraScans', badge: 'EN', color: 'from-emerald-500 to-cyan-500' },
+  { id: 'comick', label: 'Comick.io', badge: 'Multi', color: 'from-purple-500 to-pink-500' },
 ];
 
 const MultiSourceHubSection = () => {
-  const [activeTab, setActiveTab] = useState<SourceTab>('comick');
+  const [activeTab, setActiveTab] = useState<SourceTab>('originmanga');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Queries for the sources

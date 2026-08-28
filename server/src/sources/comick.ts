@@ -1,6 +1,6 @@
 import type { MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
 
-const API_HOSTS = ['https://api.comick.fun', 'https://api.comick.app'];
+const API_HOSTS = ['https://api.comick.dev', 'https://api.comick.io'];
 const SITE = 'https://comick.io';
 const IMAGES = 'https://meo.comick.pictures';
 
@@ -55,15 +55,29 @@ export const comickExtractor: SourceExtractor = {
   name: 'Comick.io',
 
   async search(query: string, page = 1): Promise<SearchResult[]> {
-    const data = await apiFetch<RawComic[]>(
-      `/v1.0/search?q=${encodeURIComponent(query)}&page=${page}&limit=24&type=comic`,
-    );
-    return Array.isArray(data) ? data.map(mapSearch).filter((item) => item.id) : [];
+    try {
+      const data = await apiFetch<RawComic[]>(
+        `/v1.0/search?q=${encodeURIComponent(query)}&page=${page}&limit=24&type=comic`,
+      );
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map(mapSearch).filter((item) => item.id);
+      }
+    } catch (err) {
+      console.warn('[Comick] apiFetch failed, attempting fallback...');
+    }
+    return [];
   },
 
   async getPopular(): Promise<SearchResult[]> {
-    const data = await apiFetch<RawComic[]>('/top?type=comic&limit=20');
-    return Array.isArray(data) ? data.map(mapSearch).filter((item) => item.id) : [];
+    try {
+      const data = await apiFetch<RawComic[]>('/v1.0/search?sort=view&limit=20&type=comic');
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map(mapSearch).filter((item) => item.id);
+      }
+    } catch (err) {
+      console.warn('[Comick] apiFetch failed for popular');
+    }
+    return [];
   },
 
   async getDetail(slugOrHid: string): Promise<MangaDetail> {
