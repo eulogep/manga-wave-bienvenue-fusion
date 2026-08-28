@@ -88,8 +88,12 @@ function parseCards(html: string): SearchResult[] {
 }
 
 async function loadCards(path: string): Promise<SearchResult[]> {
-  const direct = parseCards(await fetchHtml(path));
-  if (direct.length > 0) return direct;
+  try {
+    const direct = parseCards(await fetchHtml(path));
+    if (direct.length > 0) return direct;
+  } catch (error: unknown) {
+    console.warn('[MangaFire] direct fetch failed, using Chromium:', error);
+  }
 
   const rendered = parseCards(await fetchRenderedHtml(path));
   if (rendered.length === 0) throw new Error('MangaFire/Flame ne contient aucune fiche exploitable.');
