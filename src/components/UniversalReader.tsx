@@ -365,10 +365,18 @@ const UniversalReader = ({
               <img
                 src={pages[currentPage]}
                 alt={`Page ${currentPage + 1}`}
+                referrerPolicy="no-referrer"
                 className={`rounded-lg shadow-2xl border border-white/10 ${
                   fitWidth ? 'w-full h-auto' : 'max-h-[80vh] w-auto object-contain'
                 }`}
                 loading="eager"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const currentSrc = target.src;
+                  if (!currentSrc.includes('/api/extract/image-proxy') && pages[currentPage]) {
+                    target.src = `/api/extract/image-proxy?url=${encodeURIComponent(pages[currentPage])}`;
+                  }
+                }}
               />
 
               {/* Hover Navigation Indicators */}
@@ -443,8 +451,16 @@ const UniversalReader = ({
                 <img
                   src={url}
                   alt={`Page ${idx + 1}`}
+                  referrerPolicy="no-referrer"
                   className="w-full h-auto object-contain rounded shadow-lg border border-white/5"
                   loading="lazy"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const currentSrc = target.src;
+                    if (!currentSrc.includes('/api/extract/image-proxy')) {
+                      target.src = `/api/extract/image-proxy?url=${encodeURIComponent(url)}`;
+                    }
+                  }}
                 />
                 <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[10px] text-white/70">
                   {idx + 1}/{pages.length}

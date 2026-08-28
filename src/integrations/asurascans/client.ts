@@ -1,5 +1,8 @@
-const ASURA_BASE = 'https://asuracomic.net';
-const PROXY = 'https://corsproxy.io/?';
+import {
+  extractorFetch,
+  type ExtractedManga,
+  type ExtractedSearchResult,
+} from '@/integrations/common/extractorClient';
 
 export type AsuraSearchResult = {
   id: string;
@@ -11,33 +14,48 @@ export type AsuraSearchResult = {
   url: string;
 };
 
-export async function searchAsura(query: string): Promise<AsuraSearchResult[]> {
+const mapSearch = (item: ExtractedSearchResult): AsuraSearchResult => ({
+  id: item.id,
+  title: item.title,
+  coverUrl: item.coverUrl,
+  status: item.status,
+  rating: item.rating,
+  latestChapter: null,
+  url: item.url,
+});
+
+export async function searchAsura(query: string, page = 1): Promise<AsuraSearchResult[]> {
   try {
-    const url = `${ASURA_BASE}/series?name=${encodeURIComponent(query)}`;
-    const res = await fetch(`${PROXY}${encodeURIComponent(url)}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-    });
-    if (!res.ok) throw new Error(`AsuraScans ${res.status}`);
-    const html = await res.text();
-
-    const results: AsuraSearchResult[] = [];
-    const regex = /<a[^>]+href="\/series\/([^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*font-bold[^"]*"[^>]*>([^<]+)<\/span>/gi;
-    let match;
-    while ((match = regex.exec(html)) !== null) {
-      results.push({
-        id: match[1],
-        title: match[3].trim(),
-        coverUrl: match[2],
-        status: 'ongoing',
-        rating: 4.9,
-        latestChapter: null,
-        url: `${ASURA_BASE}/series/${match[1]}`,
-      });
-    }
-
-    return results;
-  } catch (err) {
-    console.warn('AsuraScans search error:', err);
+    const data = await extractorFetch<{ results: ExtractedSearchResult[] }>(
+      `/search/asurascans?q=${encodeURIComponent(query)}&page=${page}`,
+    );
+    return (data.results || []).map(mapSearch);
+  } catch (error) {
+    console.warn('[AsuraScans] search error:', error);
     return [];
   }
+}
+
+export async function getPopularAsura(): Promise<AsuraSearchResult[]> {
+  try {
+    const data = await extractorFetch<{ results: ExtractedSearchResult[] }>('/popular/asurascans');
+    return (data.results || []).map(mapSearch);
+  } catch (error) {
+    console.warn('[AsuraScans] popular error:', error);
+    return [];
+  }
+}
+
+export async function getAsuraDetail(mangaId: string): Promise<ExtractedManga> {
+  const data = await extractorFetch<{ manga: ExtractedManga }>(
+    `/detail/asurascans/${encodeURIComponent(mangaId)}`,
+  );
+  return data.manga;
+}
+
+export async function getAsuraPages(chapterId: string): Promise<string[]> {
+  const data = await extractorFetch<{ images: string[] }>(
+    `/pages/asurascans/${encodeURIComponent(chapterId)}`,
+  );
+  return data.images || [];
 }

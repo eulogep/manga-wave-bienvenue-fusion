@@ -1,14 +1,16 @@
-import {
-  cleanHtmlText,
-  extractFirstMatch,
-  extractRegexAll,
-  resilientScrape,
-} from '@/integrations/common/scraperClient';
+/**
+ * CrunchyScan frontend client — calls the local scraper backend
+ * The backend renders public pages and extracts their chapter content.
+ */
 
-const CRUNCHY_BASE = 'https://crunchyscan.fr';
+import {
+  extractorFetch,
+  type ExtractedChapter,
+  type ExtractedManga,
+} from '@/integrations/common/extractorClient';
 
 export type CrunchyScanSearchResult = {
-  id: string; // slug or numeric id
+  id: string;
   title: string;
   coverUrl: string | null;
   status: string;
@@ -38,139 +40,56 @@ export type CrunchyScanDetail = {
 
 export async function searchCrunchyScan(query: string): Promise<CrunchyScanSearchResult[]> {
   try {
-    // 1. Try the JSON search API endpoint
-    const data = await resilientScrape<any>(
-      `${CRUNCHY_BASE}/api/manga/search/manga/${encodeURIComponent(query)}`,
-      { asJson: true, referer: CRUNCHY_BASE },
+    const data = await extractorFetch<{ results: CrunchyScanSearchResult[] }>(
+      `/search/crunchyscan?q=${encodeURIComponent(query)}`,
     );
-    if (Array.isArray(data)) {
-      return data.map((item: any) => ({
-        id: item.slug || String(item.id),
-        title: item.name || item.title || 'Manga sans titre',
-        coverUrl: item.cover ? (item.cover.startsWith('http') ? item.cover : `${CRUNCHY_BASE}/${item.cover}`) : null,
-        status: item.status || 'ongoing',
-        rating: 4.8,
-        genres: Array.isArray(item.genres) ? item.genres.map((g: any) => g.name || g) : ['VF', 'Manga'],
-        url: `${CRUNCHY_BASE}/manga/${item.slug || item.id}`,
-      }));
-    }
+    return data.results || [];
   } catch (err) {
-    console.warn('CrunchyScan API search failed, attempting HTML fallback:', err);
-  }
-
-  // 2. Fallback: HTML regex extraction
-  try {
-    const html = await resilientScrape<string>(
-      `${CRUNCHY_BASE}/search?q=${encodeURIComponent(query)}`,
-      { referer: CRUNCHY_BASE },
-    );
-    const results: CrunchyScanSearchResult[] = [];
-    const regex = /<a[^>]+href="\/manga\/([^"]+)"[^>]*>[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"[^>]*>[\s\S]*?<h3[^>]*>([^<]+)<\/h3>/gi;
-    const matches = extractRegexAll(html, regex);
-
-    for (const match of matches) {
-      const slug = match[1];
-      const cover = match[2];
-      const title = cleanHtmlText(match[3]);
-      results.push({
-        id: slug,
-        title,
-        coverUrl: cover.startsWith('http') ? cover : `${CRUNCHY_BASE}${cover}`,
-        status: 'ongoing',
-        rating: 4.7,
-        genres: ['VF'],
-        url: `${CRUNCHY_BASE}/manga/${slug}`,
-      });
-    }
-    return results;
-  } catch {
+    console.warn('[CrunchyScan] search error:', err);
     return [];
   }
 }
 
 export async function getPopularCrunchyScan(): Promise<CrunchyScanSearchResult[]> {
   try {
-    const html = await resilientScrape<string>(`${CRUNCHY_BASE}/`, { referer: CRUNCHY_BASE });
-    const results: CrunchyScanSearchResult[] = [];
-    const regex = /<a[^>]+href="\/manga\/([^"]+)"[^>]*>[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"[^>]*>[\s\S]*?<h3[^>]*>([^<]+)<\/h3>/gi;
-    const matches = extractRegexAll(html, regex);
-
-    for (const match of matches) {
-      if (!results.some((r) => r.id === match[1])) {
-        results.push({
-          id: match[1],
-          title: cleanHtmlText(match[3]),
-          coverUrl: match[2].startsWith('http') ? match[2] : `${CRUNCHY_BASE}${match[2]}`,
-          status: 'ongoing',
-          rating: 4.8,
-          genres: ['VF', 'Français'],
-          url: `${CRUNCHY_BASE}/manga/${match[1]}`,
-        });
-      }
-    }
-    if (results.length > 0) return results.slice(0, 18);
-  } catch {
-    // Fallback
+    const data = await extractorFetch<{ results: CrunchyScanSearchResult[] }>(
+      '/popular/crunchyscan',
+    );
+    return data.results || [];
+  } catch (err) {
+    console.warn('[CrunchyScan] popular error:', err);
+    return searchCrunchyScan('a');
   }
-  return searchCrunchyScan('a');
 }
 
-
 export async function getCrunchyScanDetail(idOrSlug: string): Promise<CrunchyScanDetail> {
-  const html = await resilientScrape<string>(`${CRUNCHY_BASE}/manga/${idOrSlug}`, {
-    referer: CRUNCHY_BASE,
-  });
-
-  const titleRaw = extractFirstMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
-  const title = titleRaw ? cleanHtmlText(titleRaw) : idOrSlug;
-
-  const coverUrl =
-    extractFirstMatch(html, /<img[^>]+(?:data-src|src)="([^"]+)"[^>]*class="[^"]*(?:cover|poster|thumb)[^"]*"/i) ||
-    extractFirstMatch(html, /<img[^>]+class="[^"]*(?:cover|poster|thumb)[^"]*"[^>]+(?:data-src|src)="([^"]+)"/i);
-
-  const synopsisRaw = extractFirstMatch(html, /<div[^>]*class="[^"]*(?:synopsis|description|summary)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-  const synopsis = synopsisRaw ? cleanHtmlText(synopsisRaw) : null;
-
-  const chapters: CrunchyScanDetail['chapters'] = [];
-  const chRegex = /<a[^>]+href="([^"]*(?:read|lecture|chapter)[^"]*)"[^>]*>[\s\S]*?(?:Chapitre|Ch\.?)\s*([\d.]+)(?:[\s\S]*?<span[^>]*>([^<]+)<\/span>)?/gi;
-  const chMatches = extractRegexAll(html, chRegex);
-
-  for (const chMatch of chMatches) {
-    chapters.push({
-      id: chMatch[1].replace(/^\//, ''),
-      chapterNumber: chMatch[2],
-      title: null,
-      date: chMatch[3] ? cleanHtmlText(chMatch[3]) : '',
-      url: chMatch[1].startsWith('http') ? chMatch[1] : `${CRUNCHY_BASE}${chMatch[1]}`,
-    });
-  }
-
+  const data = await extractorFetch<{ manga: ExtractedManga }>(
+    `/detail/crunchyscan/${encodeURIComponent(idOrSlug)}`,
+  );
+  const m = data.manga;
   return {
-    id: idOrSlug,
-    title,
-    coverUrl: coverUrl ? (coverUrl.startsWith('http') ? coverUrl : `${CRUNCHY_BASE}${coverUrl}`) : null,
+    id: m.id,
+    title: m.title,
+    coverUrl: m.coverUrl,
     altTitles: [],
-    author: null,
+    author: m.author,
     artist: null,
-    status: 'ongoing',
-    genres: ['VF', 'Français'],
-    synopsis,
-    chapters,
+    status: m.status || 'ongoing',
+    genres: m.genres || ['VF'],
+    synopsis: m.synopsis,
+    chapters: (m.chapters || []).map((ch: ExtractedChapter) => ({
+      id: ch.id,
+      chapterNumber: ch.chapterNumber,
+      title: ch.title,
+      date: ch.date,
+      url: ch.url,
+    })),
   };
 }
 
 export async function getCrunchyScanPages(chapterPath: string): Promise<string[]> {
-  const targetUrl = chapterPath.startsWith('http') ? chapterPath : `${CRUNCHY_BASE}/${chapterPath}`;
-  const html = await resilientScrape<string>(targetUrl, { referer: `${CRUNCHY_BASE}/manga` });
-
-  const pages: string[] = [];
-  const imgRegex = /<img[^>]+(?:data-src|src)="([^"]+)"[^>]*class="[^"]*(?:page|reader|chapter-image)[^"]*"/gi;
-  const matches = extractRegexAll(html, imgRegex);
-
-  for (const match of matches) {
-    const url = match[1];
-    pages.push(url.startsWith('http') ? url : `${CRUNCHY_BASE}${url}`);
-  }
-
-  return pages;
+  const data = await extractorFetch<{ images: string[] }>(
+    `/pages/crunchyscan/${encodeURIComponent(chapterPath)}`,
+  );
+  return data.images || [];
 }

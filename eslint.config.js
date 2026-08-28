@@ -28,4 +28,16 @@ export default tseslint.config(
       "react-hooks/purity": "off",
     },
   }
+  ,
+  {
+    files: [
+      "server/src/sources/crunchyscan.ts",
+      "server/src/sources/mangadex.ts",
+      "server/src/sources/originmanga.ts",
+    ],
+    rules: {
+      // DOM values returned from page.evaluate are runtime-shaped source data.
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  }
 );

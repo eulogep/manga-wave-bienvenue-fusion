@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { searchComick, getComickDetail, getPopularComick } from '@/integrations/comick/client';
 import { searchCrunchyScan, getCrunchyScanDetail, getPopularCrunchyScan } from '@/integrations/crunchyscan/client';
-import { searchMangaFire } from '@/integrations/mangafire/client';
-import { searchAsura } from '@/integrations/asurascans/client';
+import { getPopularMangaFire, searchMangaFire } from '@/integrations/mangafire/client';
+import { getPopularAsura, searchAsura } from '@/integrations/asurascans/client';
 
 export function usePopularComick() {
   return useQuery({
@@ -65,11 +65,27 @@ export function useMangaFireSearch(query: string) {
   });
 }
 
+export function usePopularMangaFire() {
+  return useQuery({
+    queryKey: ['mangafire-popular'],
+    queryFn: () => getPopularMangaFire(),
+    staleTime: 1000 * 60 * 15,
+  });
+}
+
 export function useAsuraSearch(query: string) {
   return useQuery({
     queryKey: ['asura-search', query],
     queryFn: () => searchAsura(query),
     enabled: Boolean(query.trim().length >= 2),
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function usePopularAsura() {
+  return useQuery({
+    queryKey: ['asurascans-popular'],
+    queryFn: () => getPopularAsura(),
+    staleTime: 1000 * 60 * 15,
   });
 }

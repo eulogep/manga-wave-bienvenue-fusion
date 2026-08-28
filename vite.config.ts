@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => ({
     host: '::',
     port: 8080,
     proxy: {
+      // Scraper backend (Node.js + Playwright)
+      '/api/extract': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      // MangaDex API direct proxies
       '/mangadex-api': {
         target: 'https://api.mangadex.org',
         changeOrigin: true,

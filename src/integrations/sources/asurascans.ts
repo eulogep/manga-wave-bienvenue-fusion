@@ -1,18 +1,18 @@
-import { searchAsura } from '@/integrations/asurascans/client';
+import { getAsuraDetail, getAsuraPages, searchAsura } from '@/integrations/asurascans/client';
 import type { MangaSource, SourceChapter, SourceManga, SourceSearchResult } from './types';
 
 export class AsuraScansSource implements MangaSource {
   public readonly id = 'asurascans' as const;
   public readonly name = 'AsuraScans';
   public readonly displayName = 'AsuraScans (Manhwa EN)';
-  public readonly baseUrl = 'https://asuracomic.net';
+  public readonly baseUrl = 'https://asurascans.com';
   public readonly lang = 'en';
-  public readonly hasDirectPages = false;
+  public readonly hasDirectPages = true;
   public readonly supportsSearch = true;
-  public readonly supportsChapters = false;
+  public readonly supportsChapters = true;
 
-  async search(query: string): Promise<SourceSearchResult[]> {
-    const results = await searchAsura(query);
+  async search(query: string, page = 1): Promise<SourceSearchResult[]> {
+    const results = await searchAsura(query, page);
     return results.map((item) => ({
       id: item.id,
       source: this.id,
@@ -26,27 +26,39 @@ export class AsuraScansSource implements MangaSource {
   }
 
   async getMangaDetails(id: string): Promise<SourceManga> {
+    const detail = await getAsuraDetail(id);
     return {
-      id,
+      id: detail.id,
       source: this.id,
-      title: id.replace(/-/g, ' ').toUpperCase(),
-      coverUrl: null,
+      title: detail.title,
+      coverUrl: detail.coverUrl,
       altTitles: [],
-      author: 'AsuraScans',
+      author: detail.author,
       artist: null,
-      status: 'ongoing',
-      genres: ['Manhwa', 'Action', 'Fantasy'],
-      synopsis: 'Consultez la fiche complète directement sur AsuraScans.',
-      externalUrl: `${this.baseUrl}/series/${id}`,
+      status: detail.status,
+      genres: detail.genres,
+      synopsis: detail.synopsis,
+      externalUrl: `${this.baseUrl}/comics/${id}`,
+      lastChapter: detail.chapters[0]?.chapterNumber || null,
     };
   }
 
-  async getChapters(): Promise<SourceChapter[]> {
-    return [];
+  async getChapters(mangaId: string): Promise<SourceChapter[]> {
+    const detail = await getAsuraDetail(mangaId);
+    return detail.chapters.map((chapter) => ({
+      id: chapter.id,
+      source: this.id,
+      mangaId,
+      chapterNumber: chapter.chapterNumber,
+      title: chapter.title,
+      date: chapter.date,
+      language: chapter.language,
+      externalUrl: chapter.url,
+    }));
   }
 
-  async getPageUrls(): Promise<string[]> {
-    return [];
+  async getPageUrls(chapterId: string): Promise<string[]> {
+    return getAsuraPages(chapterId);
   }
 }
 

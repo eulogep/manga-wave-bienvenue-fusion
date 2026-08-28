@@ -7,15 +7,22 @@ import MangaCard from '@/components/MangaCard';
 import MangaCoverSkeleton from '@/components/ui/MangaCoverSkeleton';
 import { useMangaDexSearch } from '@/hooks/useMangaDex';
 import { usePopularOriginManga } from '@/hooks/useOriginManga';
-import { usePopularComick, usePopularCrunchyScan } from '@/hooks/useExternalSources';
+import {
+  usePopularAsura,
+  usePopularComick,
+  usePopularCrunchyScan,
+  usePopularMangaFire,
+} from '@/hooks/useExternalSources';
 
-type SourceTab = 'all' | 'comick' | 'originmanga' | 'crunchyscan' | 'mangadex';
+type SourceTab = 'comick' | 'originmanga' | 'crunchyscan' | 'mangadex' | 'mangafire' | 'asurascans';
 
 const TABS: Array<{ id: SourceTab; label: string; badge: string; color: string }> = [
   { id: 'comick', label: 'Comick.io', badge: 'VF & EN', color: 'from-purple-500 to-pink-500' },
   { id: 'originmanga', label: 'OriginManga', badge: 'Scans VF', color: 'from-blue-500 to-purple-600' },
   { id: 'crunchyscan', label: 'CrunchyScan', badge: 'Scans VF', color: 'from-orange-500 to-amber-500' },
   { id: 'mangadex', label: 'MangaDex', badge: 'Officiel', color: 'from-cyan-500 to-blue-600' },
+  { id: 'mangafire', label: 'MangaFire', badge: 'Multi', color: 'from-red-500 to-orange-500' },
+  { id: 'asurascans', label: 'AsuraScans', badge: 'EN', color: 'from-emerald-500 to-cyan-500' },
 ];
 
 const MultiSourceHubSection = () => {
@@ -27,6 +34,8 @@ const MultiSourceHubSection = () => {
   const originQuery = usePopularOriginManga();
   const crunchyQuery = usePopularCrunchyScan();
   const mangaDexQuery = useMangaDexSearch({ limit: 18, order: 'followedCount' });
+  const mangaFireQuery = usePopularMangaFire();
+  const asuraQuery = usePopularAsura();
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -92,7 +101,6 @@ const MultiSourceHubSection = () => {
           searchUrl: '/search?source=crunchyscan',
         };
       case 'mangadex':
-      default:
         return {
           items: (mangaDexQuery.data?.mangas || []).map((item) => ({
             id: item.id,
@@ -109,6 +117,42 @@ const MultiSourceHubSection = () => {
           isLoading: mangaDexQuery.isLoading,
           isError: mangaDexQuery.isError,
           searchUrl: '/search?source=mangadex',
+        };
+      case 'mangafire':
+        return {
+          items: (mangaFireQuery.data || []).map((item) => ({
+            id: item.id,
+            title: item.title,
+            coverUrl: item.coverUrl,
+            author: 'MangaFire',
+            rating: item.rating,
+            genres: ['Manga', 'Manhwa'],
+            lastUpdate: 'Chapitres EN',
+            detailUrl: `/manga/${encodeURIComponent(item.id)}?source=mangafire`,
+            badge: 'MangaFire',
+            badgeCls: 'bg-red-500/20 text-red-300 border border-red-500/30',
+          })),
+          isLoading: mangaFireQuery.isLoading,
+          isError: mangaFireQuery.isError,
+          searchUrl: '/search?source=mangafire',
+        };
+      case 'asurascans':
+        return {
+          items: (asuraQuery.data || []).map((item) => ({
+            id: item.id,
+            title: item.title,
+            coverUrl: item.coverUrl,
+            author: 'AsuraScans',
+            rating: item.rating,
+            genres: ['Manhwa', 'Action'],
+            lastUpdate: 'Chapitres EN',
+            detailUrl: `/manga/${encodeURIComponent(item.id)}?source=asurascans`,
+            badge: 'Asura',
+            badgeCls: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+          })),
+          isLoading: asuraQuery.isLoading,
+          isError: asuraQuery.isError,
+          searchUrl: '/search?source=asurascans',
         };
     }
   };

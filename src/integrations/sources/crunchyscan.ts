@@ -9,7 +9,7 @@ export class CrunchyScanSource implements MangaSource {
   public readonly id = 'crunchyscan' as const;
   public readonly name = 'CrunchyScan';
   public readonly displayName = 'CrunchyScan (FR)';
-  public readonly baseUrl = 'https://crunchyscan.fr';
+  public readonly baseUrl = 'https://crunchyscan.org';
   public readonly lang = 'fr';
   public readonly hasDirectPages = true;
   public readonly supportsSearch = true;

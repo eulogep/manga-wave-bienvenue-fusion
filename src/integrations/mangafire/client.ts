@@ -1,8 +1,11 @@
-const MANGAFIRE_BASE = 'https://mangafire.to';
-const PROXY = 'https://corsproxy.io/?';
+import {
+  extractorFetch,
+  type ExtractedManga,
+  type ExtractedSearchResult,
+} from '@/integrations/common/extractorClient';
 
 export type MangaFireSearchResult = {
-  id: string; // slug
+  id: string;
   title: string;
   coverUrl: string | null;
   status: string;
@@ -12,34 +15,49 @@ export type MangaFireSearchResult = {
   url: string;
 };
 
-export async function searchMangaFire(query: string): Promise<MangaFireSearchResult[]> {
+const mapSearch = (item: ExtractedSearchResult): MangaFireSearchResult => ({
+  id: item.id,
+  title: item.title,
+  coverUrl: item.coverUrl,
+  status: item.status,
+  type: 'Manga',
+  rating: item.rating,
+  latestChapter: null,
+  url: item.url,
+});
+
+export async function searchMangaFire(query: string, page = 1): Promise<MangaFireSearchResult[]> {
   try {
-    const url = `${MANGAFIRE_BASE}/filter?keyword=${encodeURIComponent(query)}`;
-    const res = await fetch(`${PROXY}${encodeURIComponent(url)}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-    });
-    if (!res.ok) throw new Error(`MangaFire ${res.status}`);
-    const html = await res.text();
-
-    const results: MangaFireSearchResult[] = [];
-    const regex = /<div[^>]+class="[^"]*unit[^"]*"[^>]*>[\s\S]*?<a[^>]+href="\/manga\/([^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<a[^>]+class="[^"]*info-title[^"]*"[^>]*>([^<]+)<\/a>/gi;
-    let match;
-    while ((match = regex.exec(html)) !== null) {
-      results.push({
-        id: match[1],
-        title: match[3].trim(),
-        coverUrl: match[2],
-        status: 'ongoing',
-        type: 'Manga',
-        rating: 4.8,
-        latestChapter: null,
-        url: `${MANGAFIRE_BASE}/manga/${match[1]}`,
-      });
-    }
-
-    return results;
-  } catch (err) {
-    console.warn('MangaFire search error:', err);
+    const data = await extractorFetch<{ results: ExtractedSearchResult[] }>(
+      `/search/mangafire?q=${encodeURIComponent(query)}&page=${page}`,
+    );
+    return (data.results || []).map(mapSearch);
+  } catch (error) {
+    console.warn('[MangaFire] search error:', error);
     return [];
   }
+}
+
+export async function getPopularMangaFire(): Promise<MangaFireSearchResult[]> {
+  try {
+    const data = await extractorFetch<{ results: ExtractedSearchResult[] }>('/popular/mangafire');
+    return (data.results || []).map(mapSearch);
+  } catch (error) {
+    console.warn('[MangaFire] popular error:', error);
+    return [];
+  }
+}
+
+export async function getMangaFireDetail(mangaId: string): Promise<ExtractedManga> {
+  const data = await extractorFetch<{ manga: ExtractedManga }>(
+    `/detail/mangafire/${encodeURIComponent(mangaId)}`,
+  );
+  return data.manga;
+}
+
+export async function getMangaFirePages(chapterId: string): Promise<string[]> {
+  const data = await extractorFetch<{ images: string[] }>(
+    `/pages/mangafire/${encodeURIComponent(chapterId)}`,
+  );
+  return data.images || [];
 }

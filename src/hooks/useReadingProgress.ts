@@ -128,7 +128,7 @@ export const useContinueReading = () => {
             .limit(20);
 
           if (!error && data) {
-            const remoteItems: ReadingProgressItem[] = data.flatMap((h: any) => {
+            const remoteItems: ReadingProgressItem[] = data.flatMap((h) => {
               const ch = h.chapters;
               const m = ch?.mangas;
               if (!ch?.mangadex_id || !m) return [];
