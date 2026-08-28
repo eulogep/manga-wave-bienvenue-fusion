@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.reading-progress]
 verify_jwt = true
+
+[functions.source-sync]
+verify_jwt = true
