@@ -1,31 +1,85 @@
-/**
- * OriginManga Extractor — Playwright Headless
- * Uses a server-side Chrome browser to render public chapter pages.
- */
-import type { Page } from 'playwright-core';
-import { createBrowserContext } from '../lib/browser-pool.js';
-import type { SearchResult, Chapter, MangaDetail, SourceExtractor } from '../lib/extractor-types.js';
+import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
 
 const BASE = 'https://www.originmanga.com';
-const TIMEOUT = 30_000;
+const REQUEST_TIMEOUT = 15_000;
 
-async function withPage<T>(fn: (page: Page) => Promise<T>): Promise<T> {
-  const ctx = await createBrowserContext();
-  const page = await ctx.newPage();
-  try {
-    // Block ads and tracking to speed up page loads
-    await page.route('**/{ads,analytics,tracking,doubleclick}**', (route) => route.abort());
-    await page.route('**/*.{woff,woff2,ttf,otf}', (route) => route.abort());
-    return await fn(page);
-  } finally {
-    await page.close().catch(() => {});
-    await ctx.close().catch(() => {});
-  }
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&mdash;/g, '—')
+    .replace(/&nbsp;|\u00a0/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-function cleanText(el: string | null | undefined): string {
-  if (!el) return '';
-  return el.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+async function getHtml(path: string): Promise<string> {
+  const response = await fetch(`${BASE}${path}`, {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      'User-Agent': 'MangaWave/1.0 (+public chapter reader)',
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+  });
+  if (!response.ok) throw new Error(`OriginManga a répondu ${response.status}.`);
+  return response.text();
+}
+
+function parseCards(html: string, limit = 40): SearchResult[] {
+  const results: SearchResult[] = [];
+  const seen = new Set<string>();
+  const cardPattern = /<a\s+href="\/manga\.php\?id=([^"&]+)"[^>]*>\s*<img[^>]+src="([^"]*)"[^>]+alt="([^"]*)"/gi;
+  let match: RegExpExecArray | null;
+  while ((match = cardPattern.exec(html)) && results.length < limit) {
+    const [, id, coverUrl, rawTitle] = match;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    results.push({
+      id,
+      title: decodeHtml(rawTitle) || 'Manga',
+      coverUrl: coverUrl.startsWith('http') ? coverUrl : `${BASE}${coverUrl}`,
+      status: 'ongoing',
+      rating: 4.8,
+      genres: ['VF', 'Scan FR'],
+      author: null,
+      url: `${BASE}/manga.php?id=${id}`,
+    });
+  }
+  return results;
+}
+
+function firstMatch(html: string, pattern: RegExp): string | null {
+  const value = html.match(pattern)?.[1];
+  return value ? decodeHtml(value) : null;
+}
+
+function parseChapters(html: string): Chapter[] {
+  const chapters: Chapter[] = [];
+  const seen = new Set<string>();
+  const chapterPattern = /<a\s+href="\/read\.php\?id=([a-f0-9-]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = chapterPattern.exec(html))) {
+    const [, id, block] = match;
+    if (seen.has(id)) continue;
+    const chapterNumber = block.match(/Chapter\s+([\d.]+)/i)?.[1];
+    if (!chapterNumber) continue;
+    seen.add(id);
+    const date = block.match(/([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4})/)?.[1] || '';
+    chapters.push({
+      id,
+      chapterNumber,
+      title: null,
+      date,
+      language: 'fr',
+      url: `${BASE}/read.php?id=${id}`,
+    });
+  }
+  return chapters;
 }
 
 export const originMangaExtractor: SourceExtractor = {
@@ -33,152 +87,47 @@ export const originMangaExtractor: SourceExtractor = {
   name: 'OriginManga (VF)',
 
   async search(query: string, page = 1): Promise<SearchResult[]> {
-    return withPage(async (p) => {
-      await p.goto(`${BASE}/search.php?q=${encodeURIComponent(query)}&page=${page}`, {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUT,
-      });
-
-      return p.evaluate((base) => {
-        const items: any[] = [];
-        document.querySelectorAll('a[href*="manga.php?id="]').forEach((link) => {
-          const href = (link as HTMLAnchorElement).href;
-          const idMatch = href.match(/id=([^&]+)/);
-          if (!idMatch) return;
-          const img = link.querySelector('img');
-          const title = link.querySelector('b')?.textContent?.trim()
-            || img?.getAttribute('alt')?.trim()
-            || 'Manga sans titre';
-          const src = img?.getAttribute('src') || img?.getAttribute('data-src') || '';
-          items.push({
-            id: idMatch[1],
-            title,
-            coverUrl: src.startsWith('http') ? src : src ? `${base}${src}` : null,
-            status: 'ongoing',
-            rating: 4.8,
-            genres: ['VF', 'Scan FR'],
-            author: null,
-            url: `${base}/manga.php?id=${idMatch[1]}`,
-          });
-        });
-        return items;
-      }, BASE);
-    });
+    const html = await getHtml(`/search.php?q=${encodeURIComponent(query)}&page=${page}`);
+    return parseCards(html);
   },
 
   async getPopular(): Promise<SearchResult[]> {
-    return withPage(async (p) => {
-      await p.goto(BASE, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
-      const results = await p.evaluate((base) => {
-        const seen = new Set<string>();
-        const items: any[] = [];
-        document.querySelectorAll('a[href*="manga.php?id="]').forEach((link) => {
-          const href = (link as HTMLAnchorElement).href;
-          const idMatch = href.match(/id=([^&]+)/);
-          if (!idMatch || seen.has(idMatch[1])) return;
-          seen.add(idMatch[1]);
-          const img = link.querySelector('img');
-          const title = link.querySelector('b')?.textContent?.trim()
-            || img?.getAttribute('alt')?.trim()
-            || 'Manga';
-          const src = img?.getAttribute('src') || img?.getAttribute('data-src') || '';
-          items.push({
-            id: idMatch[1],
-            title,
-            coverUrl: src.startsWith('http') ? src : src ? `${base}${src}` : null,
-            status: 'ongoing',
-            rating: 4.9,
-            genres: ['VF', 'Scan FR'],
-            author: null,
-            url: `${base}/manga.php?id=${idMatch[1]}`,
-          });
-        });
-        return items.slice(0, 20);
-      }, BASE);
-      if (results.length > 0) return results;
-      return this.search('a');
-    });
+    return parseCards(await getHtml('/'), 20);
   },
 
   async getDetail(mangaId: string): Promise<MangaDetail> {
-    return withPage(async (p) => {
-      await p.goto(`${BASE}/manga.php?id=${mangaId}`, {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUT,
-      });
-
-      return p.evaluate((args) => {
-        const { base, id } = args;
-        const title = document.querySelector('h1')?.textContent?.trim() || id;
-        const coverEl = document.querySelector<HTMLImageElement>('img.thumbnail, img[class*="cover"], img[class*="thumb"]');
-        const coverSrc = coverEl?.getAttribute('src') || coverEl?.getAttribute('data-src') || null;
-        const coverUrl = coverSrc ? (coverSrc.startsWith('http') ? coverSrc : `${base}${coverSrc}`) : null;
-
-        const synopsis = document.querySelector<HTMLElement>('.description, [class*="synopsis"], [class*="summary"]')?.innerText?.trim() || null;
-        const statusEl = document.querySelector<HTMLElement>('[class*="status"], strong:has(+ span)')?.nextElementSibling?.textContent?.trim() || 'ongoing';
-
-        const genres: string[] = [];
-        document.querySelectorAll('a[href*="genre"], a[href*="tag"]').forEach((el) => {
-          const text = el.textContent?.trim();
-          if (text && !genres.includes(text)) genres.push(text);
-        });
-
-        const chapters: any[] = [];
-        document.querySelectorAll('a[href*="read.php?id="]').forEach((link) => {
-          const href = (link as HTMLAnchorElement).href;
-          const chIdMatch = href.match(/id=([a-f0-9-]+)/i);
-          if (!chIdMatch) return;
-          const text = link.textContent || '';
-          const numMatch = text.match(/[\d.]+/);
-          if (!numMatch) return;
-          const dateEl = link.closest('li, tr, div')?.querySelector('span, small, time');
-          chapters.push({
-            id: chIdMatch[1],
-            chapterNumber: numMatch[0],
-            title: null,
-            date: dateEl?.textContent?.trim() || '',
-            language: 'fr',
-            url: href,
-          });
-        });
-
-        return { id, title, coverUrl, author: null, status: statusEl, genres, synopsis, chapters };
-      }, { base: BASE, id: mangaId });
-    });
+    const html = await getHtml(`/manga.php?id=${encodeURIComponent(mangaId)}`);
+    const title = firstMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i) || mangaId;
+    const coverUrl = firstMatch(html, /<meta\s+property="og:image"\s+content="([^"]+)"/i);
+    const synopsis = firstMatch(html, /<meta\s+name="description"\s+content="([^"]+)"/i);
+    const status = firstMatch(html, /Status[\s\S]{0,300}?<[^>]+>(Ongoing|Completed|Hiatus|Dropped)<\/[^>]+>/i) || 'ongoing';
+    return {
+      id: mangaId,
+      title,
+      coverUrl,
+      author: null,
+      status: status.toLowerCase(),
+      genres: ['VF', 'Scan FR'],
+      synopsis,
+      chapters: parseChapters(html),
+    };
   },
 
   async getPages(chapterId: string): Promise<string[]> {
-    return withPage(async (p) => {
-      await p.goto(`${BASE}/read.php?id=${chapterId}`, {
-        waitUntil: 'networkidle',
-        timeout: TIMEOUT,
-      });
-
-      // Wait for images to appear in reader
-      await p.waitForSelector('img[alt*="Page"], img[src*="img-proxy"], .reader img, #reader img', {
-        timeout: 15_000,
-      }).catch(() => {});
-
-      return p.evaluate((base) => {
-        const selectors = [
-          'img[alt*="Page"]',
-          'img[src*="img-proxy"]',
-          '.reader-content img',
-          '#reader img',
-          '.chapter-content img',
-          '#chapter img',
-        ];
-
-        for (const sel of selectors) {
-          const imgs = Array.from(document.querySelectorAll<HTMLImageElement>(sel));
-          const urls = imgs
-            .map((img) => img.getAttribute('data-src') || img.getAttribute('src') || '')
-            .filter((src) => src && (src.includes('img-proxy') || src.match(/\.(jpg|jpeg|png|webp)/i)))
-            .map((src) => src.startsWith('http') ? src : `${base}${src}`);
-          if (urls.length > 0) return urls;
-        }
-        return [];
-      }, BASE);
-    });
+    const html = await getHtml(`/read.php?id=${encodeURIComponent(chapterId)}`);
+    const urls: string[] = [];
+    const seen = new Set<string>();
+    const imagePattern = /<img[^>]+(?:src|data-src)="([^"]*img-proxy[^"]*)"/gi;
+    let match: RegExpExecArray | null;
+    while ((match = imagePattern.exec(html))) {
+      const rawUrl = decodeHtml(match[1]);
+      if (!rawUrl.includes('img-proxy')) continue;
+      const url = rawUrl.startsWith('http') ? rawUrl : `${BASE}${rawUrl}`;
+      if (!seen.has(url)) {
+        seen.add(url);
+        urls.push(url);
+      }
+    }
+    return urls;
   },
 };

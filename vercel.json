@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/extract.ts": {
-      "maxDuration": 60,
+      "maxDuration": 120,
       "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     }
   },
