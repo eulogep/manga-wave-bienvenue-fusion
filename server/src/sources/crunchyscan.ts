@@ -3,6 +3,7 @@ import { createBrowserContext } from '../lib/browser-pool.js';
 
 const BASE = 'https://www.lelmanga.com';
 const REQUEST_TIMEOUT = 15_000;
+const PROJECT_PROXY = 'https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/manga-proxy';
 
 function decodeHtml(value: string): string {
   return value
@@ -36,6 +37,16 @@ async function getRenderedHtml(path: string): Promise<string> {
   }
 }
 
+async function getProxiedHtml(path: string): Promise<string> {
+  const target = `${BASE}${path}`;
+  const response = await fetch(`${PROJECT_PROXY}?url=${encodeURIComponent(target)}`, {
+    headers: { Accept: 'text/html,application/xhtml+xml' },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!response.ok) throw new Error(`Proxy LelManga indisponible (${response.status}).`);
+  return response.text();
+}
+
 async function getHtml(path: string): Promise<string> {
   const response = await fetch(`${BASE}${path}`, {
     headers: {
@@ -45,7 +56,14 @@ async function getHtml(path: string): Promise<string> {
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT),
   });
-  if (response.status === 403 || response.status === 429) return getRenderedHtml(path);
+  if (response.status === 403 || response.status === 429) {
+    try {
+      return await getProxiedHtml(path);
+    } catch (proxyError: unknown) {
+      console.warn('[LelManga] Proxy indisponible, tentative via navigateur:', proxyError instanceof Error ? proxyError.message : proxyError);
+      return getRenderedHtml(path);
+    }
+  }
   if (!response.ok) throw new Error(`LelManga a répondu ${response.status}.`);
   return response.text();
 }

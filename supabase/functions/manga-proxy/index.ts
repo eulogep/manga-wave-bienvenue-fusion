@@ -19,6 +19,8 @@ const ALLOWED_HOSTS = new Set([
   "api.comick.app",
   "api.comick.fun",
   "crunchyscan.fr",
+  "lelmanga.com",
+  "www.lelmanga.com",
   "originmanga.com",
   "www.originmanga.com",
 ]);
