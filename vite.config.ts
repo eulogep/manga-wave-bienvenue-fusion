@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => ({
     host: '::',
     port: 8080,
     proxy: {
+      '/mangadex-api': {
+        target: 'https://api.mangadex.org',
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/mangadex-api/, ''),
+        headers: { 'User-Agent': mangaDexUserAgent },
+      },
       '/api/mangadex': {
         target: 'https://api.mangadex.org',
         changeOrigin: true,

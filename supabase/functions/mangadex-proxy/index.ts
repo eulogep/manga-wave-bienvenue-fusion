@@ -25,7 +25,8 @@ function coverTarget(path: string) {
 }
 
 function allowedMangaPath(path: string) {
-  return /^\/manga(?:\/[0-9a-f-]{36}(?:\/feed)?)?$/.test(path);
+  return /^\/manga(?:\/[0-9a-f-]{36}(?:\/feed)?)?$/.test(path) ||
+    /^\/at-home\/server\/[0-9a-f-]{36}$/.test(path);
 }
 
 export default {

@@ -1,6 +1,5 @@
-import { Heart, Star, Eye, Clock } from 'lucide-react';
+import { Heart, Star, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useFavorites } from '@/hooks/useManga';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -23,16 +22,21 @@ interface MangaCardProps {
   detailUrl?: string;
 }
 
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  ongoing:   { label: 'En cours',  cls: 'badge-status-ongoing' },
+  completed: { label: 'Terminé',   cls: 'badge-status-completed' },
+  hiatus:    { label: 'Pause',     cls: 'badge-status-hiatus' },
+  cancelled: { label: 'Annulé',   cls: 'badge-status-cancelled' },
+};
+
 const MangaCard = ({
   id,
   title,
   author,
   rating,
-  views,
   status,
   genre,
   imageUrl,
-  lastUpdate,
   isFavorite,
   favoriteId,
   externalUrl,
@@ -42,22 +46,10 @@ const MangaCard = ({
   const { toggleFavorite } = useFavorites();
   const { toast } = useToast();
   const persistedFavoriteId = favoriteId ?? (typeof id === 'number' ? id : undefined);
-
-  const statusColors = {
-    ongoing: 'bg-green-500',
-    completed: 'bg-blue-500',
-    hiatus: 'bg-yellow-500',
-    cancelled: 'bg-red-500',
-  };
-
-  const statusLabels = {
-    ongoing: 'En cours',
-    completed: 'Terminé',
-    hiatus: 'Pause',
-    cancelled: 'Annulé',
-  };
+  const statusConfig = STATUS_CONFIG[status] ?? STATUS_CONFIG.ongoing;
 
   const handleFavoriteClick = async (event: React.MouseEvent) => {
+    event.preventDefault();
     event.stopPropagation();
 
     if (!user) {
@@ -71,8 +63,8 @@ const MangaCard = ({
 
     if (persistedFavoriteId === undefined) {
       toast({
-        title: 'Favoris MangaDex bientôt disponibles',
-        description: 'La synchronisation des favoris du catalogue externe sera ajoutée avec la bibliothèque.',
+        title: 'Favoris MangaDex',
+        description: 'La synchronisation sera ajoutée prochainement.',
       });
       return;
     }
@@ -81,108 +73,115 @@ const MangaCard = ({
       await toggleFavorite.mutateAsync(persistedFavoriteId);
       toast({
         title: isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris',
-        description: `${title} ${isFavorite ? 'a été retiré de' : 'a été ajouté à'} vos favoris.`,
+        description: `${title} ${isFavorite ? 'retiré de' : 'ajouté à'} vos favoris.`,
       });
     } catch {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Impossible de modifier les favoris.',
-      });
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de modifier les favoris.' });
     }
   };
 
   const handleReadClick = (event: React.MouseEvent) => {
     event.stopPropagation();
-
     if (externalUrl) {
       window.open(externalUrl, '_blank', 'noopener,noreferrer');
-      return;
     }
-
-    toast({
-      title: 'Lecteur à venir',
-      description: 'La lecture intégrée sera disponible une fois la navigation des chapitres implémentée.',
-    });
   };
 
-  return (
-    <article className="manga-card group cursor-pointer">
-      <div className="relative aspect-[3/4] overflow-hidden">
+  const cardContent = (
+    <article className="manga-card group">
+      {/* ── Cover Area ── */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-wave-card">
+        {/* Cover image */}
         <MangaCover
           src={imageUrl}
           alt={`Couverture de ${title}`}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="absolute bottom-4 left-4 right-4">
-            <Button size="sm" className="w-full btn-gradient" onClick={handleReadClick}>
-              Voir sur MangaDex
-            </Button>
-          </div>
-        </div>
+        {/* Permanent bottom gradient — title always visible */}
+        <div className="absolute inset-0 bg-cover-overlay pointer-events-none" />
 
-        <Badge className={`absolute top-3 left-3 ${statusColors[status]} text-white border-0`}>
-          {statusLabels[status]}
-        </Badge>
+        {/* Status badge — top left */}
+        <span className={`absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${statusConfig.cls}`}>
+          {statusConfig.label}
+        </span>
 
-        <Button
-          size="icon"
-          variant="ghost"
+        {/* Favorite button — top right */}
+        <button
           aria-label={`${isFavorite ? 'Retirer' : 'Ajouter'} ${title} ${isFavorite ? 'des' : 'aux'} favoris`}
-          className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          className="absolute top-2.5 right-2.5 h-7 w-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-250 hover:bg-black/80 hover:scale-110"
           onClick={handleFavoriteClick}
         >
-          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-        </Button>
-      </div>
+          <Heart className={`h-3.5 w-3.5 transition-colors ${isFavorite ? 'fill-manga-pink text-manga-pink' : 'text-white/80'}`} />
+        </button>
 
-      <div className="p-4">
-        {detailUrl ? (
-          <Link to={detailUrl} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-manga-purple rounded">
-            <h3 className="font-bold text-lg mb-1 line-clamp-2 group-hover:text-manga-purple transition-colors">
-              {title}
-            </h3>
-          </Link>
-        ) : (
-          <h3 className="font-bold text-lg mb-1 line-clamp-2 group-hover:text-manga-purple transition-colors">
+        {/* Bottom section: title + CTA — always visible */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <h3 className="font-outfit font-bold text-sm text-white line-clamp-2 leading-tight mb-2 drop-shadow-sm">
             {title}
           </h3>
+
+          {/* Rating pill */}
+          {rating != null && (
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="h-3 w-3 text-manga-gold fill-manga-gold" />
+              <span className="text-xs text-white/80 font-semibold">{rating.toFixed(1)}</span>
+            </div>
+          )}
+
+          {/* CTA — appears on hover */}
+          <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+            {detailUrl ? (
+              <Link
+                to={detailUrl}
+                className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-manga-purple text-white text-xs font-semibold hover:bg-manga-purple-light transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <BookOpen className="h-3 w-3" />
+                Lire
+              </Link>
+            ) : externalUrl ? (
+              <Button
+                size="sm"
+                className="w-full h-8 btn-gradient text-xs font-semibold rounded-lg"
+                onClick={handleReadClick}
+              >
+                <BookOpen className="h-3 w-3 mr-1" />
+                Lire
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Info strip below cover ── */}
+      <div className="px-3 py-2">
+        <p className="text-[11px] text-white/40 truncate">{author}</p>
+        {genre.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {genre.slice(0, 2).map((g) => (
+              <span
+                key={g}
+                className="px-1.5 py-0.5 rounded text-[10px] bg-white/[0.06] text-white/50 border border-white/[0.04]"
+              >
+                {g}
+              </span>
+            ))}
+          </div>
         )}
-        <p className="text-sm text-muted-foreground mb-3">{author}</p>
-
-        <div className="flex flex-wrap gap-1 mb-3 min-h-5">
-          {genre.slice(0, 2).map((item) => (
-            <Badge key={item} variant="secondary" className="text-xs bg-white/10 text-white/80 border-0">
-              {item}
-            </Badge>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center space-x-3">
-            {rating !== null && rating !== undefined && (
-              <div className="flex items-center">
-                <Star className="h-4 w-4 text-manga-gold mr-1" />
-                <span>{rating.toFixed(1)}</span>
-              </div>
-            )}
-            {views && (
-              <div className="flex items-center">
-                <Eye className="h-4 w-4 mr-1" />
-                <span>{views}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center shrink-0 ml-2">
-            <Clock className="h-4 w-4 mr-1" />
-            <span>{lastUpdate}</span>
-          </div>
-        </div>
       </div>
     </article>
   );
+
+  if (detailUrl) {
+    return (
+      <Link to={detailUrl} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-manga-purple rounded-xl">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 };
 
 export default MangaCard;

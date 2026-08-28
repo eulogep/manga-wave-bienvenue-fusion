@@ -178,12 +178,15 @@ function mapManga(resource: MangaDexMangaResource): MangaDexManga {
 }
 
 async function request<T>(path: string, parameters?: URLSearchParams): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const query = parameters?.toString();
-  const url = `${API_PROXY_URL}${path}${query ? `?${query}` : ''}`;
+  const queryString = query ? `?${query}` : '';
 
+  // 1. Try proxy first
   try {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const url = `${API_PROXY_URL}${path}${queryString}`;
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -192,26 +195,38 @@ async function request<T>(path: string, parameters?: URLSearchParams): Promise<T
       },
       signal: controller.signal,
     });
+    window.clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const retryHint = response.status === 429 ? ' Réessayez dans quelques instants.' : '';
-      throw new MangaDexApiError(
-        `MangaDex a renvoyé une erreur ${response.status}.${retryHint}`,
-        response.status,
-      );
+    if (response.ok) {
+      return (await response.json()) as T;
+    }
+  } catch {
+    // Fallback to direct API call
+  }
+
+  // 2. Direct MangaDex API fallback (supported natively with CORS by MangaDex)
+  try {
+    const directController = new AbortController();
+    const directTimeout = window.setTimeout(() => directController.abort(), REQUEST_TIMEOUT_MS);
+    const directUrl = `https://api.mangadex.org${path}${queryString}`;
+
+    const directResponse = await fetch(directUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+      signal: directController.signal,
+    });
+    window.clearTimeout(directTimeout);
+
+    if (!directResponse.ok) {
+      throw new MangaDexApiError(`MangaDex API ${directResponse.status}`);
     }
 
-    return (await response.json()) as T;
+    return (await directResponse.json()) as T;
   } catch (error) {
     if (error instanceof MangaDexApiError) throw error;
-
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new MangaDexApiError('La requête MangaDex a expiré.');
-    }
-
     throw new MangaDexApiError('Impossible de joindre le catalogue MangaDex.');
-  } finally {
-    window.clearTimeout(timeoutId);
   }
 }
 
@@ -371,4 +386,29 @@ export async function getMangaChapters(
     chapters: response.data.map(mapChapter),
     total: response.total,
   };
+}
+
+export type MangaDexAtHomeResponse = {
+  result: 'ok';
+  baseUrl: string;
+  chapter: {
+    hash: string;
+    data: string[];
+    dataSaver: string[];
+  };
+};
+
+export async function getMangaDexChapterPages(
+  chapterId: string,
+  options: { dataSaver?: boolean } = {},
+): Promise<string[]> {
+  const response = await request<MangaDexAtHomeResponse>(
+    `/at-home/server/${encodeURIComponent(chapterId)}`,
+  );
+
+  const { baseUrl, chapter } = response;
+  const filenames = options.dataSaver ? chapter.dataSaver : chapter.data;
+  const quality = options.dataSaver ? 'data-saver' : 'data';
+
+  return filenames.map((filename) => `${baseUrl}/${quality}/${chapter.hash}/${filename}`);
 }

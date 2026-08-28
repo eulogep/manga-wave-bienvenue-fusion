@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MangaCard from './MangaCard';
@@ -7,6 +7,8 @@ import { useManga } from '@/hooks/useManga';
 import type { MangaDexStatus } from '@/integrations/mangadex/client';
 
 const PAGE_SIZE = 6;
+
+const GENRE_PILLS = ['Action', 'Romance', 'Fantasy', 'Supernatural', 'Slice of Life', 'Comedy', 'Horror', 'Sci-Fi'];
 
 const FeaturedSection = () => {
   const [selectedGenre, setSelectedGenre] = useState('all');
@@ -17,7 +19,7 @@ const FeaturedSection = () => {
   const genres = useMemo(
     () =>
       [...new Set(mangas.flatMap((manga) => manga.genre))]
-        .sort((left, right) => left.localeCompare(right, 'fr'))
+        .sort((a, b) => a.localeCompare(b, 'fr'))
         .slice(0, 12),
     [mangas],
   );
@@ -34,18 +36,20 @@ const FeaturedSection = () => {
 
   const totalPages = Math.max(1, Math.ceil(filteredMangas.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
-  const visibleMangas = filteredMangas.slice(
-    currentPage * PAGE_SIZE,
-    (currentPage + 1) * PAGE_SIZE,
-  );
+  const visibleMangas = filteredMangas.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   if (isLoading) {
     return (
-      <section className="py-16 section-padding" aria-busy="true" aria-live="polite">
+      <section className="py-20 section-padding" aria-busy="true" aria-live="polite">
         <div className="container mx-auto">
-          <div className="text-center animate-pulse">
-            <div className="h-8 bg-white/10 rounded w-64 mx-auto mb-4" />
-            <div className="h-4 bg-white/10 rounded w-96 max-w-full mx-auto" />
+          <div className="mb-10">
+            <div className="skeleton h-8 w-56 mb-3 rounded-lg" />
+            <div className="skeleton h-4 w-80 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[3/4] cover-skeleton rounded-xl" />
+            ))}
           </div>
         </div>
       </section>
@@ -54,13 +58,11 @@ const FeaturedSection = () => {
 
   if (isError) {
     return (
-      <section className="py-16 section-padding">
-        <div className="container mx-auto max-w-2xl text-center rounded-xl border border-destructive/40 bg-destructive/10 p-8">
-          <h2 className="text-2xl font-bold mb-3">Catalogue indisponible</h2>
-          <p className="text-muted-foreground mb-6">
-            {error.message} Vérifiez la connexion au catalogue local puis relancez la requête.
-          </p>
-          <Button className="btn-gradient" onClick={() => refetch()} disabled={isFetching}>
+      <section className="py-20 section-padding">
+        <div className="container mx-auto max-w-xl text-center glass-card p-10">
+          <h2 className="font-outfit font-bold text-2xl mb-3">Catalogue indisponible</h2>
+          <p className="text-white/50 mb-6 text-sm">{error?.message}</p>
+          <Button className="btn-gradient rounded-full px-6" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
             Réessayer
           </Button>
@@ -69,113 +71,81 @@ const FeaturedSection = () => {
     );
   }
 
-  const goToPreviousPage = () => {
-    setPage((activePage) => Math.max(0, activePage - 1));
-  };
-
-  const goToNextPage = () => {
-    setPage((activePage) => Math.min(totalPages - 1, activePage + 1));
-  };
-
   return (
-    <section id="mangas" className="py-16 section-padding">
+    <section id="mangas" className="py-20 section-padding">
       <div className="container mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 gap-6">
+
+        {/* ── Header ── */}
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
           <div>
-            <h2 className="text-4xl font-bold mb-4 font-japanese">
-              <span className="glow-text">Sélection</span> locale MangaDex
+            <p className="text-xs font-semibold text-manga-purple/80 uppercase tracking-widest mb-2">Catalogue MangaDex</p>
+            <h2 className="font-outfit font-bold text-3xl md:text-4xl text-white">
+              Sélection <span className="glow-text-purple">Locale</span>
             </h2>
-            <p className="text-xl text-muted-foreground">
-              Les titres synchronisés depuis MangaDex et disponibles en français
+            <p className="text-white/40 mt-2 text-sm">
+              {filteredMangas.length} titre{filteredMangas.length > 1 ? 's' : ''} · synchronisés en français
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Filtrer :</span>
-            </div>
-
-            <Select
-              value={selectedGenre}
-              onValueChange={(genre) => {
-                setSelectedGenre(genre);
-                setPage(0);
-              }}
-            >
-              <SelectTrigger className="w-40 bg-white/10 border-white/20">
-                <SelectValue placeholder="Genre" />
-              </SelectTrigger>
-              <SelectContent className="bg-manga-dark border-white/20 max-h-64">
-                <SelectItem value="all">Tous les genres</SelectItem>
-                {genres.map((genre) => (
-                  <SelectItem key={genre} value={genre}>
-                    {genre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedStatus}
-              onValueChange={(value) => {
-                setSelectedStatus(value as 'all' | MangaDexStatus);
-                setPage(0);
-              }}
-            >
-              <SelectTrigger className="w-36 bg-white/10 border-white/20">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent className="bg-manga-dark border-white/20">
-                <SelectItem value="all">Tous statuts</SelectItem>
-                <SelectItem value="ongoing">En cours</SelectItem>
-                <SelectItem value="completed">Terminé</SelectItem>
-                <SelectItem value="hiatus">Pause</SelectItem>
-                <SelectItem value="cancelled">Annulé</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Status select */}
+          <Select
+            value={selectedStatus}
+            onValueChange={(v) => { setSelectedStatus(v as 'all' | MangaDexStatus); setPage(0); }}
+          >
+            <SelectTrigger className="w-36 bg-white/[0.05] border-white/[0.08] text-white/80 rounded-xl">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0f1520] border-white/[0.08] rounded-xl">
+              <SelectItem value="all">Tous statuts</SelectItem>
+              <SelectItem value="ongoing">En cours</SelectItem>
+              <SelectItem value="completed">Terminé</SelectItem>
+              <SelectItem value="hiatus">Pause</SelectItem>
+              <SelectItem value="cancelled">Annulé</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="flex items-center justify-between mb-8">
-          <p className="text-sm text-muted-foreground">
-            {filteredMangas.length} titre{filteredMangas.length > 1 ? 's' : ''} dans cette sélection
-          </p>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Afficher les titres précédents"
-              className="border-white/30 hover:bg-white/10"
-              disabled={currentPage === 0}
-              onClick={goToPreviousPage}
+        {/* ── Pill Genre Filter ── */}
+        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2 mb-8">
+          <button
+            onClick={() => { setSelectedGenre('all'); setPage(0); }}
+            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${
+              selectedGenre === 'all'
+                ? 'bg-manga-purple text-white border-manga-purple shadow-glow-purple'
+                : 'bg-transparent text-white/50 border-white/[0.08] hover:text-white hover:border-white/20'
+            }`}
+          >
+            Tous
+          </button>
+          {(genres.length > 0 ? genres : GENRE_PILLS).map((genre) => (
+            <button
+              key={genre}
+              onClick={() => { setSelectedGenre(genre); setPage(0); }}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${
+                selectedGenre === genre
+                  ? 'bg-manga-purple text-white border-manga-purple shadow-glow-purple'
+                  : 'bg-transparent text-white/50 border-white/[0.08] hover:text-white hover:border-white/20'
+              }`}
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground min-w-12 text-center">
-              {currentPage + 1} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Afficher les titres suivants"
-              className="border-white/30 hover:bg-white/10"
-              disabled={currentPage >= totalPages - 1}
-              onClick={goToNextPage}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+              {genre}
+            </button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+        {/* ── Grid ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {visibleMangas.length > 0 ? (
             visibleMangas.map((manga, index) => (
-              <div key={manga.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.08}s` }}>
+              <div
+                key={manga.id}
+                className="animate-slide-up-fade"
+                style={{ animationDelay: `${index * 0.06}s`, opacity: 0 }}
+              >
                 <MangaCard
                   id={manga.id}
                   title={manga.title}
                   author={manga.author || 'Auteur inconnu'}
+                  rating={manga.rating ?? null}
                   status={manga.status}
                   genre={manga.genre}
                   imageUrl={manga.cover_image}
@@ -190,28 +160,43 @@ const FeaturedSection = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center py-12 rounded-xl border border-white/10 bg-white/5">
-              <p className="text-muted-foreground text-lg">Aucun manga ne correspond aux filtres choisis.</p>
+            <div className="col-span-full text-center py-16 glass-card rounded-2xl">
+              <p className="text-white/40">Aucun manga ne correspond aux filtres choisis.</p>
             </div>
           )}
         </div>
 
+        {/* ── Pagination ── */}
         {totalPages > 1 && (
-          <div className="text-center mt-12">
+          <div className="flex items-center justify-center gap-3 mt-10">
             <Button
-              size="lg"
-              variant="outline"
-              className="border-white/30 hover:bg-white/10"
-              disabled={currentPage >= totalPages - 1}
-              onClick={goToNextPage}
+              variant="ghost"
+              size="icon"
+              aria-label="Page précédente"
+              className="h-9 w-9 rounded-full border border-white/[0.08] hover:bg-white/[0.06] disabled:opacity-30"
+              disabled={currentPage === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
-              Voir plus de mangas
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-white/40 min-w-16 text-center">
+              {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Page suivante"
+              className="h-9 w-9 rounded-full border border-white/[0.08] hover:bg-white/[0.06] disabled:opacity-30"
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         )}
 
-        <p className="mt-10 text-center text-xs text-muted-foreground">
-          Données et couvertures fournies par MangaDex. Les contenus restent la propriété de leurs ayants droit.
+        <p className="mt-10 text-center text-[11px] text-white/25">
+          Données et couvertures fournies par MangaDex. Contenus propriété de leurs ayants droit.
         </p>
       </div>
     </section>

@@ -1,17 +1,37 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileText, Languages, LoaderCircle, Users } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  BookOpen,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  FileText,
+  Languages,
+  LoaderCircle,
+  Users,
+  Play,
+  X,
+  Maximize2,
+} from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MangaCover from '@/components/MangaCover';
+import OriginMangaReader from '@/components/OriginMangaReader';
+import UniversalReader from '@/components/UniversalReader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMangaDexChapters, useMangaDexDetail } from '@/hooks/useMangaDex';
+import { useOriginMangaDetail } from '@/hooks/useOriginManga';
+import { useUniversalMangaDetail, useUniversalMangaChapters } from '@/hooks/useMangaReader';
 import { useRecordReading } from '@/hooks/useReadingProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import type { MangaDexChapter } from '@/integrations/mangadex/client';
+import type { OriginMangaChapter } from '@/integrations/originmanga/client';
+import type { SourceChapter, SourceType } from '@/integrations/sources';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -20,51 +40,192 @@ const languageOptions = [
   { code: 'es-la', label: 'Español (Latinoamérica)' },
 ];
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   ongoing: 'En cours',
   completed: 'Terminé',
   hiatus: 'En pause',
   cancelled: 'Annulé',
+  unknown: 'Inconnu',
 };
 
 const MangaDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id = '' } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const source = (searchParams.get('source') || 'mangadex') as SourceType;
+
   const [language, setLanguage] = useState('fr');
   const [chapterOffset, setChapterOffset] = useState(0);
+  const [activeChapter, setActiveChapter] = useState<{ id: string; title: string; number?: string } | null>(null);
+
+  const readerSectionRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { recordReading } = useRecordReading();
-  const { data: manga, isLoading: isMangaLoading, isError: isMangaError, error: mangaError, refetch: refetchManga } = useMangaDexDetail(id);
-  const { data: chapterData, isLoading: isChaptersLoading, isError: isChaptersError, error: chaptersError, refetch: refetchChapters } = useMangaDexChapters(id, {
+
+  // MangaDex Queries
+  const isMangaDex = source === 'mangadex';
+  const {
+    data: mangaDexData,
+    isLoading: isMangaDexLoading,
+    isError: isMangaDexError,
+    error: mangaDexError,
+    refetch: refetchMangaDex,
+  } = useMangaDexDetail(isMangaDex ? id : undefined);
+
+  const {
+    data: mangaDexChaptersData,
+    isLoading: isMangaDexChaptersLoading,
+    isError: isMangaDexChaptersError,
+    error: mangaDexChaptersError,
+    refetch: refetchMangaDexChapters,
+  } = useMangaDexChapters(isMangaDex ? id : undefined, {
     translatedLanguage: language,
     offset: chapterOffset,
     limit: 100,
   });
 
+  // OriginManga Queries
+  const isOriginManga = source === 'originmanga';
+  const {
+    data: originMangaData,
+    isLoading: isOriginLoading,
+    isError: isOriginError,
+    error: originError,
+    refetch: refetchOrigin,
+  } = useOriginMangaDetail(isOriginManga ? id : undefined);
+
+  // Universal Source Queries (Comick, CrunchyScan, etc.)
+  const isUniversal = !isMangaDex && !isOriginManga;
+  const {
+    data: universalData,
+    isLoading: isUniversalLoading,
+    isError: isUniversalError,
+    error: universalError,
+    refetch: refetchUniversal,
+  } = useUniversalMangaDetail(isUniversal ? source : '', isUniversal ? id : undefined);
+
+  const {
+    data: universalChaptersData,
+    isLoading: isUniversalChaptersLoading,
+    refetch: refetchUniversalChapters,
+  } = useUniversalMangaChapters(isUniversal ? source : '', isUniversal ? id : undefined);
+
+  // Normalized manga object
+  const manga = isOriginManga
+    ? originMangaData
+      ? {
+          id: originMangaData.id,
+          title: originMangaData.title,
+          description: originMangaData.synopsis || '',
+          coverImageUrl: originMangaData.coverUrl,
+          author: originMangaData.author || 'Auteur non renseigné',
+          artist: originMangaData.artist,
+          status: originMangaData.status.toLowerCase() || 'ongoing',
+          genres: originMangaData.genres,
+          themes: [] as string[],
+          year: null,
+          contentRating: null,
+          lastChapter: originMangaData.chapters[0]?.chapterNumber || null,
+          updatedAt: null,
+          externalUrl: `https://www.originmanga.com/manga.php?id=${id}`,
+          sourceName: 'OriginManga (FR)',
+        }
+      : null
+    : isUniversal
+    ? universalData
+      ? {
+          id: universalData.id,
+          title: universalData.title,
+          description: universalData.synopsis || '',
+          coverImageUrl: universalData.coverUrl,
+          author: universalData.author || 'Auteur non renseigné',
+          artist: universalData.artist,
+          status: universalData.status.toLowerCase() || 'ongoing',
+          genres: universalData.genres,
+          themes: [] as string[],
+          year: universalData.year || null,
+          contentRating: null,
+          lastChapter: universalData.lastChapter || null,
+          updatedAt: null,
+          externalUrl: universalData.externalUrl || undefined,
+          sourceName: source.toUpperCase(),
+        }
+      : null
+    : mangaDexData
+    ? {
+        ...mangaDexData,
+        sourceName: 'MangaDex',
+      }
+    : null;
+
+  const isLoading = isOriginManga ? isOriginLoading : isUniversal ? isUniversalLoading : isMangaDexLoading;
+  const isError = isOriginManga ? isOriginError : isUniversal ? isUniversalError : isMangaDexError;
+  const error = isOriginManga ? originError : isUniversal ? (universalError as Error) : mangaDexError;
+
   const retry = () => {
-    void refetchManga();
-    void refetchChapters();
-  };
-
-  const handleReadChapter = (chapter: MangaDexChapter) => {
-    if (!user || !manga) {
-      toast({
-        title: 'Lecture non enregistrée',
-        description: 'Connectez-vous pour retrouver ce chapitre dans « Continuer la lecture ».',
-      });
-      return;
+    if (isOriginManga) {
+      void refetchOrigin();
+    } else if (isUniversal) {
+      void refetchUniversal();
+      void refetchUniversalChapters();
+    } else {
+      void refetchMangaDex();
+      void refetchMangaDexChapters();
     }
-
-    void recordReading.mutateAsync({ manga, chapter }).catch(() => {
-      toast({
-        variant: 'destructive',
-        title: 'Reprise non enregistrée',
-        description: 'Le chapitre s’ouvre sur MangaDex, mais il ne pourra pas encore apparaître dans votre historique.',
-      });
-    });
   };
 
-  if (isMangaLoading) {
+  const handleStartReadingChapter = (ch: { id: string; title: string; number?: string }) => {
+    setActiveChapter(ch);
+    setTimeout(() => {
+      readerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    if (user && manga && isMangaDex) {
+      const dexChapter = mangaDexChaptersData?.chapters.find((c) => c.id === ch.id);
+      if (dexChapter) {
+        void recordReading.mutateAsync({ manga: mangaDexData!, chapter: dexChapter }).catch(() => {});
+      }
+    }
+  };
+
+  // Convert OriginManga chapters to universal list if needed
+  const originChaptersList: SourceChapter[] = (originMangaData?.chapters || []).map((ch: OriginMangaChapter) => ({
+    id: ch.id,
+    source: 'originmanga' as const,
+    mangaId: id,
+    chapterNumber: ch.chapterNumber,
+    title: ch.title,
+    date: ch.date,
+    externalUrl: ch.url,
+    language: 'fr',
+  }));
+
+  const universalChaptersList: SourceChapter[] = universalChaptersData || [];
+
+  const mangaDexChaptersList: SourceChapter[] = (mangaDexChaptersData?.chapters || []).map((ch: MangaDexChapter) => ({
+    id: ch.id,
+    source: 'mangadex' as const,
+    mangaId: id,
+    chapterNumber: ch.chapter || '',
+    volume: ch.volume,
+    title: ch.title,
+    date: ch.readableAt,
+    scanlationGroup: ch.scanlationGroups.join(', ') || null,
+    scanlationGroups: ch.scanlationGroups,
+    pageCount: ch.pageCount,
+    language: ch.translatedLanguage,
+    externalUrl: ch.externalUrl || ch.mangaDexUrl,
+  }));
+
+  const readableChapters = isOriginManga
+    ? originChaptersList
+    : isUniversal
+      ? universalChaptersList
+      : mangaDexChaptersList;
+  const firstReadableChapter = readableChapters[readableChapters.length - 1] || readableChapters[0];
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -86,14 +247,14 @@ const MangaDetail = () => {
     );
   }
 
-  if (isMangaError || !manga) {
+  if (isError || !manga) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 section-padding py-12">
           <div className="container mx-auto max-w-2xl rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
             <h1 className="text-2xl font-bold mb-3">Fiche manga indisponible</h1>
-            <p className="text-muted-foreground mb-6">{mangaError?.message || 'Ce titre ne peut pas être chargé.'}</p>
+            <p className="text-muted-foreground mb-6">{error?.message || 'Ce titre ne peut pas être chargé.'}</p>
             <div className="flex justify-center gap-4">
               <Button className="btn-gradient" onClick={retry}>Réessayer</Button>
               <Button variant="outline" className="border-white/30" asChild>
@@ -107,22 +268,28 @@ const MangaDetail = () => {
     );
   }
 
-  const formattedUpdatedAt = new Intl.DateTimeFormat('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(manga.updatedAt));
+  const formattedUpdatedAt = manga.updatedAt
+    ? new Intl.DateTimeFormat('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date(manga.updatedAt))
+    : null;
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 section-padding py-10 md:py-14">
-        <div className="container mx-auto">
-          <Link to="/search" className="inline-flex items-center text-sm text-muted-foreground hover:text-white transition-colors mb-8">
+        <div className="container mx-auto space-y-10">
+          <Link
+            to="/search"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-white transition-colors"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour à la recherche
           </Link>
 
+          {/* MANGA OVERVIEW SECTION */}
           <section className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-8 lg:gap-12">
             <div className="mx-auto md:mx-0 w-full max-w-[300px]">
               <MangaCover
@@ -134,28 +301,42 @@ const MangaDetail = () => {
 
             <div>
               <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className="bg-manga-purple/30 text-white border-manga-purple/40">MangaDex</Badge>
-                <Badge variant="secondary" className="bg-white/10 text-white border-0">{statusLabels[manga.status]}</Badge>
-                {manga.contentRating && <Badge variant="secondary" className="bg-white/10 text-white border-0">{manga.contentRating}</Badge>}
+                <Badge className="bg-manga-purple/30 text-white border-manga-purple/40">
+                  {manga.sourceName}
+                </Badge>
+                <Badge variant="secondary" className="bg-white/10 text-white border-0">
+                  {statusLabels[manga.status] || manga.status}
+                </Badge>
+                {manga.contentRating && (
+                  <Badge variant="secondary" className="bg-white/10 text-white border-0">
+                    {manga.contentRating}
+                  </Badge>
+                )}
               </div>
 
               <h1 className="text-4xl md:text-5xl font-bold font-japanese leading-tight mb-4">{manga.title}</h1>
               <p className="text-lg text-muted-foreground mb-6">
                 Par <span className="text-white font-medium">{manga.author}</span>
-                {manga.artist && manga.artist !== manga.author && <> · Illustrations : <span className="text-white font-medium">{manga.artist}</span></>}
+                {manga.artist && manga.artist !== manga.author && (
+                  <> · Illustrations : <span className="text-white font-medium">{manga.artist}</span></>
+                )}
               </p>
 
               <div className="flex flex-wrap gap-2 mb-7">
                 {manga.genres.map((genre) => (
-                  <Badge key={genre} variant="secondary" className="bg-white/10 text-white/90 border-0">{genre}</Badge>
+                  <Badge key={genre} variant="secondary" className="bg-white/10 text-white/90 border-0">
+                    {genre}
+                  </Badge>
                 ))}
-                {manga.themes.map((theme) => (
-                  <Badge key={theme} variant="outline" className="border-manga-cyan/50 text-manga-cyan">{theme}</Badge>
+                {manga.themes?.map((theme) => (
+                  <Badge key={theme} variant="outline" className="border-manga-cyan/50 text-manga-cyan">
+                    {theme}
+                  </Badge>
                 ))}
               </div>
 
               <p className="text-muted-foreground leading-7 whitespace-pre-line max-w-4xl mb-8">
-                {manga.description || 'Aucun synopsis n’est disponible dans la langue sélectionnée.'}
+                {manga.description || 'Aucun synopsis disponible pour ce titre.'}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -167,142 +348,384 @@ const MangaDetail = () => {
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4">
                   <BookOpen className="h-5 w-5 text-manga-cyan mb-2" />
                   <p className="text-xs text-muted-foreground">Dernier chapitre</p>
-                  <p className="font-semibold">{manga.lastChapter ? `Chapitre ${manga.lastChapter}` : 'Non renseigné'}</p>
+                  <p className="font-semibold">
+                    {manga.lastChapter ? `Chapitre ${manga.lastChapter}` : 'Non renseigné'}
+                  </p>
                 </div>
-                <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                  <CalendarDays className="h-5 w-5 text-manga-gold mb-2" />
-                  <p className="text-xs text-muted-foreground">Mis à jour</p>
-                  <p className="font-semibold text-sm">{formattedUpdatedAt}</p>
-                </div>
+                {formattedUpdatedAt && (
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <CalendarDays className="h-5 w-5 text-manga-gold mb-2" />
+                    <p className="text-xs text-muted-foreground">Mis à jour</p>
+                    <p className="font-semibold text-sm">{formattedUpdatedAt}</p>
+                  </div>
+                )}
               </div>
 
-              <Button className="btn-gradient" asChild>
-                <a href={manga.externalUrl} target="_blank" rel="noreferrer">
-                  Voir la fiche sur MangaDex
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </a>
-              </Button>
+              <div className="flex flex-wrap gap-3">
+                {/* First chapter fast start button */}
+                {firstReadableChapter ? (
+                  <Button
+                    className="btn-gradient"
+                    onClick={() => {
+                      handleStartReadingChapter({
+                        id: firstReadableChapter.id,
+                        title: firstReadableChapter.title || `Chapitre ${firstReadableChapter.chapterNumber}`,
+                        number: firstReadableChapter.chapterNumber,
+                      });
+                    }}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Commencer la lecture
+                  </Button>
+                ) : null}
+
+                {manga.externalUrl && (
+                  <Button variant="outline" className="border-white/20" asChild>
+                    <a href={manga.externalUrl} target="_blank" rel="noreferrer">
+                      Voir la source officielle
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
           </section>
 
-          <section className="mt-16 pt-10 border-t border-white/10">
+          {/* IN-PAGE CHAPTER READER */}
+          {activeChapter && (
+            <section ref={readerSectionRef} className="pt-8 border-t border-white/15 scroll-mt-20 mb-14">
+              <UniversalReader
+                source={source}
+                chapterId={activeChapter.id}
+                chapterTitle={activeChapter.title}
+                mangaId={id}
+                mangaTitle={manga.title}
+                coverImage={manga.coverImageUrl}
+                mangaAuthor={manga.author}
+                chapters={isOriginManga ? originChaptersList : isUniversal ? universalChaptersList : mangaDexChaptersList}
+                onSelectChapter={(chId) => {
+                  const list = isOriginManga ? originChaptersList : isUniversal ? universalChaptersList : mangaDexChaptersList;
+                  const chObj = list.find((c) => c.id === chId);
+                  if (chObj) {
+                    handleStartReadingChapter({
+                      id: chObj.id,
+                      title: chObj.title || `Chapitre ${chObj.chapterNumber}`,
+                      number: chObj.chapterNumber,
+                    });
+                  }
+                }}
+                onClose={() => setActiveChapter(null)}
+              />
+            </section>
+          )}
+
+          {/* CHAPTERS LIST SECTION */}
+          <section className="pt-10 border-t border-white/10">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-7">
               <div>
-                <p className="text-manga-cyan font-medium mb-2">LECTURE</p>
+                <p className="text-manga-cyan font-medium mb-2">LECTURE EN LIGNE</p>
                 <h2 className="text-3xl font-bold font-japanese">Chapitres disponibles</h2>
-                <p className="text-muted-foreground mt-2">Les groupes de scanlation sont crédités pour chaque chapitre.</p>
+                <p className="text-muted-foreground mt-2">
+                  {isOriginManga
+                    ? 'Chapitres extraits directement depuis OriginManga.'
+                    : 'Les groupes de scanlation sont crédités pour chaque chapitre.'}
+                </p>
               </div>
-              <div className="w-full md:w-64 space-y-2">
-                <label htmlFor="chapter-language" className="text-sm text-muted-foreground inline-flex items-center gap-2">
-                  <Languages className="h-4 w-4" /> Langue de lecture
-                </label>
-                <Select
-                  value={language}
-                  onValueChange={(nextLanguage) => {
-                    setLanguage(nextLanguage);
-                    setChapterOffset(0);
-                  }}
-                >
-                  <SelectTrigger id="chapter-language" className="bg-white/10 border-white/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-manga-dark border-white/20">
-                    {languageOptions.map((option) => (
-                      <SelectItem key={option.code} value={option.code}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {isMangaDex && (
+                <div className="w-full md:w-64 space-y-2">
+                  <label
+                    htmlFor="chapter-language"
+                    className="text-sm text-muted-foreground inline-flex items-center gap-2"
+                  >
+                    <Languages className="h-4 w-4" /> Langue de lecture
+                  </label>
+                  <Select
+                    value={language}
+                    onValueChange={(nextLanguage) => {
+                      setLanguage(nextLanguage);
+                      setChapterOffset(0);
+                    }}
+                  >
+                    <SelectTrigger id="chapter-language" className="bg-white/10 border-white/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-manga-dark border-white/20">
+                      {languageOptions.map((option) => (
+                        <SelectItem key={option.code} value={option.code}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            {isChaptersLoading && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 py-14 text-center" aria-busy="true">
-                <LoaderCircle className="h-8 w-8 animate-spin text-manga-purple mx-auto mb-4" />
-                <p className="text-muted-foreground">Chargement des chapitres…</p>
-              </div>
-            )}
-
-            {isChaptersError && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
-                <h3 className="text-xl font-bold mb-2">Liste des chapitres indisponible</h3>
-                <p className="text-muted-foreground mb-5">{chaptersError.message}</p>
-                <Button className="btn-gradient" onClick={() => refetchChapters()}>Réessayer</Button>
-              </div>
-            )}
-
-            {!isChaptersLoading && !isChaptersError && chapterData && (
-              <>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Chapitres {chapterData.total === 0 ? 0 : chapterOffset + 1} à {Math.min(chapterOffset + chapterData.chapters.length, chapterData.total)} sur {chapterData.total.toLocaleString('fr-FR')} dans cette langue.
-                </p>
-                {chapterData.chapters.length > 0 ? (
+            {/* ORIGIN MANGA CHAPTERS LIST */}
+            {isOriginManga && (
+              <div>
+                {originChaptersList.length > 0 ? (
                   <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
-                    {chapterData.chapters.map((chapter) => (
-                      <article key={chapter.id} className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/5 transition-colors">
-                        <FileText className="h-5 w-5 text-manga-purple shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold truncate">
-                            {chapter.volume ? `Tome ${chapter.volume} · ` : ''}Chapitre {chapter.chapter || 'spécial'}
-                            {chapter.title ? ` — ${chapter.title}` : ''}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                            <span>{new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(chapter.readableAt))}</span>
-                            <span>{chapter.pageCount} page{chapter.pageCount > 1 ? 's' : ''}</span>
-                            {chapter.scanlationGroups.length > 0 && (
-                              <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {chapter.scanlationGroups.join(', ')}</span>
-                            )}
+                    {originChaptersList.map((chapter) => {
+                      const isCurrent = activeChapter?.id === chapter.id;
+                      return (
+                        <article
+                          key={chapter.id}
+                          className={`p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
+                            isCurrent ? 'bg-manga-purple/15 border-l-4 border-manga-purple' : 'hover:bg-white/5'
+                          }`}
+                        >
+                          <FileText className="h-5 w-5 text-manga-purple shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold truncate">
+                              Chapitre {chapter.chapterNumber}
+                              {chapter.title ? ` — ${chapter.title}` : ''}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                              {chapter.date && <span>{chapter.date}</span>}
+                              <Badge variant="outline" className="text-[10px] border-white/20">
+                                Scan FR
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                        <Button variant="outline" className="border-white/30 shrink-0" asChild>
-                          <a href={chapter.externalUrl || chapter.mangaDexUrl} target="_blank" rel="noreferrer" onClick={() => handleReadChapter(chapter)}>
-                            Lire sur MangaDex <ExternalLink className="h-4 w-4 ml-2" />
-                          </a>
-                        </Button>
-                      </article>
-                    ))}
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              className={isCurrent ? 'btn-gradient' : 'border-white/30'}
+                              variant={isCurrent ? 'default' : 'outline'}
+                              onClick={() =>
+                                handleStartReadingChapter({
+                                  id: chapter.id,
+                                  title: chapter.title || `Chapitre ${chapter.chapterNumber}`,
+                                  number: chapter.chapterNumber,
+                                })
+                              }
+                            >
+                              <Play className="h-4 w-4 mr-2" />
+                              {isCurrent ? 'En cours de lecture' : 'Lire dans la page'}
+                            </Button>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
                     <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Aucun chapitre dans cette langue</h3>
-                    <p className="text-muted-foreground">Essayez une autre langue dans le sélecteur ci-dessus.</p>
+                    <h3 className="text-xl font-bold mb-2">Aucun chapitre disponible</h3>
+                    <p className="text-muted-foreground">Aucun chapitre n&apos;a été trouvé sur OriginManga pour ce titre.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* UNIVERSAL SOURCES CHAPTERS LIST (COMICK, CRUNCHYSCAN, ETC.) */}
+            {isUniversal && (
+              <div>
+                {isUniversalChaptersLoading ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 py-14 text-center" aria-busy="true">
+                    <LoaderCircle className="h-8 w-8 animate-spin text-manga-purple mx-auto mb-4" />
+                    <p className="text-muted-foreground">Chargement des chapitres…</p>
+                  </div>
+                ) : universalChaptersList.length > 0 ? (
+                  <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
+                    {universalChaptersList.map((chapter) => {
+                      const isCurrent = activeChapter?.id === chapter.id;
+                      return (
+                        <article
+                          key={chapter.id}
+                          className={`p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
+                            isCurrent ? 'bg-manga-purple/15 border-l-4 border-manga-purple' : 'hover:bg-white/5'
+                          }`}
+                        >
+                          <FileText className="h-5 w-5 text-manga-purple shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold truncate">
+                              Chapitre {chapter.chapterNumber}
+                              {chapter.title ? ` — ${chapter.title}` : ''}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                              {chapter.date && <span>{chapter.date}</span>}
+                              {chapter.scanlationGroup && (
+                                <span className="text-white/70">Par {chapter.scanlationGroup}</span>
+                              )}
+                              <Badge variant="outline" className="text-[10px] border-white/20">
+                                {chapter.language ? chapter.language.toUpperCase() : 'SCAN'}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              className={isCurrent ? 'btn-gradient' : 'border-white/30'}
+                              variant={isCurrent ? 'default' : 'outline'}
+                              onClick={() =>
+                                handleStartReadingChapter({
+                                  id: chapter.id,
+                                  title: chapter.title || `Chapitre ${chapter.chapterNumber}`,
+                                  number: chapter.chapterNumber,
+                                  })
+                              }
+                            >
+                              <Play className="h-4 w-4 mr-2" />
+                              {isCurrent ? 'En cours de lecture' : 'Lire dans la page'}
+                            </Button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
+                    <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
+                    <h3 className="text-xl font-bold mb-2">Aucun chapitre disponible</h3>
+                    <p className="text-muted-foreground">Aucun chapitre n&apos;a été trouvé sur {source.toUpperCase()} pour ce titre.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MANGADEX CHAPTERS LIST */}
+            {isMangaDex && (
+              <>
+                {isMangaDexChaptersLoading && (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 py-14 text-center" aria-busy="true">
+                    <LoaderCircle className="h-8 w-8 animate-spin text-manga-purple mx-auto mb-4" />
+                    <p className="text-muted-foreground">Chargement des chapitres…</p>
                   </div>
                 )}
 
-                {chapterData.total > 100 && (
-                  <div className="flex items-center justify-center gap-4 mt-8">
-                    <Button
-                      variant="outline"
-                      className="border-white/30"
-                      disabled={chapterOffset === 0}
-                      onClick={() => {
-                        setChapterOffset((offset) => Math.max(0, offset - 100));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Chapitres précédents
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-white/30"
-                      disabled={chapterOffset + 100 >= chapterData.total}
-                      onClick={() => {
-                        setChapterOffset((offset) => offset + 100);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                    >
-                      Chapitres suivants
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                {isMangaDexChaptersError && (
+                  <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
+                    <h3 className="text-xl font-bold mb-2">Liste des chapitres indisponible</h3>
+                    <p className="text-muted-foreground mb-5">{mangaDexChaptersError.message}</p>
+                    <Button className="btn-gradient" onClick={() => refetchMangaDexChapters()}>
+                      Réessayer
                     </Button>
                   </div>
+                )}
+
+                {!isMangaDexChaptersLoading && !isMangaDexChaptersError && mangaDexChaptersData && (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Chapitres {mangaDexChaptersData.total === 0 ? 0 : chapterOffset + 1} à{' '}
+                      {Math.min(chapterOffset + mangaDexChaptersData.chapters.length, mangaDexChaptersData.total)} sur{' '}
+                      {mangaDexChaptersData.total.toLocaleString('fr-FR')} dans cette langue.
+                    </p>
+                    {mangaDexChaptersData.chapters.length > 0 ? (
+                      <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
+                        {mangaDexChaptersData.chapters.map((chapter) => {
+                          const isCurrent = activeChapter?.id === chapter.id;
+                          return (
+                            <article
+                              key={chapter.id}
+                              className={`p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
+                                isCurrent ? 'bg-manga-purple/15 border-l-4 border-manga-purple' : 'hover:bg-white/5'
+                              }`}
+                            >
+                              <FileText className="h-5 w-5 text-manga-purple shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold truncate">
+                                  {chapter.volume ? `Tome ${chapter.volume} · ` : ''}Chapitre {chapter.chapter || 'spécial'}
+                                  {chapter.title ? ` — ${chapter.title}` : ''}
+                                </h3>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                                  <span>
+                                    {new Intl.DateTimeFormat('fr-FR', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    }).format(new Date(chapter.readableAt))}
+                                  </span>
+                                  <span>
+                                    {chapter.pageCount} page{chapter.pageCount > 1 ? 's' : ''}
+                                  </span>
+                                  {chapter.scanlationGroups.length > 0 && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <Users className="h-3.5 w-3.5" /> {chapter.scanlationGroups.join(', ')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Button
+                                  className={isCurrent ? 'btn-gradient' : 'border-white/30'}
+                                  variant={isCurrent ? 'default' : 'outline'}
+                                  onClick={() =>
+                                    handleStartReadingChapter({
+                                      id: chapter.id,
+                                      title: `${chapter.volume ? `Tome ${chapter.volume} · ` : ''}Chapitre ${
+                                        chapter.chapter || ''
+                                      }${chapter.title ? ` — ${chapter.title}` : ''}`,
+                                      number: chapter.chapter || undefined,
+                                    })
+                                  }
+                                >
+                                  <Play className="h-4 w-4 mr-2" />
+                                  {isCurrent ? 'En lecture' : 'Lire ici'}
+                                </Button>
+
+                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white" asChild>
+                                  <a
+                                    href={chapter.externalUrl || chapter.mangaDexUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Ouvrir sur MangaDex"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
+                        <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
+                        <h3 className="text-xl font-bold mb-2">Aucun chapitre dans cette langue</h3>
+                        <p className="text-muted-foreground">Essayez une autre langue dans le sélecteur ci-dessus.</p>
+                      </div>
+                    )}
+
+                    {mangaDexChaptersData.total > 100 && (
+                      <div className="flex items-center justify-center gap-4 mt-8">
+                        <Button
+                          variant="outline"
+                          className="border-white/30"
+                          disabled={chapterOffset === 0}
+                          onClick={() => {
+                            setChapterOffset((offset) => Math.max(0, offset - 100));
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Chapitres précédents
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-white/30"
+                          disabled={chapterOffset + 100 >= mangaDexChaptersData.total}
+                          onClick={() => {
+                            setChapterOffset((offset) => offset + 100);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          Chapitres suivants
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
           </section>
 
           <p className="text-xs text-muted-foreground text-center mt-12">
-            Métadonnées, chapitres et crédits de scanlation fournis par MangaDex.
+            Métadonnées, chapitres et scans fournis par {manga.sourceName}.
           </p>
         </div>
       </main>

@@ -1,4 +1,4 @@
-export type CatalogProvider = 'anilist' | 'jikan' | 'kitsu';
+export type CatalogProvider = 'anilist' | 'jikan' | 'kitsu' | 'shikimori';
 export type CatalogMediaType = 'manga' | 'anime';
 
 export type UnifiedCatalogItem = {
@@ -105,13 +105,55 @@ async function searchKitsu({ query, mediaType = 'manga', limit = 12 }: CatalogSe
   });
 }
 
+const SHIKIMORI_ENDPOINT = 'https://shikimori.one/api';
+
+async function searchShikimori({ query, mediaType = 'manga', limit = 12 }: CatalogSearchOptions): Promise<UnifiedCatalogItem[]> {
+  const resource = mediaType === 'anime' ? 'animes' : 'mangas';
+  const response = await withTimeout((signal) => fetch(`${SHIKIMORI_ENDPOINT}/${resource}?search=${encodeURIComponent(query)}&limit=${Math.min(limit, 20)}`, {
+    signal,
+    headers: { 'User-Agent': 'MangaWave/1.0', Accept: 'application/json' },
+  }));
+  if (!response.ok) throw new Error(`Shikimori indisponible (${response.status})`);
+  const payload = await response.json() as Array<{
+    id: number;
+    name: string;
+    russian?: string;
+    image?: { original?: string; preview?: string };
+    score?: string;
+    status?: string;
+    aired_on?: string;
+  }>;
+
+  return (payload || []).map((item) => {
+    const cover = item.image?.original ? (item.image.original.startsWith('http') ? item.image.original : `https://shikimori.one${item.image.original}`) : null;
+    const scoreVal = item.score ? parseFloat(item.score) : null;
+    const yearVal = item.aired_on ? parseInt(item.aired_on.slice(0, 4), 10) : null;
+
+    return {
+      provider: 'shikimori',
+      sourceId: String(item.id),
+      mediaType,
+      title: item.name || item.russian || 'Titre sans nom',
+      altTitles: item.russian ? [item.russian] : [],
+      synopsis: null,
+      coverImageUrl: cover,
+      status: item.status || null,
+      year: isNaN(yearVal || NaN) ? null : yearVal,
+      genres: [],
+      score: scoreVal ? scoreVal / 2 : null,
+      officialUrl: `https://shikimori.one/${resource}/${item.id}`,
+    };
+  });
+}
+
 export const searchCatalogProvider = (provider: CatalogProvider, options: CatalogSearchOptions) => {
   if (provider === 'anilist') return searchAniList(options);
   if (provider === 'jikan') return searchJikan(options);
+  if (provider === 'shikimori') return searchShikimori(options);
   return searchKitsu(options);
 };
 
 export async function searchAllCatalogProviders(options: CatalogSearchOptions): Promise<UnifiedCatalogItem[]> {
-  const results = await Promise.allSettled((['anilist', 'jikan', 'kitsu'] as CatalogProvider[]).map((provider) => searchCatalogProvider(provider, options)));
+  const results = await Promise.allSettled((['anilist', 'jikan', 'kitsu', 'shikimori'] as CatalogProvider[]).map((provider) => searchCatalogProvider(provider, options)));
   return results.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
 }
