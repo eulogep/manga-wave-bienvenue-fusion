@@ -1,4 +1,5 @@
 import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
+import { createBrowserContext } from '../lib/browser-pool.js';
 
 const BASE = 'https://www.lelmanga.com';
 const REQUEST_TIMEOUT = 15_000;
@@ -16,15 +17,35 @@ function decodeHtml(value: string): string {
     .trim();
 }
 
+async function getRenderedHtml(path: string): Promise<string> {
+  const context = await createBrowserContext();
+  const page = await context.newPage();
+  try {
+    await page.route('**/*.{woff,woff2,ttf,otf,mp4,webm}', (route) => route.abort());
+    const response = await page.goto(`${BASE}${path}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30_000,
+    });
+    if (!response || response.status() >= 400) {
+      throw new Error(`LelManga a répondu ${response?.status() || 'sans statut'}.`);
+    }
+    return page.content();
+  } finally {
+    await page.close().catch(() => undefined);
+    await context.close().catch(() => undefined);
+  }
+}
+
 async function getHtml(path: string): Promise<string> {
   const response = await fetch(`${BASE}${path}`, {
     headers: {
       Accept: 'text/html,application/xhtml+xml',
       'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-      'User-Agent': 'MangaWave/1.0 (+public chapter reader)',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT),
   });
+  if (response.status === 403 || response.status === 429) return getRenderedHtml(path);
   if (!response.ok) throw new Error(`LelManga a répondu ${response.status}.`);
   return response.text();
 }
