@@ -5,3 +5,7 @@ export function nextReaderSettingsState(current: boolean, action: ReaderSettings
   if (action === 'close') return false;
   return !current;
 }
+
+export function shouldMountReaderSettings(settingsOpen: boolean): boolean {
+  return settingsOpen;
+}

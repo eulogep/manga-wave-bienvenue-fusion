@@ -49,6 +49,8 @@ const ReaderSettingsPanel = ({
   <aside
     className="fixed inset-y-0 right-0 z-[60] w-full max-w-[100vw] overflow-y-auto overscroll-contain border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-[var(--mw-text-primary)] shadow-2xl sm:max-w-sm"
     aria-label="Réglages du lecteur"
+    role="dialog"
+    aria-modal="true"
   >
     <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-6 flex items-center justify-between gap-4 border-b border-[var(--mw-border)] bg-[var(--mw-surface)] px-5 pb-4 pt-5">
       <div>

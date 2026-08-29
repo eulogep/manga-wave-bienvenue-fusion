@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,8 +23,8 @@ import { useReaderPreloading } from '@/hooks/useReaderPreloading';
 import ReaderSettingsPanel from '@/components/reader/ReaderSettingsPanel';
 import { shouldFallbackHeightToWidth, type PageFitMeasurement } from '@/components/reader/pageFit';
 import { selectAutomaticFallback } from '@/domain/automaticFallback';
-import { moveReaderPage } from '@/domain/readerNavigation';
-import { nextReaderSettingsState } from '@/domain/readerUiState';
+import { createReaderPageTransition, shouldHydrateReaderPage } from '@/domain/readerNavigation';
+import { nextReaderSettingsState, shouldMountReaderSettings } from '@/domain/readerUiState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -104,6 +105,7 @@ const UniversalReader = ({
   const resumedChapterRef = useRef<string>();
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fallbackAttemptRef = useRef<string | null>(null);
+  const readerIdentityRef = useRef(`${source}:${chapterId}`);
   const { recordReading } = useRecordReading();
   const { preferences, updatePreferences, resetPreferences } = useReaderPreferences();
   const isContinuous = preferences.mode === 'vertical' || preferences.mode === 'webtoon';
@@ -116,6 +118,7 @@ const UniversalReader = ({
       : preferences.readingDirection;
   const pageStep = isDoublePageLayout ? 2 : 1;
   const showControls = controlsVisible || settingsOpen;
+  const settingsVisible = shouldMountReaderSettings(settingsOpen);
 
   const revealControls = useCallback(() => {
     setControlsVisible(true);
@@ -226,9 +229,12 @@ const UniversalReader = ({
   }, [alternativesQuery.data, currentPage, isError, language, onAutomaticSourceFallback, source, triedSources]);
 
   useEffect(() => {
+    const readerIdentity = `${source}:${chapterId}`;
+    if (!shouldHydrateReaderPage(readerIdentityRef.current, readerIdentity)) return;
+    readerIdentityRef.current = readerIdentity;
     setCurrentPage(initialPage);
     resumedChapterRef.current = undefined;
-  }, [chapterId, initialPage]);
+  }, [chapterId, initialPage, source]);
 
   useEffect(() => {
     const resumeKey = `${chapterId}:${isContinuous}`;
@@ -256,9 +262,11 @@ const UniversalReader = ({
 
   useEffect(() => {
     if (pages?.length && currentPage >= pages.length) {
-      setCurrentPage(pages.length - 1);
+      const clampedPage = pages.length - 1;
+      setCurrentPage(clampedPage);
+      onPageChange?.(clampedPage);
     }
-  }, [pages, currentPage]);
+  }, [currentPage, onPageChange, pages]);
 
   // Record progress when page or chapter changes
   useEffect(() => {
@@ -291,27 +299,28 @@ const UniversalReader = ({
     }
   }, [hasPrevChapter, onSelectChapter, chapters, currentChapterIndex]);
 
-  const commitPage = useCallback((nextPage: number) => {
-    if (nextPage === currentPage) return;
-    setCurrentPage(nextPage);
-    onPageChange?.(nextPage);
-  }, [currentPage, onPageChange]);
+  const commitPage = useCallback((direction: 'previous' | 'next') => {
+    const transition = createReaderPageTransition(currentPage, pages?.length || 0, direction, pageStep);
+    if (transition.pageIndex === currentPage) return;
+    setCurrentPage(transition.pageIndex);
+    onPageChange?.(transition.pageIndex);
+  }, [currentPage, onPageChange, pageStep, pages?.length]);
 
   const handlePrevPage = useCallback(() => {
     if (currentPage > 0) {
-      commitPage(moveReaderPage(currentPage, pages?.length || 0, 'previous', pageStep));
+      commitPage('previous');
     } else if (hasPrevChapter) {
       handlePrevChapter();
     }
-  }, [commitPage, currentPage, hasPrevChapter, handlePrevChapter, pageStep, pages?.length]);
+  }, [commitPage, currentPage, hasPrevChapter, handlePrevChapter]);
 
   const handleNextPage = useCallback(() => {
     if (pages && currentPage < pages.length - 1) {
-      commitPage(moveReaderPage(currentPage, pages.length, 'next', pageStep));
+      commitPage('next');
     } else if (hasNextChapter) {
       handleNextChapter();
     }
-  }, [commitPage, currentPage, pages, hasNextChapter, handleNextChapter, pageStep]);
+  }, [commitPage, currentPage, pages, hasNextChapter, handleNextChapter]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -780,8 +789,8 @@ const UniversalReader = ({
           </div>
         )}
       </div>
-      {settingsOpen && (
-        <>
+      {settingsVisible && typeof document !== 'undefined' && createPortal(
+        <div data-reader-settings-state="open">
           <button
             type="button"
             className="fixed inset-0 z-50 bg-black/55"
@@ -802,7 +811,8 @@ const UniversalReader = ({
               onManualSourceSelection?.(alternative, currentPage);
             }}
           />
-        </>
+        </div>,
+        document.fullscreenElement || document.body,
       )}
     </div>
   );

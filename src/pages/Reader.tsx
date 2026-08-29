@@ -8,7 +8,7 @@ import {
 } from '@/hooks/useMangaReader';
 import { getSource, type SourceType } from '@/integrations/sources';
 import { appendTriedSource, buildFallbackNotice, parseTriedSources } from '@/domain/automaticFallback';
-import { withReaderPage } from '@/domain/readerNavigation';
+import { buildReaderLocation, withReaderPage } from '@/domain/readerNavigation';
 
 const Reader = () => {
   const params = useParams<{ source: string; mangaId: string; chapterId: string }>();
@@ -60,13 +60,13 @@ const Reader = () => {
 
   const handleManualSourceSelection = useCallback((alternative: ChapterSourceAlternative, pageIndex: number) => {
     if (!alternative.chapter) return;
-    const nextParams = new URLSearchParams({
-      lang: alternative.chapter.language || alternative.language || lang,
-      page: String(pageIndex),
-    });
-    navigate(
-      `/read/${encodeURIComponent(alternative.source)}/${encodeURIComponent(alternative.mangaId)}/${encodeURIComponent(alternative.chapter.id)}?${nextParams}`,
-    );
+    navigate(buildReaderLocation({
+      source: alternative.source,
+      mangaId: alternative.mangaId,
+      chapterId: alternative.chapter.id,
+      language: alternative.chapter.language || alternative.language || lang,
+      pageIndex,
+    }));
   }, [lang, navigate]);
 
   const handlePageChange = useCallback((pageIndex: number) => {
