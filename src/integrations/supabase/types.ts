@@ -145,6 +145,45 @@ export type Database = {
           },
         ]
       }
+      user_reader_preferences: {
+        Row: {
+          background: string
+          brightness: number
+          fit_mode: string
+          page_gap: number
+          preload_count: number
+          reading_direction: string
+          reading_mode: string
+          updated_at: string
+          user_id: string
+          zoom: number
+        }
+        Insert: {
+          background?: string
+          brightness?: number
+          fit_mode?: string
+          page_gap?: number
+          preload_count?: number
+          reading_direction?: string
+          reading_mode?: string
+          updated_at?: string
+          user_id: string
+          zoom?: number
+        }
+        Update: {
+          background?: string
+          brightness?: number
+          fit_mode?: string
+          page_gap?: number
+          preload_count?: number
+          reading_direction?: string
+          reading_mode?: string
+          updated_at?: string
+          user_id?: string
+          zoom?: number
+        }
+        Relationships: []
+      }
       user_favorites: {
         Row: {
           created_at: string
