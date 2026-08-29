@@ -1,9 +1,19 @@
-import { ArrowRight, BookOpen, Clock3, Flame, History, Play, Trash2, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Clock3, Play, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import MangaCover from '@/components/MangaCover';
-import { useContinueReading, removeLocalHistoryItem, clearLocalHistory } from '@/hooks/useReadingProgress';
+import { useContinueReading, useReadingHistoryActions } from '@/hooks/useReadingProgress';
 
 const relativeDate = (value: string) => {
   const delta = Date.now() - new Date(value).getTime();
@@ -16,155 +26,129 @@ const relativeDate = (value: string) => {
   return new Date(value).toLocaleDateString('fr-FR');
 };
 
-const SOURCE_BADGES: Record<string, { label: string; cls: string }> = {
-  originmanga: { label: 'OriginManga (VF)', cls: 'badge-vf' },
-  crunchyscan: { label: 'LelManga (VF)', cls: 'bg-orange-500/20 text-orange-400 border border-orange-500/30' },
-  comick: { label: 'Comick.io', cls: 'bg-manga-purple/25 text-manga-purple-light border border-manga-purple/40' },
-  mangadex: { label: 'MangaDex', cls: 'bg-manga-cyan/20 text-manga-cyan border border-manga-cyan/30' },
+const SOURCE_LABELS: Record<string, string> = {
+  originmanga: 'OriginManga · VF',
+  crunchyscan: 'LelManga · VF',
+  comick: 'Comick',
+  mangadex: 'MangaDex',
+  mangafire: 'MangaFire',
+  asurascans: 'Asura Scans',
 };
 
 const ContinueReadingSection = () => {
   const { data: items = [], isLoading } = useContinueReading();
+  const historyActions = useReadingHistoryActions();
 
-  // If no items and not loading, we can show a subtle placeholder or hide if clean
-  if (!isLoading && items.length === 0) {
-    return null; // Keep home clean if no history
-  }
-
-  const handleRemove = (e: React.MouseEvent, source: string, mangaId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    removeLocalHistoryItem(source, mangaId);
+  const handleRemove = (event: React.MouseEvent, source: string, mangaId: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void historyActions.remove(source, mangaId);
   };
 
   return (
-    <section className="py-12 section-padding relative" aria-labelledby="continue-reading-title">
+    <section className="relative border-y border-[var(--mw-border)] bg-[var(--mw-surface)] py-10 section-padding" aria-labelledby="continue-reading-title">
       <div className="container mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="h-2 w-2 rounded-full bg-manga-cyan animate-badge-pulse" />
-              <p className="text-xs font-bold uppercase tracking-widest text-manga-cyan">REPRISE INSTANTANÉE</p>
-            </div>
-            <h2 id="continue-reading-title" className="text-2xl md:text-3xl font-bold font-outfit text-white">
-              Continuer la <span className="glow-text">lecture</span>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[var(--mw-accent-coral)]">
+              Votre lecture
+            </p>
+            <h2 id="continue-reading-title" className="font-editorial text-2xl text-[var(--mw-text-primary)] md:text-3xl">
+              Continuer la lecture
             </h2>
-            <p className="text-xs md:text-sm text-white/50 mt-1">
-              Reprenez directement à la dernière page lue, synchronisée sur toutes vos sources.
+            <p className="mt-1 text-sm text-[var(--mw-text-secondary)]">
+              Reprenez exactement au chapitre et à la page où vous vous êtes arrêté.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             {items.length > 0 && (
-              <button
-                onClick={() => clearLocalHistory()}
-                className="text-xs text-white/40 hover:text-manga-pink transition-colors inline-flex items-center gap-1"
-                title="Effacer tout l'historique"
-              >
-                <Trash2 className="h-3 w-3" />
-                Effacer
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs text-[var(--mw-text-secondary)] transition-colors hover:text-[var(--mw-accent-coral)]">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Effacer
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="border-[var(--mw-border)] bg-[var(--mw-elevated)] text-[var(--mw-text-primary)]">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Effacer l’historique récent ?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-[var(--mw-text-secondary)]">
+                      Les positions enregistrées sur cet appareil seront supprimées. Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void historyActions.clear()} className="bg-[var(--mw-accent-coral)] text-white hover:bg-[var(--mw-accent-coral)]/90">
+                      Tout effacer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
-            <Button variant="ghost" size="sm" className="btn-outline-glow rounded-full text-xs" asChild>
+            <Button variant="outline" size="sm" className="min-h-11 border-[var(--mw-border)] bg-transparent text-xs text-[var(--mw-text-primary)] hover:border-[var(--mw-accent-blue)]" asChild>
               <Link to="/library">
-                Ma bibliothèque <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                Ma bibliothèque <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Link>
             </Button>
           </div>
         </div>
 
-        {/* Carousel / Grid of continuing cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {items.slice(0, 4).map((item, index) => {
-            const badge = SOURCE_BADGES[item.source] || { label: item.source.toUpperCase(), cls: 'bg-white/10 text-white/70' };
-            const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?page=${item.pageIndex || 0}`;
+        {!isLoading && items.length === 0 ? (
+          <div className="flex min-h-40 flex-col items-center justify-center border border-dashed border-[var(--mw-border)] bg-[var(--mw-background)] px-6 text-center">
+            <BookOpen className="mb-3 h-6 w-6 text-[var(--mw-accent-blue)]" />
+            <p className="font-medium text-[var(--mw-text-primary)]">Aucune lecture récente</p>
+            <p className="mt-1 text-sm text-[var(--mw-text-secondary)]">Commencez un chapitre : il apparaîtra ici automatiquement.</p>
+            <Button className="mt-4 bg-[var(--mw-accent-coral)] text-white hover:bg-[var(--mw-accent-coral)]/90" asChild>
+              <Link to="/search">Découvrir le catalogue</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={isLoading}>
+            {items.slice(0, 4).map((item) => {
+              const sourceLabel = SOURCE_LABELS[item.source] || item.source;
+              const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?page=${item.pageIndex || 0}`;
 
-            return (
-              <article
-                key={`${item.source}-${item.mangaId}`}
-                className="group relative rounded-2xl border border-white/[0.08] bg-[#0f1520]/80 hover:bg-[#0f1520] hover:border-manga-purple/40 backdrop-blur-md transition-all duration-300 shadow-card hover:shadow-card-hover overflow-hidden animate-slide-up-fade"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                {/* Progress bar at top of card */}
-                <div className="h-1 w-full bg-white/[0.05]">
-                  <div
-                    className="h-full bg-gradient-to-r from-manga-purple to-manga-cyan transition-all duration-300"
-                    style={{ width: `${Math.max(5, item.progressPercent || 0)}%` }}
-                  />
-                </div>
-
-                <div className="flex gap-3.5 p-3.5">
-                  {/* Cover */}
-                  <div className="relative w-20 h-28 shrink-0 rounded-xl overflow-hidden bg-black/40 shadow-md">
-                    <MangaCover
-                      src={item.coverImage || null}
-                      alt={`Couverture de ${item.mangaTitle}`}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <span className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${badge.cls}`}>
-                      {badge.label.split(' ')[0]}
-                    </span>
+              return (
+                <article key={`${item.source}-${item.mangaId}`} className="group relative overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-background)] transition-colors hover:border-[var(--mw-accent-blue)]">
+                  <div className="h-1 w-full bg-[var(--mw-border)]">
+                    <div className="h-full bg-[var(--mw-accent-coral)]" style={{ width: `${Math.max(3, item.progressPercent || 0)}%` }} />
                   </div>
 
-                  {/* Info */}
-                  <div className="min-w-0 flex flex-col flex-1 justify-between">
-                    <div>
-                      <div className="flex items-start justify-between gap-1">
-                        <Link
-                          to={`/manga/${item.mangaId}?source=${item.source}`}
-                          className="font-outfit font-bold text-sm text-white line-clamp-1 hover:text-manga-purple transition-colors"
-                          title={item.mangaTitle}
-                        >
-                          {item.mangaTitle}
-                        </Link>
-                        <button
-                          onClick={(e) => handleRemove(e, item.source, item.mangaId)}
-                          className="text-white/30 hover:text-white hover:bg-white/10 rounded p-1 transition-colors -mr-1 -mt-1"
-                          title="Retirer de la liste"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-
-                      <p className="text-xs text-white/40 truncate mt-0.5">
-                        {item.mangaAuthor || 'Auteur inconnu'}
-                      </p>
-
-                      <p className="text-xs text-manga-cyan font-medium truncate mt-1.5">
-                        Chapitre {item.chapterNumber}
-                      </p>
-
-                      <div className="flex items-center justify-between text-[11px] text-white/40 mt-1">
-                        <span>
-                          {item.totalPages > 1
-                            ? `Page ${(item.pageIndex || 0) + 1}/${item.totalPages}`
-                            : 'En cours'}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[10px]">
-                          <Clock3 className="h-2.5 w-2.5" />
-                          {relativeDate(item.readAt)}
-                        </span>
-                      </div>
+                  <div className="flex gap-3.5 p-3.5">
+                    <div className="relative h-28 w-20 shrink-0 overflow-hidden bg-[var(--mw-elevated)]">
+                      <MangaCover src={item.coverImage || null} alt={`Couverture de ${item.mangaTitle}`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     </div>
 
-                    {/* Resume CTA button */}
-                    <Button
-                      size="sm"
-                      className="btn-gradient h-7 text-xs font-semibold rounded-lg w-full mt-2"
-                      asChild
-                    >
-                      <Link to={resumeUrl}>
-                        <Play className="h-3 w-3 mr-1 fill-white" />
-                        Reprendre
-                      </Link>
-                    </Button>
+                    <div className="flex min-w-0 flex-1 flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-1">
+                          <Link to={`/manga/${item.mangaId}?source=${item.source}`} className="line-clamp-1 text-sm font-bold text-[var(--mw-text-primary)] transition-colors hover:text-[var(--mw-accent-coral)]" title={item.mangaTitle}>
+                            {item.mangaTitle}
+                          </Link>
+                          <button onClick={(event) => handleRemove(event, item.source, item.mangaId)} className="-mr-1 -mt-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--mw-text-secondary)] transition-colors hover:text-[var(--mw-text-primary)]" aria-label={`Retirer ${item.mangaTitle} de l’historique`}>
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--mw-accent-blue)]">{sourceLabel}</p>
+                        <p className="mt-1.5 truncate text-xs font-medium text-[var(--mw-text-primary)]">Chapitre {item.chapterNumber}</p>
+                        <div className="mt-1 flex items-center justify-between text-[11px] text-[var(--mw-text-secondary)]">
+                          <span>{item.totalPages > 1 ? `Page ${(item.pageIndex || 0) + 1}/${item.totalPages}` : 'En cours'}</span>
+                          <span className="inline-flex items-center gap-1 text-[10px]"><Clock3 className="h-2.5 w-2.5" />{relativeDate(item.readAt)}</span>
+                        </div>
+                      </div>
+
+                      <Button size="sm" className="mt-2 h-8 w-full bg-[var(--mw-accent-coral)] text-xs font-semibold text-white hover:bg-[var(--mw-accent-coral)]/90" asChild>
+                        <Link to={resumeUrl}><Play className="mr-1 h-3 w-3 fill-current" />Reprendre</Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

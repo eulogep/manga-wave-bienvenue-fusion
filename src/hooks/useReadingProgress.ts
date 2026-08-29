@@ -91,6 +91,34 @@ export function clearLocalHistory() {
   }
 }
 
+export const useReadingHistoryActions = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const remove = useCallback(async (source: string, mangaId: string) => {
+    removeLocalHistoryItem(source, mangaId);
+    if (user) {
+      await supabase
+        .from('user_reading_progress')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('source_id', source)
+        .eq('source_manga_id', String(mangaId));
+    }
+    queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] });
+  }, [queryClient, user]);
+
+  const clear = useCallback(async () => {
+    clearLocalHistory();
+    if (user) {
+      await supabase.from('user_reading_progress').delete().eq('user_id', user.id);
+    }
+    queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] });
+  }, [queryClient, user]);
+
+  return { clear, remove };
+};
+
 /* ── REACT HOOKS ── */
 
 /**
