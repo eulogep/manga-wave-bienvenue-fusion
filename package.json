@@ -10,6 +10,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "test:canonical": "node --experimental-strip-types --test tests/canonicalManga.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

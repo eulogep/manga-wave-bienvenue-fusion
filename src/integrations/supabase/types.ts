@@ -7,46 +7,99 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
+      chapter_snapshots: {
+        Row: {
+          available: boolean
+          chapter_number: string
+          expires_at: string | null
+          fetched_at: string
+          id: number
+          language: string | null
+          mapping_id: number
+          page_urls: string[]
+          source_chapter_id: string
+          source_url: string | null
+          title: string | null
+        }
+        Insert: {
+          available?: boolean
+          chapter_number: string
+          expires_at?: string | null
+          fetched_at?: string
+          id?: number
+          language?: string | null
+          mapping_id: number
+          page_urls?: string[]
+          source_chapter_id: string
+          source_url?: string | null
+          title?: string | null
+        }
+        Update: {
+          available?: boolean
+          chapter_number?: string
+          expires_at?: string | null
+          fetched_at?: string
+          id?: number
+          language?: string | null
+          mapping_id?: number
+          page_urls?: string[]
+          source_chapter_id?: string
+          source_url?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapter_snapshots_mapping_id_fkey"
+            columns: ["mapping_id"]
+            isOneToOne: false
+            referencedRelation: "manga_source_mappings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chapters: {
         Row: {
           chapter_number: number
           created_at: string
           id: number
           manga_id: number
-          mangadex_id: string | null
           pages_count: number | null
           release_date: string | null
           title: string | null
-          translated_language: string | null
-          volume: string | null
         }
         Insert: {
           chapter_number: number
           created_at?: string
           id?: number
           manga_id: number
-          mangadex_id?: string | null
           pages_count?: number | null
           release_date?: string | null
           title?: string | null
-          translated_language?: string | null
-          volume?: string | null
         }
         Update: {
           chapter_number?: number
           created_at?: string
           id?: number
           manga_id?: number
-          mangadex_id?: string | null
           pages_count?: number | null
           release_date?: string | null
           title?: string | null
-          translated_language?: string | null
-          volume?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "chapters_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_manga_catalog"
+            referencedColumns: ["canonical_id"]
+          },
           {
             foreignKeyName: "chapters_manga_id_fkey"
             columns: ["manga_id"]
@@ -56,10 +109,80 @@ export type Database = {
           },
         ]
       }
+      manga_source_mappings: {
+        Row: {
+          available: boolean
+          created_at: string
+          id: number
+          language: string
+          last_synced_at: string | null
+          manga_id: number
+          manually_verified: boolean
+          match_confidence: number
+          metadata: Json
+          normalized_source_title: string
+          source_id: string
+          source_manga_id: string
+          source_title: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          id?: number
+          language?: string
+          last_synced_at?: string | null
+          manga_id: number
+          manually_verified?: boolean
+          match_confidence?: number
+          metadata?: Json
+          normalized_source_title: string
+          source_id: string
+          source_manga_id: string
+          source_title: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          id?: number
+          language?: string
+          last_synced_at?: string | null
+          manga_id?: number
+          manually_verified?: boolean
+          match_confidence?: number
+          metadata?: Json
+          normalized_source_title?: string
+          source_id?: string
+          source_manga_id?: string
+          source_title?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manga_source_mappings_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_manga_catalog"
+            referencedColumns: ["canonical_id"]
+          },
+          {
+            foreignKeyName: "manga_source_mappings_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mangas: {
         Row: {
-          author: string | null
+          aliases: string[]
           artist: string | null
+          author: string | null
           content_rating: string | null
           cover_image: string | null
           created_at: string
@@ -67,17 +190,20 @@ export type Database = {
           genre: string[]
           id: number
           last_synced_at: string | null
-          mangadex_id: string | null
           manga_type: string | null
+          mangadex_id: string | null
+          normalized_title: string
           rating: number | null
           source_updated_at: string | null
           status: string
           title: string
+          updated_at: string
           views: number
         }
         Insert: {
-          author?: string | null
+          aliases?: string[]
           artist?: string | null
+          author?: string | null
           content_rating?: string | null
           cover_image?: string | null
           created_at?: string
@@ -85,17 +211,20 @@ export type Database = {
           genre?: string[]
           id?: number
           last_synced_at?: string | null
-          mangadex_id?: string | null
           manga_type?: string | null
+          mangadex_id?: string | null
+          normalized_title: string
           rating?: number | null
           source_updated_at?: string | null
           status?: string
           title: string
+          updated_at?: string
           views?: number
         }
         Update: {
-          author?: string | null
+          aliases?: string[]
           artist?: string | null
+          author?: string | null
           content_rating?: string | null
           cover_image?: string | null
           created_at?: string
@@ -103,12 +232,14 @@ export type Database = {
           genre?: string[]
           id?: number
           last_synced_at?: string | null
-          mangadex_id?: string | null
           manga_type?: string | null
+          mangadex_id?: string | null
+          normalized_title?: string
           rating?: number | null
           source_updated_at?: string | null
           status?: string
           title?: string
+          updated_at?: string
           views?: number
         }
         Relationships: []
@@ -138,6 +269,193 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pages_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_health: {
+        Row: {
+          average_latency_ms: number
+          circuit_state: string
+          consecutive_failures: number
+          failure_count: number
+          last_error: string | null
+          last_failure_at: string | null
+          last_success_at: string | null
+          request_count: number
+          retry_at: string | null
+          score: number
+          source_id: string
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          average_latency_ms?: number
+          circuit_state?: string
+          consecutive_failures?: number
+          failure_count?: number
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          request_count?: number
+          retry_at?: string | null
+          score?: number
+          source_id: string
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          average_latency_ms?: number
+          circuit_state?: string
+          consecutive_failures?: number
+          failure_count?: number
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          request_count?: number
+          retry_at?: string | null
+          score?: number
+          source_id?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      source_sync_runs: {
+        Row: {
+          attempt: number
+          error_message: string | null
+          finished_at: string | null
+          id: number
+          items_synced: number
+          job_type: string
+          queue_message_id: number | null
+          source_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          attempt?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: number
+          items_synced?: number
+          job_type: string
+          queue_message_id?: number | null
+          source_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          attempt?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: number
+          items_synced?: number
+          job_type?: string
+          queue_message_id?: number | null
+          source_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      user_favorites: {
+        Row: {
+          created_at: string
+          id: number
+          manga_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          manga_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          manga_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_manga_catalog"
+            referencedColumns: ["canonical_id"]
+          },
+          {
+            foreignKeyName: "user_favorites_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_history: {
+        Row: {
+          chapter_id: number
+          id: number
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id: number
+          id?: number
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: number
+          id?: number
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_history_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_progress: {
+        Row: {
+          chapter_id: number
+          id: number
+          page_number: number
+          total_pages: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id: number
+          id?: number
+          page_number?: number
+          total_pages?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: number
+          id?: number
+          page_number?: number
+          total_pages?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_chapter_id_fkey"
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "chapters"
@@ -183,78 +501,6 @@ export type Database = {
           zoom?: number
         }
         Relationships: []
-      }
-      user_favorites: {
-        Row: {
-          created_at: string
-          id: number
-          manga_id: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          manga_id: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          manga_id?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_favorites_manga_id_fkey"
-            columns: ["manga_id"]
-            isOneToOne: false
-            referencedRelation: "mangas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_history: {
-        Row: {
-          chapter_id: number
-          id: number
-          read_at: string
-          user_id: string
-        }
-        Insert: {
-          chapter_id: number
-          id?: number
-          read_at?: string
-          user_id: string
-        }
-        Update: {
-          chapter_id?: number
-          id?: number
-          read_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_history_chapter_id_fkey"
-            columns: ["chapter_id"]
-            isOneToOne: false
-            referencedRelation: "chapters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_reading_progress: {
         Row: {
@@ -307,56 +553,59 @@ export type Database = {
         }
         Relationships: []
       }
-      user_progress: {
-        Row: {
-          chapter_id: number
-          id: number
-          page_number: number
-          total_pages: number | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          chapter_id: number
-          id?: number
-          page_number?: number
-          total_pages?: number | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          chapter_id?: number
-          id?: number
-          page_number?: number
-          total_pages?: number | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_progress_chapter_id_fkey"
-            columns: ["chapter_id"]
-            isOneToOne: false
-            referencedRelation: "chapters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
-      [_ in never]: never
+      canonical_manga_catalog: {
+        Row: {
+          alternative_titles: string[] | null
+          author: string | null
+          canonical_id: number | null
+          cover: string | null
+          description: string | null
+          genres: string[] | null
+          normalized_title: string | null
+          rating: number | null
+          source_count: number | null
+          sources: Json | null
+          status: string | null
+          title: string | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      set_updated_at: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
+      complete_source_sync: {
+        Args: { archive_message?: boolean; message_id: number }
+        Returns: boolean
+      }
+      dequeue_source_sync: {
+        Args: { batch_size?: number; visibility_seconds?: number }
+        Returns: {
+          enqueued_at: string
+          message: Json
+          msg_id: number
+          read_ct: number
+          visible_at: string
+        }[]
+      }
+      enqueue_source_sync: {
+        Args: { delay_seconds?: number; job: Json }
+        Returns: number
+      }
+      find_canonical_manga: {
+        Args: { candidate_title: string }
+        Returns: {
+          confidence: number
+          manga_id: number
+          match_reason: string
+          title: string
+        }[]
+      }
+      normalize_manga_title: { Args: { value: string }; Returns: string }
+      upsert_source_catalog: {
+        Args: { items: Json; requested_source_id: string }
+        Returns: number
       }
     }
     Enums: {
@@ -368,21 +617,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -400,14 +653,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -423,37 +678,41 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer I
+        Update: infer U
       }
-      ? I
+      ? U
       : never
     : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -461,14 +720,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

@@ -1,12 +1,11 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
-  Flame,
-  Globe,
+  Layers3,
+  LoaderCircle,
   Quote,
   Search as SearchIcon,
   Sparkles,
@@ -30,8 +29,11 @@ import {
 } from '@/hooks/useExternalSources';
 import { useAnimeQuote } from '@/hooks/useAnimeQuote';
 import type { MangaDexStatus } from '@/integrations/mangadex/client';
-import type { UnifiedCatalogItem } from '@/integrations/catalog/providers';
-import type { SourceType } from '@/integrations/sources';
+import {
+  canonicalizeMangaCandidates,
+  getPrimarySource,
+  type CanonicalMangaCandidate,
+} from '@/domain/canonicalManga';
 
 const PAGE_SIZE = 24;
 
@@ -70,7 +72,7 @@ const Search = () => {
   const quoteQuery = useAnimeQuote();
 
   // Queries for various sources
-  const shouldSearchMangaDex = selectedSource === 'all' || selectedSource === 'mangadex';
+  const shouldSearchMangaDex = selectedSource === 'mangadex';
   const mangaDexQuery = useMangaDexSearch({
     title: initialQuery,
     status: initialStatus === 'all' ? undefined : initialStatus,
@@ -78,19 +80,19 @@ const Search = () => {
     limit: PAGE_SIZE,
   });
 
-  const shouldSearchOrigin = selectedSource === 'all' || selectedSource === 'originmanga';
+  const shouldSearchOrigin = selectedSource === 'originmanga';
   const originQuery = useOriginMangaSearch(initialQuery, initialPage);
 
-  const shouldSearchComick = selectedSource === 'all' || selectedSource === 'comick';
+  const shouldSearchComick = selectedSource === 'comick';
   const comickQuery = useComickSearch(initialQuery, initialPage);
 
-  const shouldSearchCrunchy = selectedSource === 'all' || selectedSource === 'crunchyscan';
+  const shouldSearchCrunchy = selectedSource === 'crunchyscan';
   const crunchyQuery = useCrunchyScanSearch(initialQuery);
 
-  const shouldSearchMangaFire = selectedSource === 'all' || selectedSource === 'mangafire';
+  const shouldSearchMangaFire = selectedSource === 'mangafire';
   const mangaFireQuery = useMangaFireSearch(initialQuery);
 
-  const shouldSearchAsura = selectedSource === 'all' || selectedSource === 'asurascans';
+  const shouldSearchAsura = selectedSource === 'asurascans';
   const asuraQuery = useAsuraSearch(initialQuery);
 
   // External catalog query (AniList, Jikan, Kitsu, Shikimori)
@@ -101,13 +103,81 @@ const Search = () => {
     limit: 8,
   });
 
-  const providerStatus = (item: UnifiedCatalogItem): MangaDexStatus => {
-    const s = item.status?.toLowerCase();
+  const normalizeStatus = (statusValue: string | null | undefined): MangaDexStatus => {
+    const s = statusValue?.toLowerCase();
     if (s?.includes('complete') || s === 'finished' || s === 'finished_airing') return 'completed';
     if (s?.includes('hiatus')) return 'hiatus';
     if (s?.includes('cancel')) return 'cancelled';
     return 'ongoing';
   };
+
+  const canonicalResults = useMemo(() => {
+    const candidates: CanonicalMangaCandidate[] = [
+      ...(mangaDexQuery.data?.mangas || []).map((item) => ({
+        provider: 'mangadex', externalId: item.id, title: item.title, author: item.author,
+        status: item.status, cover: item.coverImageUrl, genres: item.genres, type: 'manga',
+        language: 'multi', url: item.externalUrl,
+        detailUrl: `/manga/${encodeURIComponent(item.id)}?source=mangadex`,
+      })),
+      ...(originQuery.data || []).map((item) => ({
+        provider: 'originmanga', externalId: item.id, title: item.title, status: item.status,
+        cover: item.coverUrl, rating: item.rating, type: 'manga', language: 'fr', url: item.url,
+        detailUrl: `/manga/${encodeURIComponent(item.id)}?source=originmanga`,
+      })),
+      ...(comickQuery.data || []).map((item) => ({
+        provider: 'comick', externalId: item.slug || item.id, title: item.title, status: item.status,
+        cover: item.coverUrl, rating: item.rating, genres: item.genres, type: 'manga', language: 'multi', url: item.url,
+        detailUrl: `/manga/${encodeURIComponent(item.slug || item.id)}?source=comick`,
+      })),
+      ...(crunchyQuery.data || []).map((item) => ({
+        provider: 'crunchyscan', externalId: item.id, title: item.title, author: item.author,
+        status: item.status, cover: item.coverUrl, rating: item.rating, genres: item.genres,
+        type: 'manga', language: 'fr', url: item.url,
+        detailUrl: `/manga/${encodeURIComponent(item.id)}?source=crunchyscan`,
+      })),
+      ...(mangaFireQuery.data || []).map((item) => ({
+        provider: 'mangafire', externalId: item.id, title: item.title, author: item.author,
+        status: item.status, cover: item.coverUrl, rating: item.rating, genres: item.genres,
+        type: 'manga', language: 'multi', url: item.url,
+        detailUrl: `/manga/${encodeURIComponent(item.id)}?source=mangafire`,
+      })),
+      ...(asuraQuery.data || []).map((item) => ({
+        provider: 'asurascans', externalId: item.id, title: item.title, author: item.author,
+        status: item.status, cover: item.coverUrl, rating: item.rating, genres: item.genres,
+        type: 'manhwa', language: 'en', url: item.url,
+        detailUrl: `/manga/${encodeURIComponent(item.id)}?source=asurascans`,
+      })),
+      ...(providersQuery.data || []).map((item) => ({
+        provider: item.provider, externalId: item.sourceId, title: item.title,
+        alternativeTitles: item.altTitles, status: item.status, cover: item.coverImageUrl,
+        genres: item.genres, rating: item.score, type: item.mediaType, language: 'und',
+        readable: false, url: item.officialUrl, detailUrl: null,
+      })),
+    ];
+
+    return canonicalizeMangaCandidates(candidates);
+  }, [
+    mangaDexQuery.data,
+    originQuery.data,
+    comickQuery.data,
+    crunchyQuery.data,
+    mangaFireQuery.data,
+    asuraQuery.data,
+    providersQuery.data,
+  ]);
+
+  const canonicalIsLoading = [
+    mangaDexQuery,
+    originQuery,
+    comickQuery,
+    crunchyQuery,
+    mangaFireQuery,
+    asuraQuery,
+    providersQuery,
+  ].some((queryResult) => queryResult.isLoading);
+  const displayedCanonicalResults = initialStatus === 'all'
+    ? canonicalResults
+    : canonicalResults.filter((manga) => normalizeStatus(manga.status) === initialStatus);
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -273,6 +343,68 @@ const Search = () => {
                 Saisissez au moins deux caractères pour explorer tous les catalogues simultanément.
               </p>
             </div>
+          )}
+
+          {hasSearch && selectedSource === 'all' && (
+            <section className="mb-14" aria-labelledby="canonical-results-title">
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <Badge className="border border-[var(--mw-accent-blue)]/35 bg-[var(--mw-accent-blue)]/10 text-[var(--mw-accent-blue)]">
+                      <Layers3 className="mr-1 h-3.5 w-3.5" /> Catalogue canonique
+                    </Badge>
+                  </div>
+                  <h2 id="canonical-results-title" className="font-editorial text-3xl uppercase">
+                    Un manga, toutes ses sources
+                  </h2>
+                  <p className="mt-1 text-sm text-white/50">
+                    Les éditions identiques sont réunies sans masquer les sources disponibles.
+                  </p>
+                </div>
+                {!canonicalIsLoading && (
+                  <span className="text-sm text-white/50">{displayedCanonicalResults.length} manga{displayedCanonicalResults.length > 1 ? 's' : ''}</span>
+                )}
+              </div>
+
+              {canonicalIsLoading && displayedCanonicalResults.length === 0 ? (
+                <div className="flex min-h-40 items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/60">
+                  <LoaderCircle className="h-5 w-5 animate-spin text-[var(--mw-accent-blue)]" />
+                  Consolidation des catalogues…
+                </div>
+              ) : displayedCanonicalResults.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {displayedCanonicalResults.map((manga) => {
+                    const primarySource = getPrimarySource(manga);
+                    const readableSourceCount = manga.sources.filter((source) => source.available && source.readable).length;
+                    return (
+                      <div key={manga.canonicalId} className="min-w-0">
+                        <MangaCard
+                          id={manga.canonicalId}
+                          title={manga.title}
+                          author={manga.author || 'Auteur inconnu'}
+                          rating={manga.rating}
+                          status={normalizeStatus(manga.status)}
+                          genre={manga.genres}
+                          imageUrl={manga.cover}
+                          lastUpdate={readableSourceCount > 0 ? `${readableSourceCount} sources disponibles` : 'Fiche catalogue'}
+                          detailUrl={primarySource?.detailUrl || undefined}
+                          externalUrl={!primarySource?.detailUrl ? primarySource?.url || undefined : undefined}
+                        />
+                        <p className="mt-2 truncate text-[11px] font-medium text-[var(--mw-accent-blue)]">
+                          {readableSourceCount > 0
+                            ? `${readableSourceCount} source${readableSourceCount > 1 ? 's' : ''} disponible${readableSourceCount > 1 ? 's' : ''}`
+                            : 'Métadonnées externes'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-6 py-12 text-center text-sm text-white/55">
+                  Aucun manga canonique trouvé pour cette recherche.
+                </div>
+              )}
+            </section>
           )}
 
           {/* 1. COMICK.IO RESULTS SECTION */}
@@ -639,52 +771,6 @@ const Search = () => {
             </section>
           )}
 
-          {/* 7. OTHER METADATA PROVIDERS (AniList, Jikan, Kitsu, Shikimori from public-apis) */}
-          {hasSearch && providersQuery.data && providersQuery.data.length > 0 && selectedSource === 'all' && (
-            <section className="mt-16 pt-10 border-t border-white/10" aria-labelledby="other-providers-title">
-              <div className="mb-7">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-white/10 text-white/80 border-white/20">
-                    <Globe className="h-3.5 w-3.5 mr-1" />
-                    PUBLIC-APIS GITHUB
-                  </Badge>
-                </div>
-                <h2 id="other-providers-title" className="text-3xl font-bold font-japanese">
-                  Bases de données <span className="glow-text">globales</span>
-                </h2>
-                <p className="text-white/50 mt-1 text-sm">
-                  Métadonnées et fiches officielles réunies depuis AniList, Shikimori, MyAnimeList (Jikan) et Kitsu.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {providersQuery.data.map((item) => (
-                  <div key={`${item.provider}-${item.sourceId}`} className="relative">
-                    <span className="absolute z-10 top-2 left-2 rounded-full bg-black/80 border border-white/20 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/90">
-                      {item.provider}
-                    </span>
-                    <MangaCard
-                      id={`${item.provider}-${item.sourceId}`}
-                      title={item.title}
-                      author={
-                        item.provider === 'shikimori'
-                          ? 'Shikimori API'
-                          : item.provider === 'jikan'
-                          ? 'MyAnimeList via Jikan'
-                          : item.provider === 'anilist'
-                          ? 'AniList'
-                          : 'Kitsu'
-                      }
-                      status={providerStatus(item)}
-                      genre={item.genres}
-                      imageUrl={item.coverImageUrl}
-                      lastUpdate={item.year ? String(item.year) : 'Métadonnées'}
-                      externalUrl={item.officialUrl || undefined}
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
       </main>
       <Footer />
