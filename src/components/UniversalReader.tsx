@@ -9,7 +9,6 @@ import {
   AlertCircle,
   BookOpen,
   ScrollText,
-  X,
   SlidersHorizontal,
   Shuffle,
 } from 'lucide-react';
@@ -55,8 +54,23 @@ const UniversalReader = ({
   const [mode, setMode] = useState<ReadingMode>('paged');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fitWidth, setFitWidth] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { recordReading } = useRecordReading();
+
+  const revealControls = useCallback(() => {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 2_400);
+  }, []);
+
+  useEffect(() => {
+    revealControls();
+    return () => {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    };
+  }, [revealControls]);
 
   // Find index of current chapter in list
   const currentChapterIndex = chapters.findIndex((c) => c.id === chapterId);
@@ -130,6 +144,7 @@ const UniversalReader = ({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      revealControls();
       if (mode === 'paged') {
         if (e.key === 'ArrowLeft') {
           handlePrevPage();
@@ -142,7 +157,13 @@ const UniversalReader = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, handlePrevPage, handleNextPage]);
+  }, [mode, handlePrevPage, handleNextPage, revealControls]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -159,22 +180,40 @@ const UniversalReader = ({
   return (
     <div
       ref={containerRef}
-      className="relative rounded-2xl border border-white/15 bg-[#0d0f17] text-white shadow-2xl overflow-hidden"
+      className="relative h-[100dvh] w-full overflow-hidden bg-[var(--mw-background)] text-[var(--mw-text-primary)]"
+      onPointerMove={revealControls}
+      onPointerDown={revealControls}
+      onTouchStart={revealControls}
     >
       {/* Reading Progress Line */}
       {pages && pages.length > 0 && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-40">
           <div
-            className="h-full bg-gradient-to-r from-manga-purple to-manga-cyan transition-all duration-300"
+            className="h-full bg-[var(--mw-brand-primary)] transition-all duration-200"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
       )}
 
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-[#0d0f17]/95 backdrop-blur-md border-b border-white/10">
+      <div
+        className={`absolute inset-x-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 md:px-5 ${
+          controlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
         <div className="flex items-center gap-3 min-w-0">
-          <Badge className="bg-manga-purple/30 text-manga-purple border border-manga-purple/40 shrink-0 capitalize">
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-11 w-11 shrink-0 text-white/70 hover:bg-white/10 hover:text-white"
+              onClick={onClose}
+              aria-label="Retour Ã  la fiche manga"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <Badge className="shrink-0 border border-[#1ea7ff]/35 bg-[#1ea7ff]/15 text-[#1ea7ff] capitalize">
             {source}
           </Badge>
           <div className="min-w-0">
@@ -250,23 +289,11 @@ const UniversalReader = ({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
 
-          {/* Close button */}
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              onClick={onClose}
-              title="Fermer le lecteur"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="p-4 md:p-6 min-h-[60vh] flex flex-col items-center justify-center">
+      <div className="flex h-full flex-col items-center justify-center overflow-y-auto overscroll-contain px-0 py-16 md:px-4">
         {isLoading && (
           <div className="py-24 text-center">
             <LoaderCircle className="h-10 w-10 animate-spin text-manga-cyan mx-auto mb-4" />
@@ -393,7 +420,11 @@ const UniversalReader = ({
             </div>
 
             {/* Bottom Controls */}
-            <div className="flex flex-wrap items-center justify-center gap-3 w-full border-t border-white/10 pt-4">
+            <div
+              className={`fixed inset-x-0 bottom-0 z-30 flex min-h-16 flex-wrap items-center justify-center gap-2 border-t border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 ${
+                controlsVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+              }`}
+            >
               {hasPrevChapter && (
                 <Button
                   variant="outline"

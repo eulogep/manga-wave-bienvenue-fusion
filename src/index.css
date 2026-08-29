@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,6 +10,18 @@
 ───────────────────────────────────────── */
 @layer base {
   :root {
+    --mw-background: #061622;
+    --mw-surface: #141c28;
+    --mw-surface-elevated: #182431;
+    --mw-brand-primary: #ff4d5a;
+    --mw-brand-secondary: #1ea7ff;
+    --mw-text-primary: #edeff2;
+    --mw-text-secondary: #98a4b3;
+    --mw-border: #263241;
+    --mw-motion-fast: 120ms;
+    --mw-motion-normal: 180ms;
+    --mw-motion-slow: 240ms;
+
     /* Shadcn tokens mapped to Manga Wave palette */
     --background: 222 54% 6%;        /* #080c14 */
     --foreground: 220 40% 95%;       /* #f0f4ff */
@@ -92,6 +104,10 @@
 
   .font-japanese {
     font-family: 'Noto Sans JP', 'Inter', sans-serif;
+  }
+
+  .font-editorial {
+    font-family: 'Cinzel', Georgia, serif;
   }
 
   /* ── Text Gradients ── */
@@ -382,6 +398,15 @@
     pointer-events: none;
     opacity: 0.4;
     mix-blend-mode: overlay;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
