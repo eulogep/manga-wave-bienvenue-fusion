@@ -603,6 +603,20 @@ export type Database = {
         }[]
       }
       normalize_manga_title: { Args: { value: string }; Returns: string }
+      rank_canonical_manga_sources: {
+        Args: { preferred_language?: string; requested_canonical_id: number }
+        Returns: {
+          eligible: boolean
+          language: string
+          last_successful_request: string
+          mapping_id: number
+          score_breakdown: Json
+          source_id: string
+          source_manga_id: string
+          source_score: number
+          source_url: string
+        }[]
+      }
       upsert_source_catalog: {
         Args: { items: Json; requested_source_id: string }
         Returns: number

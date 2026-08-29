@@ -433,7 +433,7 @@ const UniversalReader = ({
                   </div>
                 ) : alternativesQuery.data?.length ? (
                   <div className="space-y-2">
-                    {alternativesQuery.data.map((alternative) => {
+                    {alternativesQuery.data.map((alternative, alternativeIndex) => {
                       const target = alternative.chapter
                         ? `/read/${encodeURIComponent(alternative.source)}/${encodeURIComponent(alternative.mangaId)}/${encodeURIComponent(alternative.chapter.id)}`
                         : `/manga/${encodeURIComponent(alternative.mangaId)}?source=${encodeURIComponent(alternative.source)}`;
@@ -446,7 +446,12 @@ const UniversalReader = ({
                           asChild
                         >
                           <Link to={target}>
-                            <span>{alternative.sourceName}</span>
+                            <span className="flex min-w-0 flex-col items-start">
+                              <span className="truncate">{alternative.sourceName}</span>
+                              <span className="text-[10px] font-normal text-white/45">
+                                {alternativeIndex === 0 && alternative.chapter ? 'Recommandée · ' : ''}Score {Math.round(alternative.sourceScore)}/100
+                              </span>
+                            </span>
                             <span className={alternative.chapter ? 'text-emerald-400' : 'text-amber-400'}>
                               {alternative.chapter
                                 ? `Chapitre ${alternative.chapter.chapterNumber} disponible`

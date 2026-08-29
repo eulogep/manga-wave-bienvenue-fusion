@@ -7,6 +7,7 @@ import {
   type SourceType,
 } from '@/integrations/sources';
 import { getExtractorHealth } from '@/integrations/common/extractorClient';
+import { rankSources, type SourceScoreBreakdown } from '@/domain/sourceResolution';
 
 export type ChapterSourceAlternative = {
   source: SourceType;
@@ -14,6 +15,8 @@ export type ChapterSourceAlternative = {
   mangaId: string;
   mangaTitle: string;
   chapter: SourceChapter | null;
+  sourceScore: number;
+  scoreBreakdown: SourceScoreBreakdown;
 };
 
 const normalizeTitle = (value: string) => value
@@ -136,13 +139,51 @@ export function useChapterSourceAlternatives(
         return {
           source: candidate.id,
           sourceName: candidate.displayName,
+          sourceLanguage: candidate.lang,
           mangaId: manga.id,
           mangaTitle: manga.title,
           chapter,
-        } satisfies ChapterSourceAlternative;
+          chapterCount: chapters.length,
+        };
       }));
 
-      return results.flatMap((result) => result.status === 'fulfilled' && result.value ? [result.value] : []);
+      const resolved = results.flatMap((result) => result.status === 'fulfilled' && result.value ? [result.value] : []);
+      const maximumChapterCount = Math.max(0, ...resolved.map((item) => item.chapterCount));
+      const ranked = rankSources(resolved.map((item) => {
+        const sourceHealth = healthBySource.get(item.source);
+        return {
+          sourceId: item.source,
+          available: Boolean(item.chapter),
+          circuit: sourceHealth?.circuit || 'closed',
+          language: item.sourceLanguage,
+          preferredLanguage: 'fr',
+          averageLatencyMs: sourceHealth?.averageLatencyMs ?? null,
+          requestCount: sourceHealth?.requestCount ?? 0,
+          failureCount: sourceHealth?.failureCount ?? 0,
+          chapterCount: item.chapterCount,
+          maximumChapterCount,
+          imageQualityScore: null,
+          lastSuccessfulRequest: sourceHealth?.lastSuccessAt ?? null,
+        };
+      }));
+      const scoreBySource = new Map(ranked.map((item) => [item.sourceId, item]));
+
+      return resolved.map(({ sourceLanguage: _sourceLanguage, chapterCount: _chapterCount, ...alternative }) => {
+        const sourceRanking = scoreBySource.get(alternative.source);
+        return {
+          ...alternative,
+          sourceScore: sourceRanking?.sourceScore ?? 0,
+          scoreBreakdown: sourceRanking?.breakdown ?? {
+            availability: 0,
+            latency: 0,
+            language: 0,
+            chapterCoverage: 0,
+            imageQuality: 0,
+            errorRate: 0,
+            freshness: 0,
+          },
+        };
+      }).sort((left, right) => right.sourceScore - left.sourceScore || left.source.localeCompare(right.source));
     },
     enabled: enabled && Boolean(mangaTitle?.trim()),
     staleTime: 10 * 60 * 1000,
