@@ -9,13 +9,13 @@ import Footer from '@/components/Footer';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-[#080c14] text-white">
+    <div className="min-h-screen bg-[var(--mw-background)] text-white">
       <Header />
       <main>
         <HeroSection />
         <ContinueReadingSection />
-        <MultiSourceHubSection />
         <OriginMangaSection />
+        <MultiSourceHubSection />
         <FeaturedSection />
         <CategoriesSection />
       </main>
