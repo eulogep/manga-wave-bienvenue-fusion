@@ -3,7 +3,6 @@ import {
     searchOriginManga,
     getPopularOriginManga,
     getOriginMangaDetail,
-    getOriginMangaPages,
 } from '@/integrations/originmanga/client';
 
 export function usePopularOriginManga() {
@@ -29,14 +28,5 @@ export function useOriginMangaDetail(mangaId: string | undefined) {
         queryFn: () => getOriginMangaDetail(mangaId!),
         enabled: Boolean(mangaId),
         staleTime: 5 * 60 * 1000,
-    });
-}
-
-export function useOriginMangaPages(chapterId: string | undefined) {
-    return useQuery({
-        queryKey: ['originmanga', 'pages', chapterId],
-        queryFn: () => getOriginMangaPages(chapterId!),
-        enabled: Boolean(chapterId),
-        staleTime: 60 * 60 * 1000, // Les pages ne changent pas
     });
 }

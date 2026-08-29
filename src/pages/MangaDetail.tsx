@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -12,23 +12,16 @@ import {
   LoaderCircle,
   Users,
   Play,
-  X,
-  Maximize2,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MangaCover from '@/components/MangaCover';
-import OriginMangaReader from '@/components/OriginMangaReader';
-import UniversalReader from '@/components/UniversalReader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMangaDexChapters, useMangaDexDetail } from '@/hooks/useMangaDex';
 import { useOriginMangaDetail } from '@/hooks/useOriginManga';
 import { useUniversalMangaDetail, useUniversalMangaChapters } from '@/hooks/useMangaReader';
-import { useRecordReading } from '@/hooks/useReadingProgress';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import type { MangaDexChapter } from '@/integrations/mangadex/client';
 import type { OriginMangaChapter } from '@/integrations/originmanga/client';
 import type { SourceChapter, SourceType } from '@/integrations/sources';
@@ -56,12 +49,6 @@ const MangaDetail = () => {
 
   const [language, setLanguage] = useState('fr');
   const [chapterOffset, setChapterOffset] = useState(0);
-  const [activeChapter, setActiveChapter] = useState<{ id: string; title: string; number?: string } | null>(null);
-
-  const readerSectionRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { recordReading } = useRecordReading();
 
   // MangaDex Queries
   const isMangaDex = source === 'mangadex';
@@ -175,18 +162,11 @@ const MangaDetail = () => {
     }
   };
 
-  const handleStartReadingChapter = (ch: { id: string; title: string; number?: string }) => {
-    setActiveChapter(ch);
-    setTimeout(() => {
-      readerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-
-    if (user && manga && isMangaDex) {
-      const dexChapter = mangaDexChaptersData?.chapters.find((c) => c.id === ch.id);
-      if (dexChapter) {
-        void recordReading.mutateAsync({ manga: mangaDexData!, chapter: dexChapter }).catch(() => {});
-      }
-    }
+  const handleStartReadingChapter = (chapter: { id: string; language?: string }) => {
+    const readerLanguage = chapter.language || (isOriginManga ? 'fr' : language);
+    navigate(
+      `/read/${encodeURIComponent(source)}/${encodeURIComponent(id)}/${encodeURIComponent(chapter.id)}?lang=${encodeURIComponent(readerLanguage)}&page=0`,
+    );
   };
 
   // Convert OriginManga chapters to universal list if needed
@@ -369,8 +349,7 @@ const MangaDetail = () => {
                     onClick={() => {
                       handleStartReadingChapter({
                         id: firstReadableChapter.id,
-                        title: firstReadableChapter.title || `Chapitre ${firstReadableChapter.chapterNumber}`,
-                        number: firstReadableChapter.chapterNumber,
+                        language: firstReadableChapter.language,
                       });
                     }}
                   >
@@ -390,34 +369,6 @@ const MangaDetail = () => {
               </div>
             </div>
           </section>
-
-          {/* IN-PAGE CHAPTER READER */}
-          {activeChapter && (
-            <section ref={readerSectionRef} className="pt-8 border-t border-white/15 scroll-mt-20 mb-14">
-              <UniversalReader
-                source={source}
-                chapterId={activeChapter.id}
-                chapterTitle={activeChapter.title}
-                mangaId={id}
-                mangaTitle={manga.title}
-                coverImage={manga.coverImageUrl}
-                mangaAuthor={manga.author}
-                chapters={isOriginManga ? originChaptersList : isUniversal ? universalChaptersList : mangaDexChaptersList}
-                onSelectChapter={(chId) => {
-                  const list = isOriginManga ? originChaptersList : isUniversal ? universalChaptersList : mangaDexChaptersList;
-                  const chObj = list.find((c) => c.id === chId);
-                  if (chObj) {
-                    handleStartReadingChapter({
-                      id: chObj.id,
-                      title: chObj.title || `Chapitre ${chObj.chapterNumber}`,
-                      number: chObj.chapterNumber,
-                    });
-                  }
-                }}
-                onClose={() => setActiveChapter(null)}
-              />
-            </section>
-          )}
 
           {/* CHAPTERS LIST SECTION */}
           <section className="pt-10 border-t border-white/10">
@@ -468,13 +419,10 @@ const MangaDetail = () => {
                 {originChaptersList.length > 0 ? (
                   <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
                     {originChaptersList.map((chapter) => {
-                      const isCurrent = activeChapter?.id === chapter.id;
                       return (
                         <article
                           key={chapter.id}
-                          className={`p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
-                            isCurrent ? 'bg-manga-purple/15 border-l-4 border-manga-purple' : 'hover:bg-white/5'
-                          }`}
+                          className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:bg-white/5"
                         >
                           <FileText className="h-5 w-5 text-manga-purple shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -492,18 +440,17 @@ const MangaDetail = () => {
 
                           <div className="flex items-center gap-2 shrink-0">
                             <Button
-                              className={isCurrent ? 'btn-gradient' : 'border-white/30'}
-                              variant={isCurrent ? 'default' : 'outline'}
+                              className="border-white/30"
+                              variant="outline"
                               onClick={() =>
                                 handleStartReadingChapter({
                                   id: chapter.id,
-                                  title: chapter.title || `Chapitre ${chapter.chapterNumber}`,
-                                  number: chapter.chapterNumber,
+                                  language: 'fr',
                                 })
                               }
                             >
                               <Play className="h-4 w-4 mr-2" />
-                              {isCurrent ? 'En cours de lecture' : 'Lire dans la page'}
+                              Lire le chapitre
                             </Button>
                           </div>
                         </article>
@@ -531,13 +478,10 @@ const MangaDetail = () => {
                 ) : universalChaptersList.length > 0 ? (
                   <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
                     {universalChaptersList.map((chapter) => {
-                      const isCurrent = activeChapter?.id === chapter.id;
                       return (
                         <article
                           key={chapter.id}
-                          className={`p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
-                            isCurrent ? 'bg-manga-purple/15 border-l-4 border-manga-purple' : 'hover:bg-white/5'
-                          }`}
+                          className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:bg-white/5"
                         >
                           <FileText className="h-5 w-5 text-manga-purple shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -558,18 +502,17 @@ const MangaDetail = () => {
 
                           <div className="flex items-center gap-2 shrink-0">
                             <Button
-                              className={isCurrent ? 'btn-gradient' : 'border-white/30'}
-                              variant={isCurrent ? 'default' : 'outline'}
+                              className="border-white/30"
+                              variant="outline"
                               onClick={() =>
                                 handleStartReadingChapter({
                                   id: chapter.id,
-                                  title: chapter.title || `Chapitre ${chapter.chapterNumber}`,
-                                  number: chapter.chapterNumber,
+                                  language: chapter.language,
                                   })
                               }
                             >
                               <Play className="h-4 w-4 mr-2" />
-                              {isCurrent ? 'En cours de lecture' : 'Lire dans la page'}
+                              Lire le chapitre
                             </Button>
                           </div>
                         </article>
@@ -616,13 +559,10 @@ const MangaDetail = () => {
                     {mangaDexChaptersData.chapters.length > 0 ? (
                       <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
                         {mangaDexChaptersData.chapters.map((chapter) => {
-                          const isCurrent = activeChapter?.id === chapter.id;
                           return (
                             <article
                               key={chapter.id}
-                              className={`p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
-                                isCurrent ? 'bg-manga-purple/15 border-l-4 border-manga-purple' : 'hover:bg-white/5'
-                              }`}
+                              className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:bg-white/5"
                             >
                               <FileText className="h-5 w-5 text-manga-purple shrink-0" />
                               <div className="flex-1 min-w-0">
@@ -651,20 +591,17 @@ const MangaDetail = () => {
 
                               <div className="flex items-center gap-2 shrink-0">
                                 <Button
-                                  className={isCurrent ? 'btn-gradient' : 'border-white/30'}
-                                  variant={isCurrent ? 'default' : 'outline'}
+                                  className="border-white/30"
+                                  variant="outline"
                                   onClick={() =>
                                     handleStartReadingChapter({
                                       id: chapter.id,
-                                      title: `${chapter.volume ? `Tome ${chapter.volume} · ` : ''}Chapitre ${
-                                        chapter.chapter || ''
-                                      }${chapter.title ? ` — ${chapter.title}` : ''}`,
-                                      number: chapter.chapter || undefined,
+                                      language: chapter.translatedLanguage,
                                     })
                                   }
                                 >
                                   <Play className="h-4 w-4 mr-2" />
-                                  {isCurrent ? 'En lecture' : 'Lire ici'}
+                                  Lire le chapitre
                                 </Button>
 
                                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white" asChild>

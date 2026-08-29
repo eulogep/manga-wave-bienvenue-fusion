@@ -3,6 +3,33 @@
 STATUS:
 PARTIAL
 
+P0_QA_HOTFIX:
+PASS
+
+INLINE_READER_REMOVED:
+PASS
+
+CANONICAL_READER_ROUTE:
+PASS
+
+HEADER_IN_READER:
+ABSENT
+
+FOOTER_IN_READER:
+ABSENT
+
+PROGRESS_REGRESSION:
+PASS — progress remains owned by the canonical Reader and the current page is preserved across mode changes.
+
+PREFERENCES_REGRESSION:
+PASS — all six persisted mode values and settings remain connected to the canonical Reader.
+
+CONTINUE_READING_REGRESSION:
+PASS — resume URLs still target `/read/:source/:mangaId/:chapterId` with the exact page query.
+
+MOBILE_INTERACTIVE_QA:
+PENDING — no controllable browser was available for the required 430 × 932 and 390 × 844 scenarios.
+
 TICKETS_COMPLETED:
 - T-3001 — Product audit
 - T-3002 — Immersive Reader
@@ -22,11 +49,14 @@ FILES_CREATED:
 FILES_MODIFIED:
 - `src/pages/Reader.tsx`
 - `src/components/UniversalReader.tsx`
-- `src/components/OriginMangaReader.tsx`
 - `src/components/ContinueReadingSection.tsx`
 - `src/hooks/useReadingProgress.ts`
+- `src/hooks/useOriginManga.ts`
 - `src/integrations/supabase/types.ts`
 - `src/index.css`
+
+FILES_REMOVED:
+- `src/components/OriginMangaReader.tsx` — obsolete second Reader implementation.
 
 MIGRATIONS:
 - `20260829010000_add_reader_preferences.sql` — applied to hosted Supabase
@@ -34,6 +64,8 @@ MIGRATIONS:
 - Remote migration history verified up to date on 2026-08-29
 
 UX_CHANGES:
+- All Manga Detail reading actions now navigate to the canonical standalone `/read/...` route with source, language and initial page preserved.
+- The inline Manga Detail Reader state and rendering path were removed.
 - Independent, full-viewport Reader Shell with controls that hide after inactivity and return on movement, tap or keyboard input.
 - Six reading modes: vertical, webtoon, single page, double page, manga RTL and comic LTR.
 - Persisted fit, zoom, gap, background, brightness, preload and direction settings.
@@ -78,6 +110,9 @@ PASS — authenticated preferences and progress use owner-only RLS policies; ano
 
 TESTS:
 - No automated test suite is configured in the repository.
+- Static architecture check: Manga Detail no longer imports or mounts a Reader; PASS.
+- Route-state check: Manga Detail sends source, manga, chapter, language and `page=0`; PASS.
+- Mode-switch state audit: switching continuous/paged layouts no longer reapplies the initial page; PASS.
 - Targeted ESLint checks: PASS (0 errors).
 - Production build: PASS.
 - Supabase migration list: PASS; local and hosted histories match.

@@ -152,13 +152,25 @@ const UniversalReader = ({
   const alternativesQuery = useChapterSourceAlternatives(mangaTitle, chapterNumber, source, isError);
 
   useEffect(() => {
-    const resumeKey = `${chapterId}:${initialPage}:${isContinuous}`;
-    if (resumedChapterRef.current === resumeKey) return;
     setCurrentPage(initialPage);
+    resumedChapterRef.current = undefined;
+  }, [chapterId, initialPage]);
+
+  useEffect(() => {
+    const resumeKey = `${chapterId}:${isContinuous}`;
+    if (resumedChapterRef.current === resumeKey) return;
+    const isModeSwitch = resumedChapterRef.current?.startsWith(`${chapterId}:`);
+    const targetPage = isModeSwitch ? currentPage : initialPage;
     const frame = requestAnimationFrame(() => {
-      if (isContinuous && initialPage > 0) {
-        const page = contentRef.current?.querySelector<HTMLElement>(`[data-reader-page="${initialPage}"]`);
-        if (!page) return;
+      if (isContinuous && targetPage > 0) {
+        const page = contentRef.current?.querySelector<HTMLElement>(`[data-reader-page="${targetPage}"]`);
+        if (!page) {
+          setContinuousPageCount((count) => Math.min(
+            pages?.length || count,
+            Math.max(count, targetPage + preferences.preloadCount + 1),
+          ));
+          return;
+        }
         page.scrollIntoView({ block: 'start' });
       } else if (contentRef.current) {
         contentRef.current.scrollTop = 0;
@@ -166,7 +178,7 @@ const UniversalReader = ({
       resumedChapterRef.current = resumeKey;
     });
     return () => cancelAnimationFrame(frame);
-  }, [chapterId, initialPage, isContinuous, continuousPageCount]);
+  }, [chapterId, continuousPageCount, currentPage, initialPage, isContinuous, pages?.length, preferences.preloadCount]);
 
   useEffect(() => {
     if (pages?.length && currentPage >= pages.length) {
