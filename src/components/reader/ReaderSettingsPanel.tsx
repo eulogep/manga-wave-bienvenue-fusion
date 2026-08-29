@@ -1,12 +1,18 @@
 import { RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ReaderPreferences } from '@/hooks/useReaderPreferences';
+import type { ChapterSourceAlternative } from '@/hooks/useMangaReader';
 
 type Props = {
   preferences: ReaderPreferences;
   onChange: (changes: Partial<ReaderPreferences>) => void;
   onReset: () => void;
   onClose: () => void;
+  currentSource: string;
+  currentSourceLanguage: string;
+  sourceAlternatives: ChapterSourceAlternative[];
+  sourceAlternativesLoading: boolean;
+  onSelectSource: (alternative: ChapterSourceAlternative) => void;
 };
 
 const MODES: Array<{ value: ReaderPreferences['mode']; label: string; description: string }> = [
@@ -24,7 +30,22 @@ const BACKGROUNDS: Array<{ value: ReaderPreferences['background']; label: string
   { value: 'paper', label: 'Papier', color: '#d9d4c8' },
 ];
 
-const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props) => (
+const formatLastSuccess = (value: string | null) => {
+  if (!value) return 'Pas encore mesuré';
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+};
+
+const ReaderSettingsPanel = ({
+  preferences,
+  onChange,
+  onReset,
+  onClose,
+  currentSource,
+  currentSourceLanguage,
+  sourceAlternatives,
+  sourceAlternativesLoading,
+  onSelectSource,
+}: Props) => (
   <aside
     className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] overflow-y-auto overscroll-contain border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-[var(--mw-text-primary)] shadow-2xl sm:max-w-sm"
     aria-label="Réglages du lecteur"
@@ -38,6 +59,40 @@ const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props)
         <X className="h-5 w-5" />
       </Button>
     </div>
+
+    <fieldset className="mb-7 space-y-3 border-b border-[var(--mw-border)] pb-6">
+      <legend className="mb-3 text-sm font-semibold">Sources</legend>
+      <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold capitalize">{currentSource}</span>
+          <span className="block text-[11px] text-[var(--mw-text-secondary)]">{currentSourceLanguage.toUpperCase()} · Source active</span>
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Active</span>
+      </div>
+
+      {sourceAlternativesLoading && (
+        <p className="text-xs text-[var(--mw-text-secondary)]">Recherche des autres sources…</p>
+      )}
+
+      {sourceAlternatives.map((alternative) => (
+        <button
+          key={`${alternative.source}-${alternative.mangaId}`}
+          type="button"
+          disabled={!alternative.available}
+          onClick={() => onSelectSource(alternative)}
+          className="flex min-h-14 w-full items-center justify-between gap-3 rounded-lg border border-[var(--mw-border)] bg-black/10 px-3 py-2 text-left transition-colors hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">{alternative.sourceName}</span>
+            <span className="block text-[11px] text-[var(--mw-text-secondary)]">
+              {alternative.language.toUpperCase()} · {alternative.available ? 'Chapitre disponible' : 'Chapitre absent'}
+            </span>
+            <span className="block text-[10px] text-white/40">Dernier succès : {formatLastSuccess(alternative.lastSuccessfulRequest)}</span>
+          </span>
+          <span className="shrink-0 text-xs font-semibold text-[var(--mw-accent-blue)]">{Math.round(alternative.sourceScore)}/100</span>
+        </button>
+      ))}
+    </fieldset>
 
     <fieldset className="space-y-3">
       <legend className="mb-3 text-sm font-semibold">Mode de lecture</legend>

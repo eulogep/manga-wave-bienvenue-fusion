@@ -12,6 +12,7 @@ import {
   LoaderCircle,
   Users,
   Play,
+  Shuffle,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -21,7 +22,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMangaDexChapters, useMangaDexDetail } from '@/hooks/useMangaDex';
 import { useOriginMangaDetail } from '@/hooks/useOriginManga';
-import { useUniversalMangaDetail, useUniversalMangaChapters } from '@/hooks/useMangaReader';
+import {
+  useChapterSourceAlternatives,
+  useUniversalMangaDetail,
+  useUniversalMangaChapters,
+} from '@/hooks/useMangaReader';
 import type { MangaDexChapter } from '@/integrations/mangadex/client';
 import type { OriginMangaChapter } from '@/integrations/originmanga/client';
 import type { SourceChapter, SourceType } from '@/integrations/sources';
@@ -49,6 +54,7 @@ const MangaDetail = () => {
 
   const [language, setLanguage] = useState('fr');
   const [chapterOffset, setChapterOffset] = useState(0);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
 
   // MangaDex Queries
   const isMangaDex = source === 'mangadex';
@@ -204,6 +210,12 @@ const MangaDetail = () => {
       ? universalChaptersList
       : mangaDexChaptersList;
   const firstReadableChapter = readableChapters[readableChapters.length - 1] || readableChapters[0];
+  const sourceOptionsQuery = useChapterSourceAlternatives(
+    manga?.title,
+    firstReadableChapter?.chapterNumber || manga?.lastChapter || '1',
+    source,
+    sourcesOpen && Boolean(manga?.title),
+  );
 
   if (isLoading) {
     return (
@@ -366,7 +378,57 @@ const MangaDetail = () => {
                     </a>
                   </Button>
                 )}
+
+                <Button variant="outline" className="border-white/20" onClick={() => setSourcesOpen((open) => !open)}>
+                  <Shuffle className="mr-2 h-4 w-4" />
+                  Changer de source
+                </Button>
               </div>
+
+              {sourcesOpen && (
+                <div className="mt-4 max-w-2xl border border-[var(--mw-border)] bg-[var(--mw-surface)] p-3" aria-live="polite">
+                  <div className="mb-2 flex min-h-14 items-center justify-between gap-3 border border-emerald-400/25 bg-emerald-500/10 px-3 py-2">
+                    <span>
+                      <span className="block text-sm font-semibold">{manga.sourceName}</span>
+                      <span className="block text-[11px] text-white/50">Source actuellement affichée</span>
+                    </span>
+                    <span className="text-[10px] font-bold uppercase text-emerald-300">Active</span>
+                  </div>
+
+                  {sourceOptionsQuery.isLoading && (
+                    <p className="flex items-center gap-2 px-2 py-4 text-xs text-white/55">
+                      <LoaderCircle className="h-4 w-4 animate-spin" /> Recherche des sources disponibles…
+                    </p>
+                  )}
+
+                  <div className="space-y-2">
+                    {(sourceOptionsQuery.data || []).map((alternative) => (
+                      <Link
+                        key={`${alternative.source}-${alternative.mangaId}`}
+                        to={`/manga/${encodeURIComponent(alternative.mangaId)}?source=${encodeURIComponent(alternative.source)}`}
+                        className="flex min-h-14 items-center justify-between gap-3 border border-[var(--mw-border)] bg-black/10 px-3 py-2 transition-colors hover:border-white/30"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">{alternative.sourceName}</span>
+                          <span className="block text-[11px] text-white/50">
+                            {alternative.language.toUpperCase()} · {alternative.available ? 'Chapitre disponible' : 'Autres chapitres à consulter'}
+                          </span>
+                          <span className="block text-[10px] text-white/35">
+                            Dernier succès : {alternative.lastSuccessfulRequest
+                              ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(alternative.lastSuccessfulRequest))
+                              : 'pas encore mesuré'}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-[var(--mw-accent-blue)]">{Math.round(alternative.sourceScore)}/100</span>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {!sourceOptionsQuery.isLoading && sourceOptionsQuery.data?.length === 0 && (
+                    <p className="px-2 py-4 text-xs text-white/50">Aucune autre source correspondante n’a été trouvée.</p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 

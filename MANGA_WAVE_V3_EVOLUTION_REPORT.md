@@ -135,9 +135,9 @@ KNOWN_LIMITATIONS:
 - Responsive mobile/tablet QA is tracked as deferred technical debt.
 - The production bundle warning above 500 kB is tracked as non-blocking technical debt.
 - Automated Reader/progress/resume coverage is tracked as incremental, non-blocking technical debt.
-- P1 canonical manga/source-resolution work has intentionally not started.
+- P1 T-3007 through T-3010 are implemented: canonical manga, explainable source ranking, automatic fallback and manual source selection.
+- Interactive browser QA for the P1 selectors and automatic navigation remains pending because no in-app browser was available.
 
 NEXT_TICKETS:
-- Complete the targeted desktop smoke test and set `P0_DESKTOP = PASS`.
-- Start T-3007 — Canonical manga model and cross-source deduplication.
-- Keep T-3008 and T-3009 blocked until T-3007 is stable and tested.
+- Run an interactive P1 smoke test covering canonical search, automatic fallback and both manual selectors.
+- Confirm product acceptance of P1 before starting the P2 retention tickets.

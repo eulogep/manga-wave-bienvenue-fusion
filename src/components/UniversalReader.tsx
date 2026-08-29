@@ -25,7 +25,7 @@ import { selectAutomaticFallback } from '@/domain/automaticFallback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { SourceChapter, SourceType } from '@/integrations/sources';
+import { getSource, type SourceChapter, type SourceType } from '@/integrations/sources';
 
 type Props = {
   source: SourceType | string;
@@ -41,6 +41,7 @@ type Props = {
   triedSources?: string[];
   autoFallbackApplied?: boolean;
   onAutomaticSourceFallback?: (alternative: ChapterSourceAlternative, pageIndex: number) => void;
+  onManualSourceSelection?: (alternative: ChapterSourceAlternative, pageIndex: number) => void;
   onClose?: () => void;
 };
 
@@ -73,6 +74,7 @@ const UniversalReader = ({
   triedSources = [],
   autoFallbackApplied = false,
   onAutomaticSourceFallback,
+  onManualSourceSelection,
   onClose,
 }: Props) => {
   const { data: pages, isLoading, isError, error, refetch } = useUniversalChapterPages(source, chapterId);
@@ -184,7 +186,7 @@ const UniversalReader = ({
   const currentChapterObj = chapters.find((c) => c.id === chapterId);
   const chapterNumber = currentChapterObj?.chapterNumber || '1';
   const displayTitle = chapterTitle || currentChapterObj?.title || `Chapitre ${chapterNumber}`;
-  const alternativesQuery = useChapterSourceAlternatives(mangaTitle, chapterNumber, source, isError);
+  const alternativesQuery = useChapterSourceAlternatives(mangaTitle, chapterNumber, source, isError || settingsOpen);
 
   useEffect(() => {
     fallbackAttemptRef.current = null;
@@ -769,6 +771,14 @@ const UniversalReader = ({
             onChange={updatePreferences}
             onReset={resetPreferences}
             onClose={() => setSettingsOpen(false)}
+            currentSource={String(source)}
+            currentSourceLanguage={getSource(source)?.lang || 'und'}
+            sourceAlternatives={alternativesQuery.data || []}
+            sourceAlternativesLoading={alternativesQuery.isLoading}
+            onSelectSource={(alternative) => {
+              setSettingsOpen(false);
+              onManualSourceSelection?.(alternative, currentPage);
+            }}
           />
         </>
       )}

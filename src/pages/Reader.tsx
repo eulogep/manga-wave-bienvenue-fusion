@@ -52,6 +52,17 @@ const Reader = () => {
     );
   }, [lang, navigate, source, triedSources]);
 
+  const handleManualSourceSelection = useCallback((alternative: ChapterSourceAlternative, pageIndex: number) => {
+    if (!alternative.chapter) return;
+    const nextParams = new URLSearchParams({
+      lang: alternative.chapter.language || alternative.language || lang,
+      page: String(pageIndex),
+    });
+    navigate(
+      `/read/${encodeURIComponent(alternative.source)}/${encodeURIComponent(alternative.mangaId)}/${encodeURIComponent(alternative.chapter.id)}?${nextParams}`,
+    );
+  }, [lang, navigate]);
+
   return (
     <main className="h-[100dvh] overflow-hidden bg-[var(--mw-background)] text-[var(--mw-text-primary)]" aria-label="Lecteur Manga Wave">
       <UniversalReader
@@ -66,6 +77,7 @@ const Reader = () => {
         triedSources={triedSources}
         autoFallbackApplied={autoFallbackApplied}
         onAutomaticSourceFallback={handleAutomaticSourceFallback}
+        onManualSourceSelection={handleManualSourceSelection}
         onSelectChapter={handleSelectChapter}
         onClose={handleBackToManga}
       />

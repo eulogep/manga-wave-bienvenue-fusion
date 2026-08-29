@@ -15,6 +15,9 @@ export type ChapterSourceAlternative = {
   mangaId: string;
   mangaTitle: string;
   chapter: SourceChapter | null;
+  language: string;
+  available: boolean;
+  lastSuccessfulRequest: string | null;
   sourceScore: number;
   scoreBreakdown: SourceScoreBreakdown;
 };
@@ -172,6 +175,9 @@ export function useChapterSourceAlternatives(
         const sourceRanking = scoreBySource.get(alternative.source);
         return {
           ...alternative,
+          language: _sourceLanguage,
+          available: Boolean(alternative.chapter),
+          lastSuccessfulRequest: sourceRanking?.lastSuccessfulRequest ?? null,
           sourceScore: sourceRanking?.sourceScore ?? 0,
           scoreBreakdown: sourceRanking?.breakdown ?? {
             availability: 0,
