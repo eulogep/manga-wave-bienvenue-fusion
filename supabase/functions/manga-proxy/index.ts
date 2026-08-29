@@ -23,6 +23,8 @@ const ALLOWED_HOSTS = new Set([
   "www.lelmanga.com",
   "originmanga.com",
   "www.originmanga.com",
+  "flamecomics.xyz",
+  "www.flamecomics.xyz",
 ]);
 
 function jsonResponse(status: number, data: unknown) {

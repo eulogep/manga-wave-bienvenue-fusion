@@ -6,7 +6,17 @@ import type { SearchResult, Chapter, MangaDetail, SourceExtractor } from '../lib
 import { createBrowserContext } from '../lib/browser-pool.js';
 
 const BASE = 'https://flamecomics.xyz';
+const PROJECT_PROXY = 'https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/manga-proxy';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+async function fetchProxiedHtml(url: string): Promise<string> {
+  const response = await fetch(`${PROJECT_PROXY}?url=${encodeURIComponent(url)}`, {
+    headers: { Accept: 'text/html,application/xhtml+xml' },
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!response.ok) throw new Error(`Proxy MangaFire indisponible (${response.status}).`);
+  return response.text();
+}
 
 async function fetchHtml(urlOrPath: string): Promise<string> {
   const url = urlOrPath.startsWith('http') ? urlOrPath : `${BASE}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
@@ -18,6 +28,7 @@ async function fetchHtml(urlOrPath: string): Promise<string> {
     },
     signal: AbortSignal.timeout(15_000),
   });
+  if (res.status === 403 || res.status === 429) return fetchProxiedHtml(url);
   if (!res.ok) throw new Error(`MangaFire/Flame HTTP ${res.status}: ${urlOrPath}`);
   return res.text();
 }
