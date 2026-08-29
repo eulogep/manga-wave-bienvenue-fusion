@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { useChapterSourceAlternatives, useUniversalChapterPages } from '@/hooks/useMangaReader';
 import { useRecordReading } from '@/hooks/useReadingProgress';
 import { useReaderPreferences } from '@/hooks/useReaderPreferences';
+import { useReaderPreloading } from '@/hooks/useReaderPreloading';
 import ReaderSettingsPanel from '@/components/reader/ReaderSettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +68,10 @@ const UniversalReader = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [continuousPageCount, setContinuousPageCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const continuousSentinelRef = useRef<HTMLDivElement>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { recordReading } = useRecordReading();
   const { preferences, updatePreferences, resetPreferences } = useReaderPreferences();
@@ -98,6 +102,32 @@ const UniversalReader = ({
   const currentChapterIndex = chapters.findIndex((c) => c.id === chapterId);
   const hasNextChapter = currentChapterIndex > 0; // usually descending order
   const hasPrevChapter = currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1;
+  const nextChapterId = hasNextChapter ? chapters[currentChapterIndex - 1].id : undefined;
+
+  useReaderPreloading({
+    pages,
+    currentPage,
+    preloadCount: preferences.preloadCount,
+    sourceId: source,
+    nextChapterId,
+  });
+
+  useEffect(() => {
+    const total = pages?.length || 0;
+    const initialCount = Math.min(total, Math.max(initialPage + preferences.preloadCount + 1, preferences.preloadCount + 2));
+    setContinuousPageCount(initialCount);
+  }, [chapterId, initialPage, pages?.length, preferences.preloadCount]);
+
+  useEffect(() => {
+    if (!isContinuous || !continuousSentinelRef.current || !pages?.length) return;
+    const sentinel = continuousSentinelRef.current;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      setContinuousPageCount((count) => Math.min(pages.length, count + Math.max(3, preferences.preloadCount)));
+    }, { root: contentRef.current, rootMargin: '600px 0px', threshold: 0.01 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isContinuous, pages, preferences.preloadCount]);
 
   const currentChapterObj = chapters.find((c) => c.id === chapterId);
   const chapterNumber = currentChapterObj?.chapterNumber || '1';
@@ -300,7 +330,10 @@ const UniversalReader = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex h-full flex-col items-center justify-center overflow-y-auto overscroll-contain px-0 py-16 md:px-4">
+      <div
+        ref={contentRef}
+        className="flex h-full flex-col items-center justify-center overflow-y-auto overscroll-contain px-0 py-16 md:px-4"
+      >
         {isLoading && (
           <div className="py-24 text-center">
             <LoaderCircle className="h-10 w-10 animate-spin text-manga-cyan mx-auto mb-4" />
@@ -494,8 +527,8 @@ const UniversalReader = ({
             className="flex w-full max-w-3xl flex-col items-center"
             style={{ gap: preferences.mode === 'webtoon' ? 0 : `${preferences.pageGap}px` }}
           >
-            {pages.map((url, idx) => (
-              <div key={url} className="relative w-full flex justify-center">
+            {pages.slice(0, continuousPageCount).map((url, idx) => (
+              <div key={url} data-reader-page={idx} className="relative w-full flex justify-center">
                 <img
                   src={url}
                   alt={`Page ${idx + 1}`}
@@ -516,6 +549,16 @@ const UniversalReader = ({
                 </span>
               </div>
             ))}
+
+            {continuousPageCount < pages.length && (
+              <div
+                ref={continuousSentinelRef}
+                className="flex h-24 w-full items-center justify-center gap-2 text-sm text-[var(--mw-text-secondary)]"
+              >
+                <LoaderCircle className="h-4 w-4 animate-spin text-[var(--mw-accent-blue)]" />
+                Chargement de la suite…
+              </div>
+            )}
 
             {/* End of chapter buttons */}
             <div className="flex items-center justify-center gap-4 py-8 border-t border-white/10 w-full mt-6">
