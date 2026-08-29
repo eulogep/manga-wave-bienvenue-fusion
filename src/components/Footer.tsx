@@ -6,7 +6,7 @@ const columns = [
     title: 'Découvrir',
     links: [
       { label: 'Catalogue', to: '/search' },
-      { label: 'Scans français', to: '/search?source=originmanga' },
+      { label: 'Découvrir', to: '/search' },
       { label: 'Nouveautés', to: '/search?sort=latest' },
     ],
   },

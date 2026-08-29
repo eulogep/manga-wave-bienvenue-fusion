@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -8,7 +8,6 @@ import {
   LoaderCircle,
   Quote,
   Search as SearchIcon,
-  Sparkles,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -48,14 +47,14 @@ const statusOptions: Array<{ value: SearchStatus; label: string }> = [
   { value: 'cancelled', label: 'Annulé' },
 ];
 
-const sourceOptions: Array<{ value: SelectedSource; label: string; badge: string; isNew?: boolean }> = [
-  { value: 'all', label: 'Toutes les sources (Multi-Sources)', badge: 'Multi' },
-  { value: 'comick', label: 'Comick.io (Scans FR/EN + Reader)', badge: 'VF/EN', isNew: true },
-  { value: 'crunchyscan', label: 'LelManga (Scans VF)', badge: 'VF', isNew: true },
-  { value: 'originmanga', label: 'OriginManga (Scans FR)', badge: 'VF' },
-  { value: 'mangadex', label: 'MangaDex (Catalogue officiel)', badge: 'Multi' },
-  { value: 'asurascans', label: 'AsuraScans (Manhwas Action)', badge: 'EN', isNew: true },
-  { value: 'mangafire', label: 'MangaFire (Manga/Manhwa)', badge: 'Multi', isNew: true },
+const sourceOptions: Array<{ value: SelectedSource; label: string }> = [
+  { value: 'all', label: 'Automatique (recommandé)' },
+  { value: 'comick', label: 'Comick.io' },
+  { value: 'crunchyscan', label: 'LelManga' },
+  { value: 'originmanga', label: 'OriginManga' },
+  { value: 'mangadex', label: 'MangaDex' },
+  { value: 'asurascans', label: 'AsuraScans' },
+  { value: 'mangafire', label: 'MangaFire' },
 ];
 
 const Search = () => {
@@ -68,6 +67,12 @@ const Search = () => {
   const [query, setQuery] = useState(initialQuery);
   const [status, setStatus] = useState<SearchStatus>(initialStatus);
   const [selectedSource, setSelectedSource] = useState<SelectedSource>(initialSource);
+
+  useEffect(() => {
+    setQuery(initialQuery);
+    setStatus(initialStatus);
+    setSelectedSource(initialSource);
+  }, [initialPage, initialQuery, initialSource, initialStatus]);
 
   const quoteQuery = useAnimeQuote();
 
@@ -190,14 +195,6 @@ const Search = () => {
     setSearchParams(nextParams);
   };
 
-  const selectQuickSource = (src: SelectedSource) => {
-    setSelectedSource(src);
-    const nextParams = new URLSearchParams(searchParams);
-    if (src === 'all') nextParams.delete('source');
-    else nextParams.set('source', src);
-    setSearchParams(nextParams);
-  };
-
   const goToPage = (nextPage: number) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('page', String(nextPage));
@@ -224,20 +221,14 @@ const Search = () => {
           {/* Top Title & Anime Quote */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
             <div>
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <Badge className="bg-manga-purple/20 text-manga-purple-light border-manga-purple/30">
-                  <Sparkles className="h-3.5 w-3.5 mr-1" />
-                  MOTEUR MULTI-SOURCES TACHIYOMI
-                </Badge>
-                <Badge variant="outline" className="border-white/10 text-white/60">
-                  6 Sources Actives
-                </Badge>
-              </div>
+              <Badge className="mb-3 border border-manga-purple/30 bg-manga-purple/20 text-manga-purple-light">
+                Catalogue Manga Wave
+              </Badge>
               <h1 className="text-4xl md:text-5xl font-bold font-japanese tracking-tight">
-                Recherche <span className="glow-text">Multi-Sources</span>
+                Trouvez votre <span className="glow-text">prochaine lecture</span>
               </h1>
               <p className="text-sm md:text-base text-white/60 mt-2">
-                Recherchez simultanément sur Comick.io, OriginManga, LelManga, MangaDex, AsuraScans et MangaFire.
+                Un titre, une fiche claire et le meilleur accès de lecture disponible automatiquement.
               </p>
             </div>
 
@@ -255,33 +246,10 @@ const Search = () => {
             )}
           </div>
 
-          {/* Quick source pills */}
-          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-3 mb-6">
-            {sourceOptions.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => selectQuickSource(opt.value)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 border ${
-                  selectedSource === opt.value
-                    ? 'bg-manga-purple text-white border-manga-purple shadow-glow-purple'
-                    : 'bg-white/[0.04] text-white/60 border-white/[0.08] hover:text-white hover:bg-white/[0.08]'
-                }`}
-              >
-                <span>{opt.label.split('(')[0].trim()}</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-white/80">
-                  {opt.badge}
-                </span>
-                {opt.isNew && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-manga-success animate-pulse" />
-                )}
-              </button>
-            ))}
-          </div>
-
           {/* Search Form */}
           <form
             onSubmit={submitSearch}
-            className="grid grid-cols-1 md:grid-cols-[1fr_220px_180px_auto] gap-4 rounded-2xl border border-white/10 bg-[#0f1520] p-5 mb-10 shadow-lg"
+            className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#0f1520] p-5 mb-10 shadow-lg md:grid-cols-[1fr_180px_auto]"
           >
             <div className="space-y-2">
               <Label htmlFor="manga-search" className="text-xs font-medium text-white/60">Titre du manga / manhwa</Label>
@@ -295,22 +263,6 @@ const Search = () => {
                 placeholder="Ex. Solo Leveling, One Piece, Jujutsu Kaisen, Berserk…"
                 className="bg-white/5 border-white/15 text-white placeholder:text-white/30"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="source-select" className="text-xs font-medium text-white/60">Source cible</Label>
-              <Select value={selectedSource} onValueChange={(value) => setSelectedSource(value as SelectedSource)}>
-                <SelectTrigger id="source-select" className="bg-white/5 border-white/15 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#0f1520] border-white/20 text-white">
-                  {sourceOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
@@ -333,6 +285,30 @@ const Search = () => {
               <SearchIcon className="h-4 w-4 mr-2" />
               Rechercher
             </Button>
+
+            <details className="border-t border-white/10 pt-4 md:col-span-3">
+              <summary className="cursor-pointer text-xs font-semibold text-white/55 transition-colors hover:text-white">
+                Options avancées · Choisir une source
+              </summary>
+              <div className="mt-4 max-w-sm space-y-2">
+                <Label htmlFor="source-select" className="text-xs font-medium text-white/60">Source de recherche</Label>
+                <Select value={selectedSource} onValueChange={(value) => setSelectedSource(value as SelectedSource)}>
+                  <SelectTrigger id="source-select" className="bg-white/5 border-white/15 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0f1520] border-white/20 text-white">
+                    {sourceOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-5 text-white/40">
+                  Le mode automatique regroupe les doublons et privilégie une édition lisible.
+                </p>
+              </div>
+            </details>
           </form>
 
           {!hasSearch && (
@@ -340,7 +316,7 @@ const Search = () => {
               <SearchIcon className="h-12 w-12 text-manga-purple mx-auto mb-5 opacity-80" />
               <h2 className="text-2xl font-bold mb-2">Trouvez votre prochaine lecture</h2>
               <p className="text-white/50 max-w-xl mx-auto text-sm">
-                Saisissez au moins deux caractères pour explorer tous les catalogues simultanément.
+                Saisissez au moins deux caractères pour explorer le catalogue Manga Wave.
               </p>
             </div>
           )}
@@ -355,10 +331,10 @@ const Search = () => {
                     </Badge>
                   </div>
                   <h2 id="canonical-results-title" className="font-editorial text-3xl uppercase">
-                    Un manga, toutes ses sources
+                    Résultats Manga Wave
                   </h2>
                   <p className="mt-1 text-sm text-white/50">
-                    Les éditions identiques sont réunies sans masquer les sources disponibles.
+                    Chaque œuvre apparaît une seule fois, avec le meilleur accès disponible.
                   </p>
                 </div>
                 {!canonicalIsLoading && (
@@ -374,7 +350,7 @@ const Search = () => {
               ) : displayedCanonicalResults.length > 0 ? (
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                   {displayedCanonicalResults.map((manga) => {
-                    const primarySource = getPrimarySource(manga);
+                    const primarySource = getPrimarySource(manga, 'fr');
                     const readableSourceCount = manga.sources.filter((source) => source.available && source.readable).length;
                     return (
                       <div key={manga.canonicalId} className="min-w-0">

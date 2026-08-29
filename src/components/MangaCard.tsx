@@ -56,7 +56,7 @@ const MangaCard = ({
       return;
     }
     if (persistedFavoriteId === undefined) {
-      toast({ title: 'Favoris', description: 'La synchronisation de cette source sera ajoutée prochainement.' });
+      toast({ title: 'Favoris', description: 'Ce titre ne peut pas encore être ajouté aux favoris.' });
       return;
     }
     try {

@@ -52,8 +52,8 @@ const HeroSection = () => {
             </h1>
 
             <div className="mt-5 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.14em] text-[var(--mw-text-secondary)]">
-              <span className="border border-[var(--mw-accent-coral)]/45 bg-[var(--mw-accent-coral)]/10 px-2 py-1 text-[var(--mw-accent-coral)]">Scan français</span>
-              <span>OriginManga</span>
+              <span className="border border-[var(--mw-accent-coral)]/45 bg-[var(--mw-accent-coral)]/10 px-2 py-1 text-[var(--mw-accent-coral)]">Lecture en français</span>
+              <span>Sélection Manga Wave</span>
               {active?.rating && <span>★ {active.rating.toFixed(1)}</span>}
             </div>
 

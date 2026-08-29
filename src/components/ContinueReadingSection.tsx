@@ -26,15 +26,6 @@ const relativeDate = (value: string) => {
   return new Date(value).toLocaleDateString('fr-FR');
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  originmanga: 'OriginManga · VF',
-  crunchyscan: 'LelManga · VF',
-  comick: 'Comick',
-  mangadex: 'MangaDex',
-  mangafire: 'MangaFire',
-  asurascans: 'Asura Scans',
-};
-
 const ContinueReadingSection = () => {
   const { data: items = [], isLoading } = useContinueReading();
   const historyActions = useReadingHistoryActions();
@@ -106,7 +97,6 @@ const ContinueReadingSection = () => {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={isLoading}>
             {items.slice(0, 4).map((item) => {
-              const sourceLabel = SOURCE_LABELS[item.source] || item.source;
               const resumeParams = new URLSearchParams({
                 page: String(item.pageIndex || 0),
                 lang: item.language || 'fr',
@@ -136,7 +126,9 @@ const ContinueReadingSection = () => {
                           </button>
                         </div>
 
-                        <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--mw-accent-blue)]">{sourceLabel}</p>
+                        <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--mw-accent-blue)]">
+                          Lecture {item.language?.toUpperCase() || 'FR'}
+                        </p>
                         <p className="mt-1.5 truncate text-xs font-medium text-[var(--mw-text-primary)]">Chapitre {item.chapterNumber}</p>
                         <div className="mt-1 flex items-center justify-between text-[11px] text-[var(--mw-text-secondary)]">
                           <span>{item.totalPages > 1 ? `Page ${(item.pageIndex || 0) + 1}/${item.totalPages}` : 'En cours'}</span>

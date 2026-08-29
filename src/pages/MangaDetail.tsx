@@ -294,9 +294,6 @@ const MangaDetail = () => {
 
             <div>
               <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className="bg-manga-purple/30 text-white border-manga-purple/40">
-                  {manga.sourceName}
-                </Badge>
                 <Badge variant="secondary" className="bg-white/10 text-white border-0">
                   {statusLabels[manga.status] || manga.status}
                 </Badge>
@@ -380,14 +377,20 @@ const MangaDetail = () => {
                   </Button>
                 )}
 
-                <Button variant="outline" className="border-white/20" onClick={() => setSourcesOpen((open) => !open)}>
+                <Button
+                  variant="outline"
+                  className="border-white/20"
+                  onClick={() => setSourcesOpen((open) => !open)}
+                  aria-expanded={sourcesOpen}
+                  aria-controls="manga-source-options"
+                >
                   <Shuffle className="mr-2 h-4 w-4" />
                   Changer de source
                 </Button>
               </div>
 
               {sourcesOpen && (
-                <div className="mt-4 max-w-2xl border border-[var(--mw-border)] bg-[var(--mw-surface)] p-3" aria-live="polite">
+                <div id="manga-source-options" className="mt-4 max-w-2xl border border-[var(--mw-border)] bg-[var(--mw-surface)] p-3" aria-live="polite">
                   <div className="mb-2 flex min-h-14 items-center justify-between gap-3 border border-emerald-400/25 bg-emerald-500/10 px-3 py-2">
                     <span>
                       <span className="block text-sm font-semibold">{manga.sourceName}</span>
@@ -403,7 +406,7 @@ const MangaDetail = () => {
                   )}
 
                   <div className="space-y-2">
-                    {(sourceOptionsQuery.data || []).map((alternative) => (
+                    {(sourceOptionsQuery.data || []).map((alternative, index) => (
                       <Link
                         key={`${alternative.source}-${alternative.mangaId}`}
                         to={`/manga/${encodeURIComponent(alternative.mangaId)}?source=${encodeURIComponent(alternative.source)}`}
@@ -420,7 +423,9 @@ const MangaDetail = () => {
                               : 'pas encore mesuré'}
                           </span>
                         </span>
-                        <span className="shrink-0 text-xs font-semibold text-[var(--mw-accent-blue)]">{Math.round(alternative.sourceScore)}/100</span>
+                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--mw-accent-blue)]">
+                          {index === 0 && alternative.available ? 'Recommandée' : 'Disponible'}
+                        </span>
                       </Link>
                     ))}
                   </div>
@@ -440,9 +445,7 @@ const MangaDetail = () => {
                 <p className="text-manga-cyan font-medium mb-2">LECTURE EN LIGNE</p>
                 <h2 className="font-editorial text-3xl uppercase">Chapitres disponibles</h2>
                 <p className="text-muted-foreground mt-2">
-                  {isOriginManga
-                    ? 'Chapitres extraits directement depuis OriginManga.'
-                    : 'Les groupes de scanlation sont crédités pour chaque chapitre.'}
+                  Choisissez un chapitre et Manga Wave ouvrira automatiquement l’édition disponible.
                 </p>
               </div>
 
@@ -524,7 +527,7 @@ const MangaDetail = () => {
                   <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
                     <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
                     <h3 className="text-xl font-bold mb-2">Aucun chapitre disponible</h3>
-                    <p className="text-muted-foreground">Aucun chapitre n&apos;a été trouvé sur OriginManga pour ce titre.</p>
+                    <p className="text-muted-foreground">Aucun chapitre lisible n&apos;a été trouvé pour ce titre.</p>
                   </div>
                 )}
               </div>

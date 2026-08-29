@@ -150,9 +150,30 @@ export function canonicalizeMangaCandidates(candidates: CanonicalMangaCandidate[
   });
 }
 
-export const getPrimarySource = (manga: CanonicalManga): CanonicalSourceMapping | null => (
-  manga.sources.find((source) => source.available && source.readable && source.detailUrl)
-  ?? manga.sources.find((source) => source.available)
-  ?? manga.sources[0]
-  ?? null
-);
+const languageCompatibility = (language: string, preferredLanguage: string): number => {
+  const actual = language.trim().toLowerCase().split(/[-_]/)[0];
+  const preferred = preferredLanguage.trim().toLowerCase().split(/[-_]/)[0];
+  if (actual && actual === preferred) return 0;
+  if (actual === 'multi') return 1;
+  if (!actual || actual === 'und') return 2;
+  return 3;
+};
+
+export const getPrimarySource = (
+  manga: CanonicalManga,
+  preferredLanguage = 'fr',
+): CanonicalSourceMapping | null => {
+  const readable = manga.sources
+    .filter((source) => source.available && source.readable && source.detailUrl)
+    .map((source, index) => ({ source, index }))
+    .sort((left, right) => (
+      languageCompatibility(left.source.language, preferredLanguage)
+      - languageCompatibility(right.source.language, preferredLanguage)
+      || left.index - right.index
+    ));
+
+  return readable[0]?.source
+    ?? manga.sources.find((source) => source.available)
+    ?? manga.sources[0]
+    ?? null;
+};

@@ -30,7 +30,7 @@ const MangaWaveLogo = () => (
 const navLinks = [
   { label: 'Accueil', to: '/', icon: Home },
   { label: 'Mangas', to: '/search', icon: Compass },
-  { label: 'Scans FR', to: '/search?source=originmanga', icon: Flame },
+  { label: 'Découvrir', to: '/search', icon: Flame },
 ];
 
 const Header = () => {

@@ -78,7 +78,7 @@ const FeaturedSection = () => {
         {/* ── Header ── */}
         <div className="mb-8 flex flex-col gap-6 border-b border-[var(--mw-border)] pb-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-blue)]">Catalogue MangaDex</p>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-blue)]">Catalogue Manga Wave</p>
             <h2 className="font-editorial text-3xl uppercase text-white md:text-4xl">
               Sélection locale
             </h2>

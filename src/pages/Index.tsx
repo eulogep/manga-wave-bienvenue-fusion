@@ -1,7 +1,6 @@
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ContinueReadingSection from '@/components/ContinueReadingSection';
-import MultiSourceHubSection from '@/components/MultiSourceHubSection';
 import OriginMangaSection from '@/components/OriginMangaSection';
 import FeaturedSection from '@/components/FeaturedSection';
 import CategoriesSection from '@/components/CategoriesSection';
@@ -30,7 +29,6 @@ const Index = () => {
             <HeroSection />
             <OriginMangaSection />
             <HomeCatalogSections mode="anonymous" />
-            <MultiSourceHubSection />
             <FeaturedSection />
             <CategoriesSection />
           </>

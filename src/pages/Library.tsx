@@ -48,13 +48,6 @@ const relativeDate = (value: string) => {
   return new Date(value).toLocaleDateString('fr-FR');
 };
 
-const SOURCE_BADGES: Record<string, { label: string; cls: string }> = {
-  originmanga: { label: 'OriginManga', cls: 'badge-vf' },
-  crunchyscan: { label: 'LelManga', cls: 'bg-orange-500/20 text-orange-400 border border-orange-500/30' },
-  comick: { label: 'Comick.io', cls: 'bg-manga-purple/25 text-manga-purple-light border border-manga-purple/40' },
-  mangadex: { label: 'MangaDex', cls: 'bg-manga-cyan/20 text-manga-cyan border border-manga-cyan/30' },
-};
-
 const Library = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabOption>('favorites');
@@ -308,7 +301,7 @@ const Library = () => {
                   <History className="h-12 w-12 text-manga-purple mx-auto mb-4 opacity-70" />
                   <h2 className="text-xl font-bold mb-2">Aucun historique de lecture</h2>
                   <p className="text-white/50 max-w-md mx-auto text-sm mb-6">
-                    Lorsque vous commencez un chapitre sur n'importe quelle source, votre progression est automatiquement sauvegardée ici.
+                    Lorsque vous commencez un chapitre, votre progression est automatiquement sauvegardée ici.
                   </p>
                   <Button className="btn-gradient rounded-full px-6" asChild>
                     <Link to="/search">Découvrir des mangas</Link>
@@ -317,12 +310,12 @@ const Library = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {historyItems.map((item, index) => {
-                    const badge = SOURCE_BADGES[item.source] || { label: item.source.toUpperCase(), cls: 'bg-white/10 text-white/70' };
                     const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?page=${item.pageIndex || 0}`;
+                    const canonicalKey = item.canonicalKey || canonicalProgressKey(item.mangaTitle);
 
                     return (
                       <article
-                        key={`${item.source}-${item.mangaId}`}
+                        key={canonicalKey}
                         className="group relative rounded-2xl border border-white/[0.08] bg-[#0f1520]/80 hover:bg-[#0f1520] hover:border-manga-purple/40 backdrop-blur-md transition-all duration-300 shadow-card hover:shadow-card-hover overflow-hidden animate-slide-up-fade"
                         style={{ animationDelay: `${index * 0.04}s` }}
                       >
@@ -342,9 +335,6 @@ const Library = () => {
                               alt={`Couverture de ${item.mangaTitle}`}
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
-                            <span className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${badge.cls}`}>
-                              {badge.label.split(' ')[0]}
-                            </span>
                           </div>
 
                           {/* Info */}
@@ -359,7 +349,7 @@ const Library = () => {
                                   {item.mangaTitle}
                                 </Link>
                                 <button
-                                  onClick={() => removeLocalHistoryItem(item.canonicalKey || canonicalProgressKey(item.mangaTitle))}
+                                  onClick={() => removeLocalHistoryItem(canonicalKey)}
                                   className="text-white/30 hover:text-white hover:bg-white/10 rounded p-1 transition-colors -mr-1 -mt-1"
                                   title="Retirer de l'historique"
                                 >
