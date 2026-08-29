@@ -56,7 +56,7 @@ const OriginMangaReader = ({
         totalPages: pages.length,
       });
     }
-  }, [currentPage, pages?.length, chapterId, mangaId, mangaTitle]);
+  }, [chapterId, chapterNumber, chapterTitle, coverImage, currentPage, mangaId, mangaTitle, pages, recordReading]);
 
   const handlePrevPage = useCallback(() => {
     if (currentPage > 0) {

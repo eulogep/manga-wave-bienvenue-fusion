@@ -256,6 +256,57 @@ export type Database = {
           },
         ]
       }
+      user_reading_progress: {
+        Row: {
+          chapter_number: string
+          chapter_title: string | null
+          cover_image: string | null
+          manga_author: string | null
+          manga_title: string
+          page_index: number
+          progress_percentage: number
+          read_at: string
+          source_chapter_id: string
+          source_id: string
+          source_manga_id: string
+          total_pages: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chapter_number: string
+          chapter_title?: string | null
+          cover_image?: string | null
+          manga_author?: string | null
+          manga_title: string
+          page_index?: number
+          progress_percentage?: number
+          read_at?: string
+          source_chapter_id: string
+          source_id: string
+          source_manga_id: string
+          total_pages?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chapter_number?: string
+          chapter_title?: string | null
+          cover_image?: string | null
+          manga_author?: string | null
+          manga_title?: string
+          page_index?: number
+          progress_percentage?: number
+          read_at?: string
+          source_chapter_id?: string
+          source_id?: string
+          source_manga_id?: string
+          total_pages?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           chapter_id: number

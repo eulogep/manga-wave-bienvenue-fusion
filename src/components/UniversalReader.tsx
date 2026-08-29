@@ -72,6 +72,7 @@ const UniversalReader = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const continuousSentinelRef = useRef<HTMLDivElement>(null);
+  const resumedChapterRef = useRef<string>();
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { recordReading } = useRecordReading();
   const { preferences, updatePreferences, resetPreferences } = useReaderPreferences();
@@ -129,17 +130,43 @@ const UniversalReader = ({
     return () => observer.disconnect();
   }, [isContinuous, pages, preferences.preloadCount]);
 
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!isContinuous || !root) return;
+    const pageElements = root.querySelectorAll<HTMLElement>('[data-reader-page]');
+    if (pageElements.length === 0) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      const index = Number((visible?.target as HTMLElement | undefined)?.dataset.readerPage);
+      if (Number.isInteger(index)) setCurrentPage(index);
+    }, { root, threshold: [0.35, 0.6, 0.85] });
+    pageElements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [continuousPageCount, isContinuous]);
+
   const currentChapterObj = chapters.find((c) => c.id === chapterId);
   const chapterNumber = currentChapterObj?.chapterNumber || '1';
   const displayTitle = chapterTitle || currentChapterObj?.title || `Chapitre ${chapterNumber}`;
   const alternativesQuery = useChapterSourceAlternatives(mangaTitle, chapterNumber, source, isError);
 
   useEffect(() => {
+    const resumeKey = `${chapterId}:${initialPage}:${isContinuous}`;
+    if (resumedChapterRef.current === resumeKey) return;
     setCurrentPage(initialPage);
-    if (containerRef.current) {
-      containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [chapterId, initialPage]);
+    const frame = requestAnimationFrame(() => {
+      if (isContinuous && initialPage > 0) {
+        const page = contentRef.current?.querySelector<HTMLElement>(`[data-reader-page="${initialPage}"]`);
+        if (!page) return;
+        page.scrollIntoView({ block: 'start' });
+      } else if (contentRef.current) {
+        contentRef.current.scrollTop = 0;
+      }
+      resumedChapterRef.current = resumeKey;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [chapterId, initialPage, isContinuous, continuousPageCount]);
 
   useEffect(() => {
     if (pages?.length && currentPage >= pages.length) {
@@ -163,7 +190,7 @@ const UniversalReader = ({
         totalPages: pages.length,
       });
     }
-  }, [currentPage, pages?.length, chapterId, source, mangaId, mangaTitle]);
+  }, [chapterId, chapterNumber, coverImage, currentPage, displayTitle, mangaAuthor, mangaId, mangaTitle, pages, recordReading, source]);
 
   const handleNextChapter = useCallback(() => {
     if (hasNextChapter && onSelectChapter) {

@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -20,6 +20,10 @@ export type ReadingProgressItem = {
 
 const STORAGE_KEY = 'manga_wave_reading_history_v1';
 const HISTORY_EVENT = 'manga_wave_history_updated';
+type ReadingProgressInput = Omit<ReadingProgressItem, 'readAt' | 'progressPercent'> & {
+  pageIndex?: number;
+  totalPages?: number;
+};
 
 /* ── LOCAL STORAGE HELPERS ── */
 export function getLocalHistory(): ReadingProgressItem[] {
@@ -34,10 +38,7 @@ export function getLocalHistory(): ReadingProgressItem[] {
   }
 }
 
-export function saveLocalHistoryItem(item: Omit<ReadingProgressItem, 'readAt' | 'progressPercent'> & {
-  pageIndex?: number;
-  totalPages?: number;
-}): ReadingProgressItem {
+export function saveLocalHistoryItem(item: ReadingProgressInput): ReadingProgressItem {
   const currentHistory = getLocalHistory();
   const now = new Date().toISOString();
   const pageIndex = item.pageIndex || 0;
@@ -113,7 +114,7 @@ export const useContinueReading = () => {
   }, []);
 
   return useQuery({
-    queryKey: ['continue-reading-universal', user?.id, localItems.length],
+    queryKey: ['continue-reading-universal', user?.id, localItems.map((item) => item.readAt).join('|')],
     queryFn: async (): Promise<ReadingProgressItem[]> => {
       const local = getLocalHistory();
 
@@ -121,40 +122,36 @@ export const useContinueReading = () => {
       if (user) {
         try {
           const { data, error } = await supabase
-            .from('user_history')
-            .select('read_at, chapters(mangadex_id, chapter_number, title, pages_count, mangas(id, mangadex_id, title, author, cover_image))')
+            .from('user_reading_progress')
+            .select('*')
             .eq('user_id', user.id)
             .order('read_at', { ascending: false })
-            .limit(20);
+            .limit(50);
 
           if (!error && data) {
-            const remoteItems: ReadingProgressItem[] = data.flatMap((h) => {
-              const ch = h.chapters;
-              const m = ch?.mangas;
-              if (!ch?.mangadex_id || !m) return [];
-              return [{
-                source: 'mangadex',
-                mangaId: m.mangadex_id || String(m.id),
-                mangaTitle: m.title,
-                mangaAuthor: m.author,
-                coverImage: m.cover_image,
-                chapterId: ch.mangadex_id,
-                chapterNumber: String(ch.chapter_number || '1'),
-                chapterTitle: ch.title,
-                pageIndex: 0,
-                totalPages: ch.pages_count || 1,
-                readAt: h.read_at,
-                progressPercent: 100,
-              }];
-            });
+            const remoteItems: ReadingProgressItem[] = data.map((item) => ({
+              source: item.source_id,
+              mangaId: item.source_manga_id,
+              mangaTitle: item.manga_title,
+              mangaAuthor: item.manga_author,
+              coverImage: item.cover_image,
+              chapterId: item.source_chapter_id,
+              chapterNumber: item.chapter_number,
+              chapterTitle: item.chapter_title,
+              pageIndex: item.page_index,
+              totalPages: item.total_pages,
+              readAt: item.read_at,
+              progressPercent: item.progress_percentage,
+            }));
 
-            // Merge local and remote, local has precedence for latest page
+            // Merge local and remote, keeping the most recently saved position.
             const combinedMap = new Map<string, ReadingProgressItem>();
-            for (const item of remoteItems) {
-              combinedMap.set(`${item.source}:${item.mangaId}`, item);
-            }
-            for (const item of local) {
-              combinedMap.set(`${item.source}:${item.mangaId}`, item);
+            for (const item of [...remoteItems, ...local]) {
+              const key = `${item.source}:${item.mangaId}`;
+              const previous = combinedMap.get(key);
+              if (!previous || new Date(item.readAt).getTime() > new Date(previous.readAt).getTime()) {
+                combinedMap.set(key, item);
+              }
             }
             return Array.from(combinedMap.values()).sort(
               (a, b) => new Date(b.readAt).getTime() - new Date(a.readAt).getTime(),
@@ -178,35 +175,67 @@ export const useContinueReading = () => {
 export const useRecordReading = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const pendingRef = useRef<ReadingProgressInput | null>(null);
+  const localTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const remoteTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const recordReading = useMutation({
-    mutationFn: async (item: Omit<ReadingProgressItem, 'readAt' | 'progressPercent'> & {
-      pageIndex?: number;
-      totalPages?: number;
-    }) => {
-      // 1. Always save to LocalStorage immediately
-      const saved = saveLocalHistoryItem(item);
+  const flushLocal = useCallback(() => {
+    const item = pendingRef.current;
+    if (!item) return;
+    saveLocalHistoryItem(item);
+    queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] });
+  }, [queryClient]);
 
-      // 2. If logged in and MangaDex, also sync with Supabase in background
-      if (user && item.source === 'mangadex') {
-        try {
-          await supabase.functions.invoke('reading-progress', {
-            body: {
-              manga: { id: item.mangaId, title: item.mangaTitle },
-              chapter: { id: item.chapterId, chapter: item.chapterNumber },
-            },
-          }).catch(() => {});
-        } catch {
-          // Ignore background sync errors
-        }
-      }
+  const flushRemote = useCallback(async () => {
+    const item = pendingRef.current;
+    if (!item || !user) return;
+    const totalPages = Math.max(1, item.totalPages || 1);
+    const pageIndex = Math.max(0, item.pageIndex || 0);
+    await supabase.from('user_reading_progress').upsert({
+      user_id: user.id,
+      source_id: item.source,
+      source_manga_id: String(item.mangaId),
+      source_chapter_id: String(item.chapterId),
+      manga_title: item.mangaTitle,
+      manga_author: item.mangaAuthor || null,
+      cover_image: item.coverImage || null,
+      chapter_number: String(item.chapterNumber),
+      chapter_title: item.chapterTitle || null,
+      page_index: pageIndex,
+      total_pages: totalPages,
+      progress_percentage: Math.min(100, Math.round(((pageIndex + 1) / totalPages) * 100)),
+      read_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,source_id,source_manga_id' });
+  }, [user]);
 
-      return saved;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] });
-    },
-  });
+  const mutate = useCallback((item: ReadingProgressInput) => {
+    pendingRef.current = item;
+    if (localTimerRef.current) clearTimeout(localTimerRef.current);
+    if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
+    localTimerRef.current = setTimeout(flushLocal, 500);
+    remoteTimerRef.current = setTimeout(() => void flushRemote(), 2_000);
+  }, [flushLocal, flushRemote]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (localTimerRef.current) clearTimeout(localTimerRef.current);
+      if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
+      flushLocal();
+      void flushRemote();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      flush();
+    };
+  }, [flushLocal, flushRemote]);
+
+  const recordReading = useMemo(() => ({ mutate }), [mutate]);
 
   return { recordReading };
 };
