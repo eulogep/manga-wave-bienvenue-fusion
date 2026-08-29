@@ -9,6 +9,25 @@ const BASE = 'https://flamecomics.xyz';
 const PROJECT_PROXY = 'https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/manga-proxy';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+const normalizeTitle = (value: string) => value
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+function isRelevantSearchResult(query: string, title: string): boolean {
+  const wanted = normalizeTitle(query);
+  const candidate = normalizeTitle(title);
+  if (!wanted || !candidate) return false;
+  if (candidate === wanted || candidate.startsWith(`${wanted} `) || candidate.endsWith(` ${wanted}`)) return true;
+  const wantedTokens = wanted.split(' ');
+  const candidateTokens = new Set(candidate.split(' '));
+  const matched = wantedTokens.filter((token) => candidateTokens.has(token)).length;
+  const score = (matched / wantedTokens.length) * 0.7 + (matched / candidateTokens.size) * 0.3;
+  return score >= 0.78;
+}
+
 async function fetchProxiedHtml(url: string): Promise<string> {
   const response = await fetch(`${PROJECT_PROXY}?url=${encodeURIComponent(url)}`, {
     headers: { Accept: 'text/html,application/xhtml+xml' },
@@ -118,9 +137,7 @@ export const mangaFireExtractor: SourceExtractor = {
   async search(query: string): Promise<SearchResult[]> {
     try {
       const all = await loadCards('/browse');
-      const q = query.toLowerCase();
-      const filtered = all.filter((item) => item.title.toLowerCase().includes(q));
-      return filtered.length > 0 ? filtered : all.slice(0, 10);
+      return all.filter((item) => isRelevantSearchResult(query, item.title));
     } catch (err: unknown) {
       console.warn('[MangaFire] search error:', err);
       return [];

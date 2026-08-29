@@ -30,6 +30,7 @@ import {
   clearLocalHistory,
 } from '@/hooks/useReadingProgress';
 import type { MangaDexStatus } from '@/integrations/mangadex/client';
+import { canonicalProgressKey } from '@/domain/canonicalProgress';
 
 const PAGE_SIZE = 12;
 
@@ -358,7 +359,7 @@ const Library = () => {
                                   {item.mangaTitle}
                                 </Link>
                                 <button
-                                  onClick={() => removeLocalHistoryItem(item.source, item.mangaId)}
+                                  onClick={() => removeLocalHistoryItem(item.canonicalKey || canonicalProgressKey(item.mangaTitle))}
                                   className="text-white/30 hover:text-white hover:bg-white/10 rounded p-1 transition-colors -mr-1 -mt-1"
                                   title="Retirer de l'historique"
                                 >

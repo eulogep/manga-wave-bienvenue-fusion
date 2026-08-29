@@ -2,8 +2,12 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { canonicalProgressKey, mergeCanonicalProgress } from '@/domain/canonicalProgress';
+import { normalizeLogicalChapterNumber } from '@/domain/chapterMatching';
 
 export type ReadingProgressItem = {
+  canonicalKey?: string;
+  canonicalMangaId?: number | null;
   source: string;
   mangaId: string;
   mangaTitle: string;
@@ -16,6 +20,7 @@ export type ReadingProgressItem = {
   totalPages: number;
   readAt: string; // ISO date
   progressPercent: number;
+  language?: string;
 };
 
 const STORAGE_KEY = 'manga_wave_reading_history_v1';
@@ -32,7 +37,10 @@ export function getLocalHistory(): ReadingProgressItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.sort((a, b) => new Date(b.readAt).getTime() - new Date(a.readAt).getTime());
+    return mergeCanonicalProgress(parsed.map((item: ReadingProgressItem) => ({
+      ...item,
+      canonicalKey: item.canonicalKey || canonicalProgressKey(item.mangaTitle),
+    })));
   } catch {
     return [];
   }
@@ -44,18 +52,20 @@ export function saveLocalHistoryItem(item: ReadingProgressInput): ReadingProgres
   const pageIndex = item.pageIndex || 0;
   const totalPages = item.totalPages || 1;
   const progressPercent = Math.min(100, Math.max(0, Math.round(((pageIndex + 1) / totalPages) * 100)));
+  const canonicalKey = item.canonicalKey || canonicalProgressKey(item.mangaTitle);
 
   const newItem: ReadingProgressItem = {
     ...item,
+    canonicalKey,
     pageIndex,
     totalPages,
     readAt: now,
     progressPercent,
   };
 
-  // Deduplicate by source + mangaId: update existing and put at top
+  // Deduplicate by canonical work: switching provider updates one position.
   const filtered = currentHistory.filter(
-    (h) => !(h.source === item.source && String(h.mangaId) === String(item.mangaId)),
+    (historyItem) => (historyItem.canonicalKey || canonicalProgressKey(historyItem.mangaTitle)) !== canonicalKey,
   );
 
   const updated = [newItem, ...filtered].slice(0, 50); // Keep last 50
@@ -69,10 +79,10 @@ export function saveLocalHistoryItem(item: ReadingProgressInput): ReadingProgres
   return newItem;
 }
 
-export function removeLocalHistoryItem(source: string, mangaId: string) {
+export function removeLocalHistoryItem(canonicalKey: string) {
   const currentHistory = getLocalHistory();
   const filtered = currentHistory.filter(
-    (h) => !(h.source === source && String(h.mangaId) === String(mangaId)),
+    (historyItem) => (historyItem.canonicalKey || canonicalProgressKey(historyItem.mangaTitle)) !== canonicalKey,
   );
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
@@ -95,15 +105,14 @@ export const useReadingHistoryActions = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const remove = useCallback(async (source: string, mangaId: string) => {
-    removeLocalHistoryItem(source, mangaId);
+  const remove = useCallback(async (canonicalKey: string) => {
+    removeLocalHistoryItem(canonicalKey);
     if (user) {
       await supabase
-        .from('user_reading_progress')
+        .from('user_canonical_reading_progress')
         .delete()
         .eq('user_id', user.id)
-        .eq('source_id', source)
-        .eq('source_manga_id', String(mangaId));
+        .eq('canonical_key', canonicalKey);
     }
     queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] });
   }, [queryClient, user]);
@@ -111,7 +120,7 @@ export const useReadingHistoryActions = () => {
   const clear = useCallback(async () => {
     clearLocalHistory();
     if (user) {
-      await supabase.from('user_reading_progress').delete().eq('user_id', user.id);
+      await supabase.from('user_canonical_reading_progress').delete().eq('user_id', user.id);
     }
     queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] });
   }, [queryClient, user]);
@@ -150,7 +159,7 @@ export const useContinueReading = () => {
       if (user) {
         try {
           const { data, error } = await supabase
-            .from('user_reading_progress')
+            .from('user_canonical_reading_progress')
             .select('*')
             .eq('user_id', user.id)
             .order('read_at', { ascending: false })
@@ -158,32 +167,24 @@ export const useContinueReading = () => {
 
           if (!error && data) {
             const remoteItems: ReadingProgressItem[] = data.map((item) => ({
-              source: item.source_id,
-              mangaId: item.source_manga_id,
+              canonicalKey: item.canonical_key,
+              canonicalMangaId: item.canonical_manga_id,
+              source: item.last_provider,
+              mangaId: item.last_provider_manga_id,
               mangaTitle: item.manga_title,
               mangaAuthor: item.manga_author,
               coverImage: item.cover_image,
-              chapterId: item.source_chapter_id,
+              chapterId: item.last_provider_chapter_id,
               chapterNumber: item.chapter_number,
               chapterTitle: item.chapter_title,
               pageIndex: item.page_index,
               totalPages: item.total_pages,
               readAt: item.read_at,
               progressPercent: item.progress_percentage,
+              language: item.language,
             }));
 
-            // Merge local and remote, keeping the most recently saved position.
-            const combinedMap = new Map<string, ReadingProgressItem>();
-            for (const item of [...remoteItems, ...local]) {
-              const key = `${item.source}:${item.mangaId}`;
-              const previous = combinedMap.get(key);
-              if (!previous || new Date(item.readAt).getTime() > new Date(previous.readAt).getTime()) {
-                combinedMap.set(key, item);
-              }
-            }
-            return Array.from(combinedMap.values()).sort(
-              (a, b) => new Date(b.readAt).getTime() - new Date(a.readAt).getTime(),
-            );
+            return mergeCanonicalProgress([...remoteItems, ...local]);
           }
         } catch {
           // Fallback to local
@@ -219,11 +220,26 @@ export const useRecordReading = () => {
     if (!item || !user) return;
     const totalPages = Math.max(1, item.totalPages || 1);
     const pageIndex = Math.max(0, item.pageIndex || 0);
-    await supabase.from('user_reading_progress').upsert({
+    const canonicalKey = item.canonicalKey || canonicalProgressKey(item.mangaTitle);
+    let canonicalMangaId = item.canonicalMangaId || null;
+    if (!canonicalMangaId) {
+      const { data: mapping } = await supabase
+        .from('manga_source_mappings')
+        .select('manga_id')
+        .eq('source_id', item.source)
+        .eq('source_manga_id', String(item.mangaId))
+        .maybeSingle();
+      canonicalMangaId = mapping?.manga_id || null;
+    }
+    await supabase.from('user_canonical_reading_progress').upsert({
       user_id: user.id,
-      source_id: item.source,
-      source_manga_id: String(item.mangaId),
-      source_chapter_id: String(item.chapterId),
+      canonical_key: canonicalKey,
+      canonical_manga_id: canonicalMangaId,
+      canonical_chapter_key: normalizeLogicalChapterNumber(item.chapterNumber) || item.chapterNumber,
+      last_provider: item.source,
+      last_provider_manga_id: String(item.mangaId),
+      last_provider_chapter_id: String(item.chapterId),
+      language: item.language || 'und',
       manga_title: item.mangaTitle,
       manga_author: item.mangaAuthor || null,
       cover_image: item.coverImage || null,
@@ -233,7 +249,7 @@ export const useRecordReading = () => {
       total_pages: totalPages,
       progress_percentage: Math.min(100, Math.round(((pageIndex + 1) / totalPages) * 100)),
       read_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,source_id,source_manga_id' });
+    }, { onConflict: 'user_id,canonical_key' });
   }, [user]);
 
   const mutate = useCallback((item: ReadingProgressInput) => {

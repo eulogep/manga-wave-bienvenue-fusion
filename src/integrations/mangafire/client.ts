@@ -3,6 +3,7 @@ import {
   type ExtractedManga,
   type ExtractedSearchResult,
 } from '@/integrations/common/extractorClient';
+import { filterRelevantMangaResults } from '@/domain/providerRelevance';
 
 export type MangaFireSearchResult = {
   id: string;
@@ -12,6 +13,8 @@ export type MangaFireSearchResult = {
   type: string | null;
   rating: number | null;
   latestChapter: string | null;
+  author: string | null;
+  genres: string[];
   url: string;
 };
 
@@ -23,6 +26,8 @@ const mapSearch = (item: ExtractedSearchResult): MangaFireSearchResult => ({
   type: 'Manga',
   rating: item.rating,
   latestChapter: null,
+  author: item.author,
+  genres: item.genres,
   url: item.url,
 });
 
@@ -31,7 +36,7 @@ export async function searchMangaFire(query: string, page = 1): Promise<MangaFir
     const data = await extractorFetch<{ results: ExtractedSearchResult[] }>(
       `/search/mangafire?q=${encodeURIComponent(query)}&page=${page}`,
     );
-    return (data.results || []).map(mapSearch);
+    return filterRelevantMangaResults(query, (data.results || []).map(mapSearch));
   } catch (error) {
     console.warn('[MangaFire] search error:', error);
     return [];

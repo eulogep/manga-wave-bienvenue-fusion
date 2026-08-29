@@ -553,6 +553,77 @@ export type Database = {
         }
         Relationships: []
       }
+      user_canonical_reading_progress: {
+        Row: {
+          canonical_chapter_key: string
+          canonical_key: string
+          canonical_manga_id: number | null
+          chapter_number: string
+          chapter_title: string | null
+          cover_image: string | null
+          language: string
+          last_provider: string
+          last_provider_chapter_id: string
+          last_provider_manga_id: string
+          manga_author: string | null
+          manga_title: string
+          page_index: number
+          progress_percentage: number
+          read_at: string
+          total_pages: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canonical_chapter_key: string
+          canonical_key: string
+          canonical_manga_id?: number | null
+          chapter_number: string
+          chapter_title?: string | null
+          cover_image?: string | null
+          language?: string
+          last_provider: string
+          last_provider_chapter_id: string
+          last_provider_manga_id: string
+          manga_author?: string | null
+          manga_title: string
+          page_index?: number
+          progress_percentage?: number
+          read_at?: string
+          total_pages?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canonical_chapter_key?: string
+          canonical_key?: string
+          canonical_manga_id?: number | null
+          chapter_number?: string
+          chapter_title?: string | null
+          cover_image?: string | null
+          language?: string
+          last_provider?: string
+          last_provider_chapter_id?: string
+          last_provider_manga_id?: string
+          manga_author?: string | null
+          manga_title?: string
+          page_index?: number
+          progress_percentage?: number
+          read_at?: string
+          total_pages?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_canonical_reading_progress_canonical_manga_id_fkey"
+            columns: ["canonical_manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       canonical_manga_catalog: {

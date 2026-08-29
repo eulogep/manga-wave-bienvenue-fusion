@@ -1,8 +1,9 @@
 import type { MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
 
-const API_HOSTS = ['https://api.comick.dev', 'https://api.comick.io'];
+const API_HOSTS = ['https://api.comick.io', 'https://api.comick.fun'];
 const SITE = 'https://comick.io';
 const IMAGES = 'https://meo.comick.pictures';
+const COMICK_SEARCH_ENABLED = false;
 
 async function apiFetch<T>(path: string): Promise<T> {
   let lastError: Error | null = null;
@@ -14,8 +15,14 @@ async function apiFetch<T>(path: string): Promise<T> {
       });
       if (response.ok) return response.json() as Promise<T>;
       lastError = new Error(`Comick ${response.status}`);
+      if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
+        throw lastError;
+      }
     } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      if (/Comick 4\d\d/.test(lastError.message) && !/Comick (408|429)/.test(lastError.message)) {
+        throw lastError;
+      }
     }
   }
   throw lastError || new Error('API Comick indisponible.');
@@ -55,12 +62,14 @@ export const comickExtractor: SourceExtractor = {
   name: 'Comick.io',
 
   async search(query: string, page = 1): Promise<SearchResult[]> {
+    if (!COMICK_SEARCH_ENABLED) return [];
     try {
       const data = await apiFetch<RawComic[]>(
-        `/v1.0/search?q=${encodeURIComponent(query)}&page=${page}&limit=24&type=comic`,
+        `/v1.0/search?q=${encodeURIComponent(query)}`,
       );
       if (Array.isArray(data) && data.length > 0) {
-        return data.map(mapSearch).filter((item) => item.id);
+        const offset = Math.max(0, page - 1) * 24;
+        return data.slice(offset, offset + 24).map(mapSearch).filter((item) => item.id);
       }
     } catch (err) {
       console.warn('[Comick] apiFetch failed, attempting fallback...');

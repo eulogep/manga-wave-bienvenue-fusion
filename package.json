@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "test:canonical": "node --experimental-strip-types --test tests/canonicalManga.test.ts",
     "test:sources": "node --experimental-strip-types --test tests/sourceResolution.test.ts",
-    "test:p1": "node --experimental-strip-types --test tests/canonicalManga.test.ts tests/sourceResolution.test.ts tests/automaticFallback.test.ts",
+    "test:p1": "node --experimental-strip-types --test tests/canonicalManga.test.ts tests/sourceResolution.test.ts tests/automaticFallback.test.ts tests/chapterMatching.test.ts tests/providerHotfix.test.ts tests/providerHttp.test.ts tests/readerUiState.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

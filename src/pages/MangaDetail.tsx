@@ -212,8 +212,9 @@ const MangaDetail = () => {
   const firstReadableChapter = readableChapters[readableChapters.length - 1] || readableChapters[0];
   const sourceOptionsQuery = useChapterSourceAlternatives(
     manga?.title,
-    firstReadableChapter?.chapterNumber || manga?.lastChapter || '1',
+    firstReadableChapter?.chapterNumber || manga?.lastChapter || undefined,
     source,
+    language,
     sourcesOpen && Boolean(manga?.title),
   );
 

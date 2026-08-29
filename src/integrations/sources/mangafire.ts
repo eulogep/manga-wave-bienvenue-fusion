@@ -21,7 +21,7 @@ export class MangaFireSource implements MangaSource {
       status: item.status,
       rating: item.rating,
       url: item.url,
-      genres: ['Manga', 'Manhwa'],
+      genres: item.genres.length ? item.genres : ['Manga', 'Manhwa'],
     }));
   }
 

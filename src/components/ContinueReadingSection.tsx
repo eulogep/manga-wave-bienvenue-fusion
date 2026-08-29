@@ -39,10 +39,10 @@ const ContinueReadingSection = () => {
   const { data: items = [], isLoading } = useContinueReading();
   const historyActions = useReadingHistoryActions();
 
-  const handleRemove = (event: React.MouseEvent, source: string, mangaId: string) => {
+  const handleRemove = (event: React.MouseEvent, canonicalKey: string) => {
     event.preventDefault();
     event.stopPropagation();
-    void historyActions.remove(source, mangaId);
+    void historyActions.remove(canonicalKey);
   };
 
   return (
@@ -107,10 +107,15 @@ const ContinueReadingSection = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={isLoading}>
             {items.slice(0, 4).map((item) => {
               const sourceLabel = SOURCE_LABELS[item.source] || item.source;
-              const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?page=${item.pageIndex || 0}`;
+              const resumeParams = new URLSearchParams({
+                page: String(item.pageIndex || 0),
+                lang: item.language || 'fr',
+              });
+              const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?${resumeParams}`;
+              const canonicalKey = item.canonicalKey || `title:${item.mangaTitle.toLowerCase()}`;
 
               return (
-                <article key={`${item.source}-${item.mangaId}`} className="group relative overflow-hidden border border-[var(--mw-border)] bg-[#0b1722] transition-colors hover:border-[var(--mw-accent-coral)]">
+                <article key={canonicalKey} className="group relative overflow-hidden border border-[var(--mw-border)] bg-[#0b1722] transition-colors hover:border-[var(--mw-accent-coral)]">
                   <div className="h-1 w-full bg-[var(--mw-border)]">
                     <div className="h-full bg-[var(--mw-accent-coral)]" style={{ width: `${Math.max(3, item.progressPercent || 0)}%` }} />
                   </div>
@@ -126,7 +131,7 @@ const ContinueReadingSection = () => {
                           <Link to={`/manga/${item.mangaId}?source=${item.source}`} className="line-clamp-1 text-sm font-bold text-[var(--mw-text-primary)] transition-colors hover:text-[var(--mw-accent-coral)]" title={item.mangaTitle}>
                             {item.mangaTitle}
                           </Link>
-                          <button onClick={(event) => handleRemove(event, item.source, item.mangaId)} className="-mr-1 -mt-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--mw-text-secondary)] transition-colors hover:text-[var(--mw-text-primary)]" aria-label={`Retirer ${item.mangaTitle} de l’historique`}>
+                          <button onClick={(event) => handleRemove(event, canonicalKey)} className="-mr-1 -mt-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--mw-text-secondary)] transition-colors hover:text-[var(--mw-text-primary)]" aria-label={`Retirer ${item.mangaTitle} de l’historique`}>
                             <X className="h-3.5 w-3.5" />
                           </button>
                         </div>

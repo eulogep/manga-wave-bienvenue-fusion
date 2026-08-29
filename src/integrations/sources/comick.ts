@@ -12,7 +12,7 @@ export class ComickSource implements MangaSource {
   public readonly baseUrl = 'https://comick.io';
   public readonly lang = 'multi';
   public readonly hasDirectPages = true;
-  public readonly supportsSearch = true;
+  public readonly supportsSearch = false;
   public readonly supportsChapters = true;
 
   async search(query: string, page = 1): Promise<SourceSearchResult[]> {

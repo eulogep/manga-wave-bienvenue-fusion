@@ -80,9 +80,9 @@ const HeroSection = () => {
               </div>
             </div>
             <div className="grid grid-cols-4 gap-2">
-              {(isLoading ? Array.from({ length: 4 }) : featured).map((manga, index) => (
-                <button key={typeof manga === 'object' ? manga.id : index} onClick={() => setActiveIndex(index)} className={`relative aspect-[3/4] overflow-hidden border text-left transition-all ${index === activeIndex ? 'border-[var(--mw-accent-coral)] opacity-100' : 'border-[var(--mw-border)] opacity-55 hover:opacity-90'}`} aria-label={typeof manga === 'object' ? `Afficher ${manga.title}` : 'Chargement'}>
-                  {typeof manga === 'object' ? <MangaCover src={manga.coverUrl} alt="" className="h-full w-full object-cover" /> : <span className="block h-full w-full animate-pulse bg-[var(--mw-surface)]" />}
+              {(isLoading ? Array.from({ length: 4 }, () => null) : featured).map((manga, index) => (
+                <button key={manga ? manga.id : index} onClick={() => setActiveIndex(index)} className={`relative aspect-[3/4] overflow-hidden border text-left transition-all ${index === activeIndex ? 'border-[var(--mw-accent-coral)] opacity-100' : 'border-[var(--mw-border)] opacity-55 hover:opacity-90'}`} aria-label={manga ? `Afficher ${manga.title}` : 'Chargement'}>
+                  {manga ? <MangaCover src={manga.coverUrl} alt="" className="h-full w-full object-cover" /> : <span className="block h-full w-full animate-pulse bg-[var(--mw-surface)]" />}
                   <span className="absolute bottom-1 left-1 font-editorial text-xl text-white/90">0{index + 1}</span>
                 </button>
               ))}

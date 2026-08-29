@@ -19,18 +19,18 @@ const OriginMangaSection = () => {
         </div>
 
         <div className="flex snap-x gap-3 overflow-x-auto pb-3 hide-scrollbar lg:grid lg:grid-cols-5 lg:overflow-visible">
-          {(isLoading ? Array.from({ length: 5 }) : mangas.slice(0, 5)).map((manga, index) => (
-            <Link key={typeof manga === 'object' ? manga.id : index} to={typeof manga === 'object' ? `/manga/${manga.id}?source=originmanga` : '#'} className="group relative min-w-[190px] snap-start overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)] transition-colors hover:border-[var(--mw-accent-coral)] lg:min-w-0">
+          {(isLoading ? Array.from({ length: 5 }, () => null) : mangas.slice(0, 5)).map((manga, index) => (
+            <Link key={manga ? manga.id : index} to={manga ? `/manga/${manga.id}?source=originmanga` : '#'} className="group relative min-w-[190px] snap-start overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)] transition-colors hover:border-[var(--mw-accent-coral)] lg:min-w-0">
               <div className="relative aspect-[3/4] overflow-hidden">
-                {typeof manga === 'object' ? <MangaCover src={manga.coverUrl} alt={`Couverture de ${manga.title}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" /> : <div className="h-full w-full animate-pulse bg-[var(--mw-elevated)]" />}
+                {manga ? <MangaCover src={manga.coverUrl} alt={`Couverture de ${manga.title}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" /> : <div className="h-full w-full animate-pulse bg-[var(--mw-elevated)]" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#06101a] via-transparent to-transparent" />
                 <span className="absolute bottom-[-9px] left-2 font-editorial text-6xl font-semibold leading-none text-[var(--mw-accent-coral)]">{String(index + 1).padStart(2, '0')}</span>
               </div>
               <div className="min-h-24 border-t border-[var(--mw-border)] px-3 py-3">
-                <h3 className="line-clamp-2 font-editorial text-sm font-semibold uppercase leading-5 text-white">{typeof manga === 'object' ? manga.title : 'Chargement'}</h3>
+                <h3 className="line-clamp-2 font-editorial text-sm font-semibold uppercase leading-5 text-white">{manga ? manga.title : 'Chargement'}</h3>
                 <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-[var(--mw-text-secondary)]">
                   <span>Scan français</span>
-                  {typeof manga === 'object' && manga.rating ? <span className="text-manga-gold">★ {manga.rating.toFixed(1)}</span> : null}
+                  {manga?.rating ? <span className="text-manga-gold">★ {manga.rating.toFixed(1)}</span> : null}
                 </div>
               </div>
             </Link>

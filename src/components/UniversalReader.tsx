@@ -22,6 +22,8 @@ import { useReaderPreloading } from '@/hooks/useReaderPreloading';
 import ReaderSettingsPanel from '@/components/reader/ReaderSettingsPanel';
 import { shouldFallbackHeightToWidth, type PageFitMeasurement } from '@/components/reader/pageFit';
 import { selectAutomaticFallback } from '@/domain/automaticFallback';
+import { moveReaderPage } from '@/domain/readerNavigation';
+import { nextReaderSettingsState } from '@/domain/readerUiState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,11 +39,14 @@ type Props = {
   coverImage?: string | null;
   chapters?: SourceChapter[];
   initialPage?: number;
+  language?: string;
   onSelectChapter?: (chapterId: string) => void;
   triedSources?: string[];
   autoFallbackApplied?: boolean;
   onAutomaticSourceFallback?: (alternative: ChapterSourceAlternative, pageIndex: number) => void;
   onManualSourceSelection?: (alternative: ChapterSourceAlternative, pageIndex: number) => void;
+  onPageChange?: (pageIndex: number) => void;
+  fallbackNotice?: string | null;
   onClose?: () => void;
 };
 
@@ -70,11 +75,14 @@ const UniversalReader = ({
   coverImage,
   chapters = [],
   initialPage = 0,
+  language = 'fr',
   onSelectChapter,
   triedSources = [],
   autoFallbackApplied = false,
   onAutomaticSourceFallback,
   onManualSourceSelection,
+  onPageChange,
+  fallbackNotice,
   onClose,
 }: Props) => {
   const { data: pages, isLoading, isError, error, refetch } = useUniversalChapterPages(source, chapterId);
@@ -184,9 +192,15 @@ const UniversalReader = ({
   }, [continuousPageCount, isContinuous]);
 
   const currentChapterObj = chapters.find((c) => c.id === chapterId);
-  const chapterNumber = currentChapterObj?.chapterNumber || '1';
-  const displayTitle = chapterTitle || currentChapterObj?.title || `Chapitre ${chapterNumber}`;
-  const alternativesQuery = useChapterSourceAlternatives(mangaTitle, chapterNumber, source, isError || settingsOpen);
+  const chapterNumber = currentChapterObj?.chapterNumber;
+  const displayTitle = chapterTitle || currentChapterObj?.title || (chapterNumber ? `Chapitre ${chapterNumber}` : 'Chapitre');
+  const alternativesQuery = useChapterSourceAlternatives(
+    mangaTitle,
+    chapterNumber,
+    source,
+    language,
+    isError || settingsOpen,
+  );
 
   useEffect(() => {
     fallbackAttemptRef.current = null;
@@ -202,14 +216,14 @@ const UniversalReader = ({
 
   useEffect(() => {
     if (!isError || !onAutomaticSourceFallback || !alternativesQuery.data) return;
-    const target = selectAutomaticFallback(alternativesQuery.data, source, triedSources);
+    const target = selectAutomaticFallback(alternativesQuery.data, source, triedSources, undefined, language);
     if (!target || fallbackAttemptRef.current) return;
 
     fallbackAttemptRef.current = target.source;
     setFallbackTargetSource(target.sourceName);
     const timer = window.setTimeout(() => onAutomaticSourceFallback(target, currentPage), 700);
     return () => window.clearTimeout(timer);
-  }, [alternativesQuery.data, currentPage, isError, onAutomaticSourceFallback, source, triedSources]);
+  }, [alternativesQuery.data, currentPage, isError, language, onAutomaticSourceFallback, source, triedSources]);
 
   useEffect(() => {
     setCurrentPage(initialPage);
@@ -248,7 +262,7 @@ const UniversalReader = ({
 
   // Record progress when page or chapter changes
   useEffect(() => {
-    if (pages && pages.length > 0 && mangaTitle && mangaId) {
+    if (pages && pages.length > 0 && mangaTitle && mangaId && chapterNumber) {
       recordReading.mutate({
         source,
         mangaId,
@@ -256,13 +270,14 @@ const UniversalReader = ({
         mangaAuthor,
         coverImage,
         chapterId,
-        chapterNumber,
+        chapterNumber: chapterNumber || '',
+        language,
         chapterTitle: displayTitle,
         pageIndex: currentPage,
         totalPages: pages.length,
       });
     }
-  }, [chapterId, chapterNumber, coverImage, currentPage, displayTitle, mangaAuthor, mangaId, mangaTitle, pages, recordReading, source]);
+  }, [chapterId, chapterNumber, coverImage, currentPage, displayTitle, language, mangaAuthor, mangaId, mangaTitle, pages, recordReading, source]);
 
   const handleNextChapter = useCallback(() => {
     if (hasNextChapter && onSelectChapter) {
@@ -276,21 +291,27 @@ const UniversalReader = ({
     }
   }, [hasPrevChapter, onSelectChapter, chapters, currentChapterIndex]);
 
+  const commitPage = useCallback((nextPage: number) => {
+    if (nextPage === currentPage) return;
+    setCurrentPage(nextPage);
+    onPageChange?.(nextPage);
+  }, [currentPage, onPageChange]);
+
   const handlePrevPage = useCallback(() => {
     if (currentPage > 0) {
-      setCurrentPage((page) => Math.max(0, page - pageStep));
+      commitPage(moveReaderPage(currentPage, pages?.length || 0, 'previous', pageStep));
     } else if (hasPrevChapter) {
       handlePrevChapter();
     }
-  }, [currentPage, hasPrevChapter, handlePrevChapter, pageStep]);
+  }, [commitPage, currentPage, hasPrevChapter, handlePrevChapter, pageStep, pages?.length]);
 
   const handleNextPage = useCallback(() => {
     if (pages && currentPage < pages.length - 1) {
-      setCurrentPage((page) => Math.min(pages.length - 1, page + pageStep));
+      commitPage(moveReaderPage(currentPage, pages.length, 'next', pageStep));
     } else if (hasNextChapter) {
       handleNextChapter();
     }
-  }, [currentPage, pages, hasNextChapter, handleNextChapter, pageStep]);
+  }, [commitPage, currentPage, pages, hasNextChapter, handleNextChapter, pageStep]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -367,7 +388,7 @@ const UniversalReader = ({
 
       {showFallbackSuccess && (
         <div role="status" aria-live="polite" className="fixed left-1/2 top-20 z-40 -translate-x-1/2 border border-emerald-400/30 bg-emerald-950/95 px-4 py-2 text-xs font-medium text-emerald-200 shadow-xl backdrop-blur-md">
-          Source alternative chargée.
+          {fallbackNotice || 'Source alternative chargée.'}
         </div>
       )}
 
@@ -384,7 +405,7 @@ const UniversalReader = ({
               size="icon"
               className="h-11 w-11 shrink-0 text-white/70 hover:bg-white/10 hover:text-white"
               onClick={onClose}
-              aria-label="Retour Ã  la fiche manga"
+              aria-label="Retour à la fiche manga"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -421,7 +442,8 @@ const UniversalReader = ({
             variant="ghost"
             size="sm"
             className="h-11 gap-2 px-3 text-[var(--mw-text-secondary)] hover:bg-white/10 hover:text-white"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => setSettingsOpen((current) => nextReaderSettingsState(current, 'open'))}
+            aria-expanded={settingsOpen}
             aria-label="Ouvrir les réglages du lecteur"
           >
             <SlidersHorizontal className="h-4 w-4" />
@@ -461,7 +483,7 @@ const UniversalReader = ({
             <h4 className="mb-2 text-lg font-bold">
               {alternativesQuery.isLoading || fallbackTargetSource
                 ? 'Cette source répond lentement.'
-                : 'Ce chapitre est momentanément indisponible.'}
+                : 'Ce chapitre n’est pas disponible sur les autres sources.'}
             </h4>
             <p className="mb-6 text-sm text-muted-foreground">
               {fallbackTargetSource
@@ -762,21 +784,21 @@ const UniversalReader = ({
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-black/55"
-            onClick={() => setSettingsOpen(false)}
+            className="fixed inset-0 z-50 bg-black/55"
+            onClick={() => setSettingsOpen((current) => nextReaderSettingsState(current, 'close'))}
             aria-label="Fermer les réglages"
           />
           <ReaderSettingsPanel
             preferences={preferences}
             onChange={updatePreferences}
             onReset={resetPreferences}
-            onClose={() => setSettingsOpen(false)}
+            onClose={() => setSettingsOpen((current) => nextReaderSettingsState(current, 'close'))}
             currentSource={String(source)}
-            currentSourceLanguage={getSource(source)?.lang || 'und'}
+            currentSourceLanguage={language || getSource(source)?.lang || 'und'}
             sourceAlternatives={alternativesQuery.data || []}
             sourceAlternativesLoading={alternativesQuery.isLoading}
             onSelectSource={(alternative) => {
-              setSettingsOpen(false);
+              setSettingsOpen((current) => nextReaderSettingsState(current, 'close'));
               onManualSourceSelection?.(alternative, currentPage);
             }}
           />

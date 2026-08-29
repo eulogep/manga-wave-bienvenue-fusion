@@ -11,6 +11,8 @@ export type AsuraSearchResult = {
   status: string;
   rating: number | null;
   latestChapter: string | null;
+  author: string | null;
+  genres: string[];
   url: string;
 };
 
@@ -21,6 +23,8 @@ const mapSearch = (item: ExtractedSearchResult): AsuraSearchResult => ({
   status: item.status,
   rating: item.rating,
   latestChapter: null,
+  author: item.author,
+  genres: item.genres,
   url: item.url,
 });
 

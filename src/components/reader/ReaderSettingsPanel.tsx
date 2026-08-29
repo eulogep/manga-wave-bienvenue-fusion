@@ -47,7 +47,7 @@ const ReaderSettingsPanel = ({
   onSelectSource,
 }: Props) => (
   <aside
-    className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] overflow-y-auto overscroll-contain border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-[var(--mw-text-primary)] shadow-2xl sm:max-w-sm"
+    className="fixed inset-y-0 right-0 z-[60] w-full max-w-[100vw] overflow-y-auto overscroll-contain border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-[var(--mw-text-primary)] shadow-2xl sm:max-w-sm"
     aria-label="Réglages du lecteur"
   >
     <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-6 flex items-center justify-between gap-4 border-b border-[var(--mw-border)] bg-[var(--mw-surface)] px-5 pb-4 pt-5">
@@ -74,7 +74,7 @@ const ReaderSettingsPanel = ({
         <p className="text-xs text-[var(--mw-text-secondary)]">Recherche des autres sources…</p>
       )}
 
-      {sourceAlternatives.map((alternative) => (
+      {sourceAlternatives.map((alternative, index) => (
         <button
           key={`${alternative.source}-${alternative.mangaId}`}
           type="button"
@@ -86,6 +86,10 @@ const ReaderSettingsPanel = ({
             <span className="block truncate text-sm font-semibold">{alternative.sourceName}</span>
             <span className="block text-[11px] text-[var(--mw-text-secondary)]">
               {alternative.language.toUpperCase()} · {alternative.available ? 'Chapitre disponible' : 'Chapitre absent'}
+            </span>
+            <span className="block text-[10px] text-white/50">
+              {index === 0 && alternative.available ? 'Recommandée · ' : ''}
+              Disponibilité {Math.round(alternative.scoreBreakdown.availability)} · Langue {Math.round(alternative.scoreBreakdown.language)} · Couverture {Math.round(alternative.scoreBreakdown.chapterCoverage)}
             </span>
             <span className="block text-[10px] text-white/40">Dernier succès : {formatLastSuccess(alternative.lastSuccessfulRequest)}</span>
           </span>

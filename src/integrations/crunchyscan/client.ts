@@ -16,6 +16,7 @@ export type CrunchyScanSearchResult = {
   status: string;
   rating: number | null;
   genres: string[];
+  author: string | null;
   url: string;
 };
 

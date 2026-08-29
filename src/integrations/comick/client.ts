@@ -1,6 +1,7 @@
 import { resilientScrape } from '@/integrations/common/scraperClient';
+import { COMICK_SEARCH_ENABLED, isRetryableProviderStatus } from '@/domain/providerHttp';
 
-const API_HOSTS = ['https://api.comick.fun', 'https://api.comick.app'];
+const API_HOSTS = ['https://api.comick.io', 'https://api.comick.fun'];
 const IMAGE_BASE = 'https://meo.comick.pictures';
 
 export type ComickSearchResult = {
@@ -61,8 +62,12 @@ async function apiFetch<T>(path: string): Promise<T> {
     try {
       const response = await fetch(target, { headers: { Accept: 'application/json' } });
       if (response.ok) return response.json() as Promise<T>;
+      const requestError = new Error(`Comick HTTP ${response.status}`);
+      if (!isRetryableProviderStatus(response.status)) throw requestError;
+      lastError = requestError;
     } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      if (/Comick HTTP 4\d\d/.test(lastError.message) && !/408|429/.test(lastError.message)) throw lastError;
     }
     try {
       return await resilientScrape<T>(target, { asJson: true });
@@ -90,9 +95,13 @@ const mapSearch = (comic: RawComic): ComickSearchResult => ({
 });
 
 export async function searchComick(query: string, page = 1): Promise<ComickSearchResult[]> {
+  if (!COMICK_SEARCH_ENABLED) return [];
   try {
-    const data = await apiFetch<RawComic[]>(`/v1.0/search?q=${encodeURIComponent(query)}&page=${page}&limit=24&type=comic`);
-    return Array.isArray(data) ? data.map(mapSearch) : [];
+    // Comick's public search contract accepts `q`; the former `type=comic`
+    // combination produced a deterministic HTTP 400 and must not be retried.
+    const data = await apiFetch<RawComic[]>(`/v1.0/search?q=${encodeURIComponent(query)}`);
+    const offset = Math.max(0, page - 1) * 24;
+    return Array.isArray(data) ? data.slice(offset, offset + 24).map(mapSearch) : [];
   } catch (error) {
     console.warn('[Comick] search error:', error);
     return [];

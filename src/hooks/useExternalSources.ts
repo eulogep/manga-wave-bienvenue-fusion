@@ -18,6 +18,7 @@ export function useComickSearch(query: string, page = 1) {
     queryFn: () => searchComick(query, page),
     enabled: Boolean(query.trim().length >= 2),
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 }
 

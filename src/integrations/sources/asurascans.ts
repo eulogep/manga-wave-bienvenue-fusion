@@ -1,5 +1,6 @@
 import { getAsuraDetail, getAsuraPages, searchAsura } from '@/integrations/asurascans/client';
 import type { MangaSource, SourceChapter, SourceManga, SourceSearchResult } from './types';
+import { getHighestLogicalChapterNumber } from '@/domain/chapterMatching';
 
 export class AsuraScansSource implements MangaSource {
   public readonly id = 'asurascans' as const;
@@ -39,7 +40,7 @@ export class AsuraScansSource implements MangaSource {
       genres: detail.genres,
       synopsis: detail.synopsis,
       externalUrl: `${this.baseUrl}/comics/${id}`,
-      lastChapter: detail.chapters[0]?.chapterNumber || null,
+      lastChapter: getHighestLogicalChapterNumber(detail.chapters),
     };
   }
 

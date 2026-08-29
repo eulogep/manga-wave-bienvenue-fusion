@@ -7,7 +7,9 @@ import {
   type SourceType,
 } from '@/integrations/sources';
 import { getExtractorHealth } from '@/integrations/common/extractorClient';
+import type { ExtractorSourceHealth } from '@/integrations/common/extractorClient';
 import { rankSources, type SourceScoreBreakdown } from '@/domain/sourceResolution';
+import { findEquivalentChapter, normalizeLogicalChapterNumber } from '@/domain/chapterMatching';
 
 export type ChapterSourceAlternative = {
   source: SourceType;
@@ -20,6 +22,8 @@ export type ChapterSourceAlternative = {
   lastSuccessfulRequest: string | null;
   sourceScore: number;
   scoreBreakdown: SourceScoreBreakdown;
+  matchConfidence: number;
+  matchReason: 'exact_number' | 'compatible_decimal' | 'no_match';
 };
 
 const normalizeTitle = (value: string) => value
@@ -28,10 +32,6 @@ const normalizeTitle = (value: string) => value
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, ' ')
   .trim();
-
-const normalizeChapterNumber = (value: string) => value
-  .replace(/^0+/, '')
-  .replace(/\.0+$/, '') || '0';
 
 export function useUniversalChapterPages(sourceId: SourceType | string, chapterId: string | undefined) {
   return useQuery({
@@ -99,8 +99,9 @@ export function useMultiSourceSearch(
 
 export function useChapterSourceAlternatives(
   mangaTitle: string | undefined,
-  chapterNumber: string,
+  chapterNumber: string | undefined,
   currentSource: SourceType | string,
+  preferredLanguage: string,
   enabled: boolean,
 ) {
   return useQuery({
@@ -108,9 +109,13 @@ export function useChapterSourceAlternatives(
     queryFn: async (): Promise<ChapterSourceAlternative[]> => {
       if (!mangaTitle) return [];
       const wantedTitle = normalizeTitle(mangaTitle);
-      const wantedChapter = normalizeChapterNumber(chapterNumber);
-      const health = await getExtractorHealth().catch(() => []);
-      const healthBySource = new Map(health.map((item) => [item.sourceId, item]));
+      const wantedChapter = normalizeLogicalChapterNumber(chapterNumber);
+      if (!wantedChapter) return [];
+      const health: ExtractorSourceHealth[] = await getExtractorHealth()
+        .catch((): ExtractorSourceHealth[] => []);
+      const healthBySource = new Map<string, ExtractorSourceHealth>(
+        health.map((item): [string, ExtractorSourceHealth] => [item.sourceId, item]),
+      );
       const candidates = sourceList.filter(
         (candidate) => candidate.id !== currentSource
           && candidate.supportsSearch
@@ -128,25 +133,24 @@ export function useChapterSourceAlternatives(
         const matches = await candidate.search(mangaTitle, 1);
         if (matches.length === 0) return null;
 
-        const manga = matches.find((item) => normalizeTitle(item.title) === wantedTitle)
-          || matches.find((item) => {
-            const candidateTitle = normalizeTitle(item.title);
-            return candidateTitle.includes(wantedTitle) || wantedTitle.includes(candidateTitle);
-          })
-          || matches[0];
-        const chapters = await candidate.getChapters(manga.id, { language: 'fr', limit: 500 });
-        const chapter = chapters.find(
-          (item) => normalizeChapterNumber(item.chapterNumber) === wantedChapter,
-        ) || null;
+        // Source switching is allowed only for a strong manga identity. A weak
+        // contains/first-result match can silently cross into another work.
+        const manga = matches.find((item) => normalizeTitle(item.title) === wantedTitle);
+        if (!manga) return null;
+        const chapters = await candidate.getChapters(manga.id, { language: preferredLanguage, limit: 500 });
+        const chapterMatch = findEquivalentChapter(wantedChapter, chapters);
+        const chapter = chapterMatch?.chapter || null;
 
         return {
           source: candidate.id,
           sourceName: candidate.displayName,
-          sourceLanguage: candidate.lang,
+          sourceLanguage: chapter?.language || candidate.lang,
           mangaId: manga.id,
           mangaTitle: manga.title,
           chapter,
           chapterCount: chapters.length,
+          matchConfidence: chapterMatch?.confidence ?? 0,
+          matchReason: chapterMatch?.reason ?? 'no_match' as const,
         };
       }));
 
@@ -159,7 +163,7 @@ export function useChapterSourceAlternatives(
           available: Boolean(item.chapter),
           circuit: sourceHealth?.circuit || 'closed',
           language: item.sourceLanguage,
-          preferredLanguage: 'fr',
+          preferredLanguage,
           averageLatencyMs: sourceHealth?.averageLatencyMs ?? null,
           requestCount: sourceHealth?.requestCount ?? 0,
           failureCount: sourceHealth?.failureCount ?? 0,
@@ -188,10 +192,12 @@ export function useChapterSourceAlternatives(
             errorRate: 0,
             freshness: 0,
           },
+          matchConfidence: alternative.matchConfidence,
+          matchReason: alternative.matchReason,
         };
       }).sort((left, right) => right.sourceScore - left.sourceScore || left.source.localeCompare(right.source));
     },
-    enabled: enabled && Boolean(mangaTitle?.trim()),
+    enabled: enabled && Boolean(mangaTitle?.trim()) && Boolean(normalizeLogicalChapterNumber(chapterNumber)),
     staleTime: 10 * 60 * 1000,
     retry: false,
   });
