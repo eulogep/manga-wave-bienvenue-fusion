@@ -6,7 +6,7 @@ Ticket: T-3011 — Homepage Personalization
 
 ## STATUS
 
-`IMPLEMENTED_VALIDATED_DEPLOYMENT_PENDING`
+`IMPLEMENTED_VALIDATED_AND_DEPLOYED`
 
 ## SCOPE
 
@@ -122,7 +122,15 @@ Commande : `npx.cmd tsc -b --pretty false`.
 
 Le navigateur n’étant pas connecté à cette session, le rendu connecté/anonyme ne doit pas être déclaré visuellement approuvé à partir des tests seuls.
 
+## DEPLOYMENT
+
+`PASS`
+
+- commit : `d674338 feat(p2): personalize homepage catalog` ;
+- branche : `main` synchronisée avec `origin/main` ;
+- JS production : `assets/index-DM_a-mq5.js` ;
+- CSS production : `assets/index-BDFeSQq9.css`.
+
 ## NEXT
 
 Après validation visuelle de T-3011, démarrer T-3012 — Remove Source-First UX. Ne pas commencer simultanément Updates, Follow ou Notifications.
-
