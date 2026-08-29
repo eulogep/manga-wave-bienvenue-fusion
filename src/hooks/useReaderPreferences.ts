@@ -22,7 +22,7 @@ const STORAGE_KEY = 'manga_wave_reader_preferences_v3';
 
 export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   mode: 'single_page',
-  fitMode: 'height',
+  fitMode: 'width',
   zoom: 1,
   pageGap: 8,
   background: 'ink',

@@ -4,10 +4,10 @@
 
 Status: BACKLOG / NON-BLOCKING FOR T-3007
 
-- Validate homepage, Manga Detail and Reader at 430 × 932.
-- Validate homepage, Manga Detail and Reader at 390 × 844.
-- Validate the main tablet breakpoints.
-- Check toolbar reachability, settings, double-page handling, RTL and Webtoon layouts.
+- Validate homepage, Manga Detail and Reader interactively at 430 × 932.
+- Validate homepage, Manga Detail and Reader interactively at 390 × 844.
+- Validate the Reader interactively at 768 × 1024.
+- Confirm toolbar reachability, Settings scrolling, height-fit fallback, double-page handling, RTL and Webtoon layouts in a real browser.
 
 ## Bundle size
 

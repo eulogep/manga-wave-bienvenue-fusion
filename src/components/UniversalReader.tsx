@@ -16,6 +16,7 @@ import { useRecordReading } from '@/hooks/useReadingProgress';
 import { useReaderPreferences } from '@/hooks/useReaderPreferences';
 import { useReaderPreloading } from '@/hooks/useReaderPreloading';
 import ReaderSettingsPanel from '@/components/reader/ReaderSettingsPanel';
+import { shouldFallbackHeightToWidth, type PageFitMeasurement } from '@/components/reader/pageFit';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -69,6 +70,11 @@ const UniversalReader = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [continuousPageCount, setContinuousPageCount] = useState(0);
+  const [pageMeasurements, setPageMeasurements] = useState<Record<number, PageFitMeasurement>>({});
+  const [viewport, setViewport] = useState(() => ({
+    width: typeof window === 'undefined' ? 1024 : window.innerWidth,
+    height: typeof window === 'undefined' ? 768 : window.innerHeight,
+  }));
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const continuousSentinelRef = useRef<HTMLDivElement>(null);
@@ -78,12 +84,13 @@ const UniversalReader = ({
   const { preferences, updatePreferences, resetPreferences } = useReaderPreferences();
   const isContinuous = preferences.mode === 'vertical' || preferences.mode === 'webtoon';
   const isDoublePage = preferences.mode === 'double_page';
+  const isDoublePageLayout = isDoublePage && viewport.width >= 640;
   const readingDirection = preferences.mode === 'manga_rtl'
     ? 'rtl'
     : preferences.mode === 'comic_ltr'
       ? 'ltr'
       : preferences.readingDirection;
-  const pageStep = isDoublePage ? 2 : 1;
+  const pageStep = isDoublePageLayout ? 2 : 1;
   const showControls = controlsVisible || settingsOpen;
 
   const revealControls = useCallback(() => {
@@ -98,6 +105,20 @@ const UniversalReader = ({
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [revealControls]);
+
+  useEffect(() => {
+    const updateViewport = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', updateViewport);
+    window.visualViewport?.addEventListener('resize', updateViewport);
+    return () => {
+      window.removeEventListener('resize', updateViewport);
+      window.visualViewport?.removeEventListener('resize', updateViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    setPageMeasurements({});
+  }, [chapterId]);
 
   // Find index of current chapter in list
   const currentChapterIndex = chapters.findIndex((c) => c.id === chapterId);
@@ -270,13 +291,21 @@ const UniversalReader = ({
 
   const progressPercent = pages && pages.length > 0 ? Math.round(((currentPage + 1) / pages.length) * 100) : 0;
   const visiblePageIndices = pages
-    ? [currentPage, ...(isDoublePage && currentPage + 1 < pages.length ? [currentPage + 1] : [])]
+    ? [currentPage, ...(isDoublePageLayout && currentPage + 1 < pages.length ? [currentPage + 1] : [])]
     : [];
-  const imageFitClass = preferences.fitMode === 'width'
-    ? 'h-auto w-full'
+
+  const usesWidthFit = (pageIndex: number) => {
+    if (preferences.fitMode === 'width') return true;
+    if (preferences.fitMode !== 'height') return false;
+    const measurement = pageMeasurements[pageIndex];
+    return measurement ? shouldFallbackHeightToWidth({ ...measurement, viewportWidth: viewport.width, viewportHeight: viewport.height }) : false;
+  };
+
+  const imageFitClass = (pageIndex: number) => usesWidthFit(pageIndex)
+    ? 'h-auto w-full max-w-full flex-none object-contain'
     : preferences.fitMode === 'original'
-      ? 'h-auto max-w-none'
-      : 'max-h-[calc(100dvh-8rem)] w-auto object-contain';
+      ? 'h-auto w-auto max-w-full flex-none object-contain'
+      : 'h-auto w-auto max-w-full flex-none object-contain max-h-[calc(100dvh-8rem)]';
 
   return (
     <div
@@ -303,7 +332,7 @@ const UniversalReader = ({
           showControls ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {onClose && (
             <Button
               variant="ghost"
@@ -315,7 +344,7 @@ const UniversalReader = ({
               <ChevronLeft className="h-5 w-5" />
             </Button>
           )}
-          <Badge className="shrink-0 border border-[#1ea7ff]/35 bg-[#1ea7ff]/15 text-[#1ea7ff] capitalize">
+          <Badge className="hidden shrink-0 border border-[#1ea7ff]/35 bg-[#1ea7ff]/15 text-[#1ea7ff] capitalize min-[430px]:inline-flex">
             {source}
           </Badge>
           <div className="min-w-0">
@@ -324,7 +353,7 @@ const UniversalReader = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {/* Chapter Selector Dropdown if chapters list is available */}
           {chapters.length > 0 && onSelectChapter && (
             <div className="hidden sm:block">
@@ -371,7 +400,7 @@ const UniversalReader = ({
       {/* Main Content Area */}
       <div
         ref={contentRef}
-        className="flex h-full flex-col items-center justify-center overflow-y-auto overscroll-contain px-0 py-16 md:px-4"
+        className="flex h-full flex-col items-center justify-start overflow-y-auto overscroll-contain px-0 pb-32 pt-16 sm:pb-16 md:px-4"
       >
         {isLoading && (
           <div className="py-24 text-center">
@@ -453,10 +482,10 @@ const UniversalReader = ({
 
         {/* PAGED MODES */}
         {!isLoading && !isError && pages && pages.length > 0 && !isContinuous && (
-          <div className="w-full flex flex-col items-center gap-6">
+          <div className="flex min-h-full w-full flex-col items-center justify-center gap-6">
             <div
               className={`group relative flex w-full cursor-pointer select-none items-start justify-center ${
-                isDoublePage ? 'max-w-[min(96vw,1500px)]' : 'max-w-5xl'
+                isDoublePageLayout ? 'max-w-[min(96vw,1500px)]' : 'max-w-5xl'
               } ${readingDirection === 'rtl' ? 'flex-row-reverse' : 'flex-row'}`}
               style={{ gap: `${preferences.pageGap}px` }}
               onClick={(e) => {
@@ -474,14 +503,35 @@ const UniversalReader = ({
                   src={pages[pageIndex]}
                   alt={`Page ${pageIndex + 1}`}
                   referrerPolicy="no-referrer"
-                  className={`border border-white/10 shadow-2xl ${imageFitClass}`}
+                  className={`border border-white/10 shadow-2xl ${imageFitClass(pageIndex)}`}
+                  data-fit-mode={usesWidthFit(pageIndex) ? 'width' : preferences.fitMode}
+                  data-fit-fallback={preferences.fitMode === 'height' && usesWidthFit(pageIndex) ? 'width' : undefined}
                   style={{
                     filter: `brightness(${preferences.brightness})`,
-                    maxWidth: isDoublePage ? 'calc(50% - 4px)' : undefined,
+                    maxWidth: isDoublePageLayout ? 'calc(50% - 4px)' : undefined,
                     transform: `scale(${preferences.zoom})`,
                     transformOrigin: 'center top',
                   }}
                   loading="eager"
+                  onLoad={(event) => {
+                    const image = event.currentTarget;
+                    const rect = image.getBoundingClientRect();
+                    const measurement = {
+                      naturalWidth: image.naturalWidth,
+                      naturalHeight: image.naturalHeight,
+                      renderedWidth: rect.width,
+                      renderedHeight: rect.height,
+                    };
+                    setPageMeasurements((current) => {
+                      const previous = current[pageIndex];
+                      if (previous
+                        && previous.naturalWidth === measurement.naturalWidth
+                        && previous.naturalHeight === measurement.naturalHeight
+                        && Math.abs(previous.renderedWidth - measurement.renderedWidth) < 1
+                        && Math.abs(previous.renderedHeight - measurement.renderedHeight) < 1) return current;
+                      return { ...current, [pageIndex]: measurement };
+                    });
+                  }}
                   onError={(event) => {
                     const target = event.currentTarget;
                     const currentSrc = target.src;
@@ -507,7 +557,7 @@ const UniversalReader = ({
 
             {/* Bottom Controls */}
             <div
-              className={`fixed inset-x-0 bottom-0 z-30 flex min-h-16 flex-wrap items-center justify-center gap-2 border-t border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 ${
+              className={`fixed inset-x-0 bottom-0 z-30 flex min-h-16 flex-col items-center justify-center gap-2 border-t border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 sm:flex-row sm:flex-wrap ${
                 showControls ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
               }`}
             >
@@ -515,42 +565,71 @@ const UniversalReader = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-xs"
+                  className="hidden h-11 border-white/20 text-xs sm:inline-flex"
                   onClick={handlePrevChapter}
                 >
                   Chapitre précédent
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/20 text-xs"
-                disabled={currentPage === 0 && !hasPrevChapter}
-                onClick={handlePrevPage}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Précédente
-              </Button>
+              <div className="flex w-full items-center justify-center gap-2 sm:contents">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11 min-w-11 border-white/20 px-3 text-xs"
+                  disabled={currentPage === 0 && !hasPrevChapter}
+                  onClick={handlePrevPage}
+                  aria-label="Page précédente"
+                >
+                  <ChevronLeft className="h-4 w-4 min-[430px]:mr-1" />
+                  <span className="hidden min-[430px]:inline">Précédente</span>
+                </Button>
 
-              <span className="text-xs px-3 py-1.5 rounded-md bg-white/10 font-medium">
-                Page {currentPage + 1} / {pages.length} ({progressPercent}%)
-              </span>
+                <span className="whitespace-nowrap rounded-md bg-white/10 px-2 py-2 text-[11px] font-medium sm:px-3 sm:text-xs">
+                  Page {currentPage + 1} / {pages.length} ({progressPercent}%)
+                </span>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/20 text-xs"
-                disabled={currentPage >= pages.length - 1 && !hasNextChapter}
-                onClick={handleNextPage}
-              >
-                Suivante <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11 min-w-11 border-white/20 px-3 text-xs"
+                  disabled={currentPage >= pages.length - 1 && !hasNextChapter}
+                  onClick={handleNextPage}
+                  aria-label="Page suivante"
+                >
+                  <span className="hidden min-[430px]:inline">Suivante</span>
+                  <ChevronRight className="h-4 w-4 min-[430px]:ml-1" />
+                </Button>
+              </div>
+
+              {(hasPrevChapter || hasNextChapter) && (
+                <div className="flex w-full items-center justify-center gap-2 sm:hidden">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-11 flex-1 border-white/20 text-xs"
+                    disabled={!hasPrevChapter}
+                    onClick={handlePrevChapter}
+                  >
+                    <ChevronLeft className="mr-1 h-4 w-4" /> Chap. précédent
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-11 flex-1 border-white/20 text-xs"
+                    disabled={!hasNextChapter}
+                    onClick={handleNextChapter}
+                  >
+                    Chap. suivant <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
 
               {hasNextChapter && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-xs"
+                  className="hidden h-11 border-white/20 text-xs sm:inline-flex"
                   onClick={handleNextChapter}
                 >
                   Chapitre suivant
@@ -600,7 +679,7 @@ const UniversalReader = ({
             )}
 
             {/* End of chapter buttons */}
-            <div className="flex items-center justify-center gap-4 py-8 border-t border-white/10 w-full mt-6">
+            <div className="mt-6 flex w-full flex-wrap items-center justify-center gap-3 border-t border-white/10 px-3 py-8">
               {hasPrevChapter && (
                 <Button variant="outline" className="border-white/20" onClick={handlePrevChapter}>
                   Chapitre précédent

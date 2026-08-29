@@ -26,10 +26,10 @@ const BACKGROUNDS: Array<{ value: ReaderPreferences['background']; label: string
 
 const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props) => (
   <aside
-    className="fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 text-[var(--mw-text-primary)] shadow-2xl"
+    className="fixed inset-y-0 right-0 z-50 w-full max-w-[100vw] overflow-y-auto overscroll-contain border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-[var(--mw-text-primary)] shadow-2xl sm:max-w-sm"
     aria-label="Réglages du lecteur"
   >
-    <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-6 flex items-center justify-between gap-4 border-b border-[var(--mw-border)] bg-[var(--mw-surface)] px-5 pb-4 pt-5">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--mw-brand-secondary)]">Lecteur</p>
         <h2 className="font-editorial text-xl font-semibold">Préférences</h2>
@@ -87,7 +87,7 @@ const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props)
           step="0.05"
           value={preferences.zoom}
           onChange={(event) => onChange({ zoom: Number(event.target.value) })}
-          className="mt-3 w-full accent-[#1ea7ff]"
+          className="mt-1 h-11 w-full accent-[#1ea7ff]"
         />
       </label>
 
@@ -100,7 +100,7 @@ const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props)
           step="4"
           value={preferences.pageGap}
           onChange={(event) => onChange({ pageGap: Number(event.target.value) })}
-          className="mt-3 w-full accent-[#1ea7ff]"
+          className="mt-1 h-11 w-full accent-[#1ea7ff]"
         />
       </label>
 
@@ -113,7 +113,7 @@ const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props)
           step="0.05"
           value={preferences.brightness}
           onChange={(event) => onChange({ brightness: Number(event.target.value) })}
-          className="mt-3 w-full accent-[#1ea7ff]"
+          className="mt-1 h-11 w-full accent-[#1ea7ff]"
         />
       </label>
 
@@ -126,7 +126,7 @@ const ReaderSettingsPanel = ({ preferences, onChange, onReset, onClose }: Props)
           step="1"
           value={preferences.preloadCount}
           onChange={(event) => onChange({ preloadCount: Number(event.target.value) })}
-          className="mt-3 w-full accent-[#1ea7ff]"
+          className="mt-1 h-11 w-full accent-[#1ea7ff]"
         />
       </label>
 
