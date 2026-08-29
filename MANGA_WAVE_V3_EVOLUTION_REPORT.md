@@ -3,6 +3,12 @@
 STATUS:
 PARTIAL
 
+P0_DESKTOP:
+PENDING — deterministic checks pass, but the required visual smoke test still needs a controllable desktop browser.
+
+P0_RESPONSIVE:
+DEFERRED — mobile and tablet validation moved to backlog by product decision.
+
 P0_QA_HOTFIX:
 PASS
 
@@ -28,7 +34,7 @@ CONTINUE_READING_REGRESSION:
 PASS — resume URLs still target `/read/:source/:mangaId/:chapterId` with the exact page query.
 
 MOBILE_INTERACTIVE_QA:
-PENDING — no controllable browser was available for the required 430 × 932 and 390 × 844 scenarios.
+DEFERRED — the 430 × 932, 390 × 844 and tablet scenarios are no longer part of the P1 gate.
 
 TICKETS_COMPLETED:
 - T-3001 — Product audit
@@ -100,7 +106,7 @@ SEARCH:
 PASS — unchanged by this P0 lot; build contract preserved.
 
 MOBILE:
-FAIL — responsive code is present, but interactive mobile viewport validation could not be executed in this environment.
+DEFERRED — responsive compatibility remains desirable but is not blocking T-3007.
 
 ACCESSIBILITY:
 PASS — 44 px targets, labelled actions, keyboard navigation, reduced-motion support and semantic dialog behavior are present.
@@ -125,13 +131,13 @@ BUILD:
 PASS — Vite production build completed successfully.
 
 KNOWN_LIMITATIONS:
-- Desktop and mobile visual QA remain to be performed in a real browser session.
-- The production bundle still reports a chunk-size warning above 500 kB.
-- The repository has no automated unit, integration or end-to-end test suite.
+- Desktop visual QA remains to be performed in a real browser session before setting `P0_DESKTOP = PASS`.
+- Responsive mobile/tablet QA is tracked as deferred technical debt.
+- The production bundle warning above 500 kB is tracked as non-blocking technical debt.
+- Automated Reader/progress/resume coverage is tracked as incremental, non-blocking technical debt.
 - P1 canonical manga/source-resolution work has intentionally not started.
 
 NEXT_TICKETS:
-- Validate P0 visually on desktop and mobile.
-- T-3007 — Canonical manga model, only after P0 validation.
-- T-3008 — Source resolution engine.
-- T-3009 — Automatic fallback.
+- Complete the targeted desktop smoke test and set `P0_DESKTOP = PASS`.
+- Start T-3007 — Canonical manga model and cross-source deduplication.
+- Keep T-3008 and T-3009 blocked until T-3007 is stable and tested.
