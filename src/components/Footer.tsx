@@ -1,31 +1,13 @@
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Github, Twitter, Instagram, Mail, ArrowRight } from 'lucide-react';
 
-const MangaWaveLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <defs>
-      <linearGradient id="footer-logo-grad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#7c5cfc" />
-        <stop offset="0.5" stopColor="#f43f8e" />
-        <stop offset="1" stopColor="#00d4ff" />
-      </linearGradient>
-    </defs>
-    <path d="M4 22 Q 7 8, 14 14 Q 21 20, 24 6" stroke="url(#footer-logo-grad)" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-    <rect x="8" y="8" width="12" height="16" rx="1.5" stroke="url(#footer-logo-grad)" strokeWidth="1.8" fill="none"/>
-    <line x1="11" y1="13" x2="17" y2="13" stroke="url(#footer-logo-grad)" strokeWidth="1.4" strokeLinecap="round"/>
-    <line x1="11" y1="16" x2="15" y2="16" stroke="url(#footer-logo-grad)" strokeWidth="1.4" strokeLinecap="round"/>
-  </svg>
-);
-
-const NAV_COLS = [
+const columns = [
   {
-    title: 'Navigation',
+    title: 'Découvrir',
     links: [
-      { label: 'Accueil', to: '/' },
       { label: 'Catalogue', to: '/search' },
-      { label: 'Scans FR', to: '/search?source=originmanga' },
+      { label: 'Scans français', to: '/search?source=originmanga' },
       { label: 'Nouveautés', to: '/search?sort=latest' },
-      { label: 'Ma bibliothèque', to: '/library' },
     ],
   },
   {
@@ -34,97 +16,53 @@ const NAV_COLS = [
       { label: 'Action', to: '/search?genre=Action' },
       { label: 'Romance', to: '/search?genre=Romance' },
       { label: 'Fantasy', to: '/search?genre=Fantasy' },
-      { label: 'Supernatural', to: '/search?genre=Supernatural' },
-      { label: 'Slice of Life', to: '/search?genre=Slice+of+Life' },
     ],
   },
   {
-    title: 'Support',
+    title: 'Votre espace',
     links: [
-      { label: "Centre d'aide", to: '/#' },
-      { label: 'Contact', to: '/#' },
-      { label: 'Signaler un bug', to: '/#' },
-      { label: 'Demande de manga', to: '/#' },
-      { label: 'API', to: '/#' },
+      { label: 'Ma bibliothèque', to: '/library' },
+      { label: 'Rechercher un titre', to: '/search' },
+      { label: 'Connexion', to: '/auth' },
     ],
   },
 ];
 
-const SOCIALS = [
-  { icon: Github, label: 'GitHub', href: '#', hoverColor: 'hover:text-white' },
-  { icon: Twitter, label: 'Twitter / X', href: '#', hoverColor: 'hover:text-manga-cyan' },
-  { icon: Instagram, label: 'Instagram', href: '#', hoverColor: 'hover:text-manga-pink' },
-  { icon: Mail, label: 'Email', href: '#', hoverColor: 'hover:text-manga-gold' },
-];
+const WaveMark = () => (
+  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-hidden="true">
+    <circle cx="22" cy="22" r="20" stroke="#ff4d5a" strokeWidth="2" />
+    <path d="M9 28c6-13 12-13 18-5 3 4 6 4 9-2-2 11-12 16-20 11-3-2-5-3-7-4Z" fill="#ff4d5a" />
+    <path d="M11 20c7-8 14-7 20 0" stroke="#ff818a" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
 
 const Footer = () => (
-  <footer className="border-t border-white/[0.05] bg-[#080c14]">
-    {/* ── Divider glow ── */}
-    <div className="h-px bg-gradient-to-r from-transparent via-manga-purple/30 to-transparent" />
-
-    <div className="container mx-auto section-padding py-16">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
-
-        {/* ── Brand column ── */}
+  <footer className="border-t border-[var(--mw-border)] bg-[#040d14]">
+    <div className="container mx-auto section-padding">
+      <div className="grid gap-10 py-14 md:grid-cols-[1.35fr_2fr] lg:gap-20">
         <div>
-          <div className="flex items-center gap-2.5 mb-5">
-            <MangaWaveLogo />
-            <span className="font-outfit font-bold text-lg text-white">
-              Manga <span className="glow-text">Wave</span>
-            </span>
-          </div>
-          <p className="text-white/40 text-sm leading-relaxed mb-6">
-            La plateforme ultime pour la lecture de mangas et webtoons — accès direct, lecteur intégré, catalogue multi-sources.
-          </p>
-
-          {/* Social Icons */}
-          <div className="flex gap-3">
-            {SOCIALS.map(({ icon: Icon, label, href, hoverColor }) => (
-              <a
-                key={label}
-                href={href}
-                aria-label={label}
-                className={`h-9 w-9 rounded-full border border-white/[0.08] flex items-center justify-center text-white/40 ${hoverColor} hover:border-white/20 hover:bg-white/[0.04] transition-all duration-200`}
-              >
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
-          </div>
+          <Link to="/" className="inline-flex items-center gap-3" aria-label="Manga Wave, accueil">
+            <WaveMark />
+            <span className="font-outfit text-xl font-extrabold uppercase tracking-[0.1em] text-white">Manga <span className="text-[var(--mw-accent-coral)]">Wave</span></span>
+          </Link>
+          <p className="mt-5 max-w-md text-sm leading-7 text-[var(--mw-text-secondary)]">L’océan de récits. La vague de vos émotions. Une plateforme centrée sur les œuvres, la lecture et le retour à l’histoire.</p>
         </div>
 
-        {/* ── Nav columns ── */}
-        {NAV_COLS.map((col) => (
-          <div key={col.title}>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 mb-4">{col.title}</p>
-            <ul className="space-y-2.5">
-              {col.links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="text-sm text-white/50 hover:text-white transition-colors duration-150 flex items-center gap-1 group"
-                  >
-                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-200" />
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Bottom bar ── */}
-      <div className="mt-14 pt-8 border-t border-white/[0.05] flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="text-xs text-white/25">
-          © 2024 Manga Wave. Fait avec ♥ pour les fans de manga.
-        </p>
-        <div className="flex items-center gap-6">
-          {["Conditions d'utilisation", "Confidentialité", "Cookies"].map((item) => (
-            <a key={item} href="#" className="text-xs text-white/25 hover:text-white/60 transition-colors">
-              {item}
-            </a>
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          {columns.map((column) => (
+            <div key={column.title}>
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--mw-accent-coral)]">{column.title}</p>
+              <ul className="space-y-3">
+                {column.links.map((link) => <li key={link.label}><Link to={link.to} className="group inline-flex items-center gap-1.5 text-sm text-[var(--mw-text-secondary)] transition-colors hover:text-white"><ArrowRight className="h-3 w-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />{link.label}</Link></li>)}
+              </ul>
+            </div>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-[var(--mw-border)] py-6 text-[10px] uppercase tracking-[0.16em] text-white/30 sm:flex-row sm:items-center sm:justify-between">
+        <p>© 2026 Manga Wave</p>
+        <p>Les contenus appartiennent à leurs ayants droit.</p>
       </div>
     </div>
   </footer>

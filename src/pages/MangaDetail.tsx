@@ -257,7 +257,7 @@ const MangaDetail = () => {
     : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-[var(--mw-background)]">
       <Header />
       <main className="flex-1 section-padding py-10 md:py-14">
         <div className="container mx-auto space-y-10">
@@ -270,12 +270,12 @@ const MangaDetail = () => {
           </Link>
 
           {/* MANGA OVERVIEW SECTION */}
-          <section className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-8 lg:gap-12">
+          <section className="grid grid-cols-1 gap-8 border-b border-[var(--mw-border)] pb-12 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] lg:gap-12">
             <div className="mx-auto md:mx-0 w-full max-w-[300px]">
               <MangaCover
                 src={manga.coverImageUrl}
                 alt={`Couverture de ${manga.title}`}
-                className="w-full aspect-[3/4] object-cover rounded-2xl border border-white/10 shadow-2xl shadow-manga-purple/10"
+                className="aspect-[3/4] w-full border border-[var(--mw-border)] object-cover shadow-2xl"
               />
             </div>
 
@@ -294,7 +294,7 @@ const MangaDetail = () => {
                 )}
               </div>
 
-              <h1 className="text-4xl md:text-5xl font-bold font-japanese leading-tight mb-4">{manga.title}</h1>
+              <h1 className="mb-4 font-editorial text-4xl font-semibold uppercase leading-tight md:text-5xl">{manga.title}</h1>
               <p className="text-lg text-muted-foreground mb-6">
                 Par <span className="text-white font-medium">{manga.author}</span>
                 {manga.artist && manga.artist !== manga.author && (
@@ -320,12 +320,12 @@ const MangaDetail = () => {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                <div className="border border-[var(--mw-border)] bg-[var(--mw-surface)] p-4">
                   <CalendarDays className="h-5 w-5 text-manga-pink mb-2" />
                   <p className="text-xs text-muted-foreground">Année</p>
                   <p className="font-semibold">{manga.year || 'Non renseignée'}</p>
                 </div>
-                <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                <div className="border border-[var(--mw-border)] bg-[var(--mw-surface)] p-4">
                   <BookOpen className="h-5 w-5 text-manga-cyan mb-2" />
                   <p className="text-xs text-muted-foreground">Dernier chapitre</p>
                   <p className="font-semibold">
@@ -333,7 +333,7 @@ const MangaDetail = () => {
                   </p>
                 </div>
                 {formattedUpdatedAt && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                  <div className="border border-[var(--mw-border)] bg-[var(--mw-surface)] p-4">
                     <CalendarDays className="h-5 w-5 text-manga-gold mb-2" />
                     <p className="text-xs text-muted-foreground">Mis à jour</p>
                     <p className="font-semibold text-sm">{formattedUpdatedAt}</p>
@@ -375,7 +375,7 @@ const MangaDetail = () => {
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-7">
               <div>
                 <p className="text-manga-cyan font-medium mb-2">LECTURE EN LIGNE</p>
-                <h2 className="text-3xl font-bold font-japanese">Chapitres disponibles</h2>
+                <h2 className="font-editorial text-3xl uppercase">Chapitres disponibles</h2>
                 <p className="text-muted-foreground mt-2">
                   {isOriginManga
                     ? 'Chapitres extraits directement depuis OriginManga.'
@@ -417,7 +417,7 @@ const MangaDetail = () => {
             {isOriginManga && (
               <div>
                 {originChaptersList.length > 0 ? (
-                  <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
+                  <div className="divide-y divide-[var(--mw-border)] overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]">
                     {originChaptersList.map((chapter) => {
                       return (
                         <article
@@ -476,7 +476,7 @@ const MangaDetail = () => {
                     <p className="text-muted-foreground">Chargement des chapitres…</p>
                   </div>
                 ) : universalChaptersList.length > 0 ? (
-                  <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
+                  <div className="divide-y divide-[var(--mw-border)] overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]">
                     {universalChaptersList.map((chapter) => {
                       return (
                         <article
@@ -557,7 +557,7 @@ const MangaDetail = () => {
                       {mangaDexChaptersData.total.toLocaleString('fr-FR')} dans cette langue.
                     </p>
                     {mangaDexChaptersData.chapters.length > 0 ? (
-                      <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-card/50">
+                      <div className="divide-y divide-[var(--mw-border)] overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]">
                         {mangaDexChaptersData.chapters.map((chapter) => {
                           return (
                             <article

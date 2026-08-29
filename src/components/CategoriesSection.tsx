@@ -1,146 +1,42 @@
+import { ArrowUpRight, Heart, Sparkles, Star, Sword, Users, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Sword, Heart, Sparkles, Zap, Users, Star, ArrowRight } from 'lucide-react';
 
 const CATEGORIES = [
-  {
-    name: 'Action',
-    icon: Sword,
-    count: '2 547',
-    description: 'Combats épiques & aventures',
-    from: 'from-red-500/20',
-    to: 'to-orange-500/10',
-    border: 'border-red-500/20',
-    iconColor: 'text-red-400',
-    accent: 'bg-red-500/15 text-red-400',
-    link: '/search?genre=Action',
-  },
-  {
-    name: 'Romance',
-    icon: Heart,
-    count: '1 834',
-    description: 'Histoires d\'amour touchantes',
-    from: 'from-pink-500/20',
-    to: 'to-rose-500/10',
-    border: 'border-pink-500/20',
-    iconColor: 'text-pink-400',
-    accent: 'bg-pink-500/15 text-pink-400',
-    link: '/search?genre=Romance',
-  },
-  {
-    name: 'Fantasy',
-    icon: Sparkles,
-    count: '1 923',
-    description: 'Mondes magiques & mystérieux',
-    from: 'from-purple-500/20',
-    to: 'to-indigo-500/10',
-    border: 'border-purple-500/20',
-    iconColor: 'text-purple-400',
-    accent: 'bg-purple-500/15 text-purple-400',
-    link: '/search?genre=Fantasy',
-  },
-  {
-    name: 'Supernatural',
-    icon: Zap,
-    count: '987',
-    description: 'Pouvoirs surnaturels',
-    from: 'from-cyan-500/20',
-    to: 'to-blue-500/10',
-    border: 'border-cyan-500/20',
-    iconColor: 'text-cyan-400',
-    accent: 'bg-cyan-500/15 text-cyan-400',
-    link: '/search?genre=Supernatural',
-  },
-  {
-    name: 'Slice of Life',
-    icon: Users,
-    count: '756',
-    description: 'Quotidien & réalisme',
-    from: 'from-emerald-500/20',
-    to: 'to-green-500/10',
-    border: 'border-emerald-500/20',
-    iconColor: 'text-emerald-400',
-    accent: 'bg-emerald-500/15 text-emerald-400',
-    link: '/search?genre=Slice+of+Life',
-  },
-  {
-    name: 'Populaires',
-    icon: Star,
-    count: '∞',
-    description: 'Les titres les plus appréciés',
-    from: 'from-amber-500/20',
-    to: 'to-yellow-500/10',
-    border: 'border-amber-500/20',
-    iconColor: 'text-amber-400',
-    accent: 'bg-amber-500/15 text-amber-400',
-    link: '/search',
-  },
+  { name: 'Action', icon: Sword, description: 'Combats, rivalités et quêtes épiques', link: '/search?genre=Action', tone: '#ff4d5a' },
+  { name: 'Romance', icon: Heart, description: 'Rencontres, drames et liens intimes', link: '/search?genre=Romance', tone: '#d66b75' },
+  { name: 'Fantasy', icon: Sparkles, description: 'Mondes inconnus et légendes anciennes', link: '/search?genre=Fantasy', tone: '#1ea7ff' },
+  { name: 'Surnaturel', icon: Zap, description: 'Pouvoirs occultes et mystères', link: '/search?genre=Supernatural', tone: '#6b8fb0' },
+  { name: 'Tranche de vie', icon: Users, description: 'Récits sensibles du quotidien', link: '/search?genre=Slice+of+Life', tone: '#a78664' },
+  { name: 'Les incontournables', icon: Star, description: 'Les œuvres plébiscitées par les lecteurs', link: '/search', tone: '#c69b42' },
 ];
 
 const CategoriesSection = () => (
-  <section className="py-20 section-padding">
+  <section className="bg-[#08131d] py-14 section-padding" aria-labelledby="genres-title">
     <div className="container mx-auto">
-
-      {/* ── Header ── */}
-      <div className="text-center mb-12">
-        <p className="text-xs font-semibold text-manga-purple/80 uppercase tracking-widest mb-3">Parcourir</p>
-        <h2 className="font-outfit font-bold text-3xl md:text-4xl text-white mb-3">
-          Explorer par <span className="glow-text">Genres</span>
-        </h2>
-        <p className="text-white/40 max-w-xl mx-auto text-sm">
-          Plus de 20 catégories pour tous les goûts — de l'action pure aux histoires du quotidien.
-        </p>
+      <div className="mb-8 grid gap-4 md:grid-cols-[1fr_1fr] md:items-end">
+        <div>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-coral)]">Explorer autrement</p>
+          <h2 id="genres-title" className="font-editorial text-3xl uppercase text-white md:text-4xl">Territoires de lecture</h2>
+        </div>
+        <p className="max-w-xl text-sm leading-6 text-[var(--mw-text-secondary)] md:justify-self-end">Choisissez une ambiance avant de choisir un titre. Chaque genre ouvre une sélection pensée comme une porte d’entrée, pas comme un simple filtre.</p>
       </div>
 
-      {/* ── Grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CATEGORIES.map((cat, index) => {
-          const Icon = cat.icon;
+      <div className="grid grid-cols-1 border-l border-t border-[var(--mw-border)] sm:grid-cols-2 lg:grid-cols-3">
+        {CATEGORIES.map((category, index) => {
+          const Icon = category.icon;
           return (
-            <Link
-              key={cat.name}
-              to={cat.link}
-              className={`group relative p-5 rounded-2xl border bg-gradient-to-br ${cat.from} ${cat.to} ${cat.border} transition-all duration-300 hover:scale-[1.02] hover:shadow-card-hover animate-slide-up-fade overflow-hidden`}
-              style={{ animationDelay: `${index * 0.08}s`, opacity: 0 }}
-              aria-label={`Explorer les mangas ${cat.name}`}
-            >
-              {/* Background shimmer on hover */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent)', animation: 'none' }}
-              />
-
-              <div className="flex items-start gap-4">
-                {/* Icon */}
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${cat.accent} transition-transform duration-300 group-hover:scale-110`}>
-                  <Icon className={`h-5 w-5 ${cat.iconColor}`} />
-                </div>
-
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="font-outfit font-bold text-base text-white">{cat.name}</h3>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cat.accent}`}>
-                      {cat.count}
-                    </span>
-                  </div>
-                  <p className="text-white/45 text-sm leading-snug">{cat.description}</p>
-                </div>
-
-                <ArrowRight className="h-4 w-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-all duration-200 shrink-0 mt-1" />
+            <Link key={category.name} to={category.link} className="group relative min-h-40 overflow-hidden border-b border-r border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 transition-colors hover:bg-[var(--mw-elevated)]" aria-label={`Explorer ${category.name}`}>
+              <div className="flex items-start justify-between">
+                <span className="font-editorial text-4xl leading-none text-white/10">0{index + 1}</span>
+                <Icon className="h-5 w-5" style={{ color: category.tone }} />
               </div>
+              <h3 className="mt-6 font-editorial text-lg font-semibold uppercase text-white">{category.name}</h3>
+              <p className="mt-2 max-w-xs text-xs leading-5 text-[var(--mw-text-secondary)]">{category.description}</p>
+              <ArrowUpRight className="absolute bottom-5 right-5 h-4 w-4 text-white/25 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
+              <span className="absolute bottom-0 left-0 h-0.5 w-0 transition-all duration-300 group-hover:w-full" style={{ backgroundColor: category.tone }} />
             </Link>
           );
         })}
-      </div>
-
-      {/* ── All categories CTA ── */}
-      <div className="text-center mt-10">
-        <Link
-          to="/search"
-          className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors group"
-        >
-          Explorer toutes les catégories
-          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-        </Link>
       </div>
     </div>
   </section>

@@ -16,9 +16,8 @@ const MangaWaveLogo = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
       <linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#7c5cfc" />
-        <stop offset="0.5" stopColor="#f43f8e" />
-        <stop offset="1" stopColor="#00d4ff" />
+        <stop stopColor="#ff4d5a" />
+        <stop offset="1" stopColor="#ff818a" />
       </linearGradient>
     </defs>
     <path d="M4 22 Q 7 8, 14 14 Q 21 20, 24 6" stroke="url(#logo-grad)" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
@@ -79,12 +78,12 @@ const Header = () => {
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[#080c14]/95 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_1px_0_rgba(255,255,255,0.04)]'
-            : 'bg-[#080c14]/60 backdrop-blur-md border-b border-transparent'
+            ? 'border-b border-[var(--mw-border)] bg-[#06101a]/96 backdrop-blur-xl'
+            : 'border-b border-[var(--mw-border)]/70 bg-[#06101a]/88 backdrop-blur-md'
         }`}
       >
         <div className="container mx-auto section-padding">
-          <div className="flex items-center justify-between h-16 gap-4">
+          <div className="flex h-[72px] items-center justify-between gap-4">
 
             {/* ── Logo ── */}
             <button
@@ -95,8 +94,8 @@ const Header = () => {
               <span className="group-hover:scale-110 transition-transform duration-300">
                 <MangaWaveLogo />
               </span>
-              <span className="font-outfit font-800 text-xl tracking-tight text-white group-hover:opacity-90 transition-opacity">
-                Manga <span className="glow-text">Wave</span>
+              <span className="font-outfit text-lg font-extrabold uppercase tracking-[0.08em] text-white transition-opacity group-hover:opacity-90">
+                Manga <span className="text-[var(--mw-accent-coral)]">Wave</span>
               </span>
             </button>
 
@@ -106,10 +105,10 @@ const Header = () => {
                 <Link
                   key={to}
                   to={to}
-                  className={`nav-link flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
                     isActive(to)
-                      ? 'text-white bg-white/[0.06]'
-                      : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                      ? 'text-white after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
+                      : 'text-[var(--mw-text-secondary)] hover:text-white'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 opacity-70" />
@@ -119,10 +118,10 @@ const Header = () => {
               {user && (
                 <Link
                   to="/library"
-                  className={`nav-link flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
                     isActive('/library')
-                      ? 'text-white bg-white/[0.06]'
-                      : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                      ? 'text-white after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
+                      : 'text-[var(--mw-text-secondary)] hover:text-white'
                   }`}
                 >
                   <Library className="h-3.5 w-3.5 opacity-70" />
@@ -178,7 +177,7 @@ const Header = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="h-9 w-9 rounded-full flex items-center justify-center bg-gradient-to-br from-manga-purple to-manga-pink text-white text-sm font-bold ring-2 ring-transparent hover:ring-manga-purple/40 transition-all duration-200"
+                      className="flex h-10 w-10 items-center justify-center border border-[var(--mw-accent-coral)] bg-[var(--mw-accent-coral)]/10 text-sm font-bold text-white transition-colors hover:bg-[var(--mw-accent-coral)]/20"
                       aria-label="Mon compte"
                     >
                       {user.email?.charAt(0).toUpperCase() ?? <User className="h-4 w-4" />}
@@ -214,7 +213,7 @@ const Header = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/auth')}
-                  className="h-9 rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] px-4 text-sm font-medium transition-all"
+                  className="h-10 border border-[var(--mw-border)] px-4 text-xs font-semibold uppercase tracking-wider text-white/75 hover:border-[var(--mw-accent-coral)] hover:bg-transparent hover:text-white"
                   aria-label="Se connecter"
                 >
                   Connexion
@@ -246,7 +245,7 @@ const Header = () => {
           />
           {/* Drawer */}
           <nav
-            className="absolute right-0 top-0 bottom-0 w-72 bg-[#0f1520] border-l border-white/[0.06] p-6 flex flex-col gap-6 animate-slide-in-right shadow-2xl"
+            className="absolute bottom-0 right-0 top-0 flex w-72 animate-slide-in-right flex-col gap-6 border-l border-[var(--mw-border)] bg-[var(--mw-surface)] p-6 shadow-2xl"
             aria-label="Menu mobile"
           >
             <div className="flex items-center justify-between">
