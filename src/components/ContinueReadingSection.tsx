@@ -46,14 +46,14 @@ const ContinueReadingSection = () => {
   };
 
   return (
-    <section className="relative border-y border-[var(--mw-border)] bg-[var(--mw-surface)] py-10 section-padding" aria-labelledby="continue-reading-title">
-      <div className="container mx-auto">
+    <section className="relative bg-[#08131d] py-12 section-padding" aria-labelledby="continue-reading-title">
+      <div className="container mx-auto border-y border-[var(--mw-border)] py-8">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[var(--mw-accent-coral)]">
               Votre lecture
             </p>
-            <h2 id="continue-reading-title" className="font-editorial text-2xl text-[var(--mw-text-primary)] md:text-3xl">
+            <h2 id="continue-reading-title" className="font-editorial text-2xl uppercase text-[var(--mw-text-primary)] md:text-3xl">
               Continuer la lecture
             </h2>
             <p className="mt-1 text-sm text-[var(--mw-text-secondary)]">
@@ -110,7 +110,7 @@ const ContinueReadingSection = () => {
               const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?page=${item.pageIndex || 0}`;
 
               return (
-                <article key={`${item.source}-${item.mangaId}`} className="group relative overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-background)] transition-colors hover:border-[var(--mw-accent-blue)]">
+                <article key={`${item.source}-${item.mangaId}`} className="group relative overflow-hidden border border-[var(--mw-border)] bg-[#0b1722] transition-colors hover:border-[var(--mw-accent-coral)]">
                   <div className="h-1 w-full bg-[var(--mw-border)]">
                     <div className="h-full bg-[var(--mw-accent-coral)]" style={{ width: `${Math.max(3, item.progressPercent || 0)}%` }} />
                   </div>
@@ -135,8 +135,9 @@ const ContinueReadingSection = () => {
                         <p className="mt-1.5 truncate text-xs font-medium text-[var(--mw-text-primary)]">Chapitre {item.chapterNumber}</p>
                         <div className="mt-1 flex items-center justify-between text-[11px] text-[var(--mw-text-secondary)]">
                           <span>{item.totalPages > 1 ? `Page ${(item.pageIndex || 0) + 1}/${item.totalPages}` : 'En cours'}</span>
-                          <span className="inline-flex items-center gap-1 text-[10px]"><Clock3 className="h-2.5 w-2.5" />{relativeDate(item.readAt)}</span>
+                          <span className="font-semibold text-[var(--mw-accent-coral)]">{item.progressPercent}%</span>
                         </div>
+                        <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--mw-text-secondary)]"><Clock3 className="h-2.5 w-2.5" />{relativeDate(item.readAt)}</span>
                       </div>
 
                       <Button size="sm" className="mt-2 h-8 w-full bg-[var(--mw-accent-coral)] text-xs font-semibold text-white hover:bg-[var(--mw-accent-coral)]/90" asChild>

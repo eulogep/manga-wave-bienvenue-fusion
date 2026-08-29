@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, Flame, Globe, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MangaCard from '@/components/MangaCard';
@@ -160,28 +160,28 @@ const MultiSourceHubSection = () => {
   const activeData = getActiveData();
 
   return (
-    <section className="py-12 section-padding relative" aria-labelledby="multi-source-title">
+    <section className="relative bg-[#08131d] py-14 section-padding" aria-labelledby="multi-source-title">
       <div className="container mx-auto">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div className="mb-7 flex flex-col gap-4 border-b border-[var(--mw-border)] pb-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className="bg-gradient-to-r from-manga-purple to-manga-cyan text-white border-0 text-xs px-2.5 py-0.5">
+            <div className="mb-2 flex items-center gap-2">
+              <Badge className="border border-[var(--mw-accent-blue)]/35 bg-[var(--mw-accent-blue)]/10 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-[var(--mw-accent-blue)]">
                 <Sparkles className="h-3 w-3 mr-1" />
                 EXPLORATEUR MULTI-SOURCES
               </Badge>
               <span className="text-xs text-white/50">Directement depuis l'accueil</span>
             </div>
-            <h2 id="multi-source-title" className="text-2xl md:text-3xl font-bold font-outfit text-white">
-              Catalogue <span className="glow-text">Multi-Sources</span>
+            <h2 id="multi-source-title" className="font-editorial text-3xl uppercase text-white md:text-4xl">
+              Catalogue multi-sources
             </h2>
-            <p className="text-xs md:text-sm text-white/50 mt-1">
+            <p className="mt-2 max-w-2xl text-sm text-[var(--mw-text-secondary)]">
               Explorez et lisez instantanément le contenu de Comick.io, OriginManga, LelManga, MangaDex, MangaFire et AsuraScans.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="btn-outline-glow rounded-full text-xs" asChild>
+            <Button variant="outline" size="sm" className="min-h-11 border-[var(--mw-border)] bg-transparent text-xs uppercase tracking-wider text-white hover:border-[var(--mw-accent-blue)]" asChild>
               <Link to={activeData.searchUrl}>
                 Tout voir sur cette source <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
               </Link>
@@ -190,19 +190,19 @@ const MultiSourceHubSection = () => {
         </div>
 
         {/* Source Switcher Pills */}
-        <div className="flex items-center gap-2.5 overflow-x-auto hide-scrollbar pb-3 mb-6">
+        <div className="mb-6 flex items-center gap-1 overflow-x-auto border-b border-[var(--mw-border)] hide-scrollbar">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center gap-2 border ${
+              className={`flex min-h-11 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-xs font-semibold transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-[#151c2c] text-white border-manga-purple shadow-glow-purple scale-105'
-                  : 'bg-white/[0.04] text-white/60 border-white/[0.08] hover:text-white hover:bg-white/[0.08]'
+                  ? 'border-[var(--mw-accent-coral)] text-white'
+                  : 'border-transparent text-[var(--mw-text-secondary)] hover:text-white'
               }`}
             >
               <span>{tab.label}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/80">
+              <span className="border border-[var(--mw-border)] px-1.5 py-0.5 text-[9px] uppercase text-[var(--mw-text-secondary)]">
                 {tab.badge}
               </span>
             </button>
@@ -214,7 +214,7 @@ const MultiSourceHubSection = () => {
           {/* Scroll Left Button */}
           <button
             onClick={() => scroll('left')}
-            className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-[#080c14]/90 border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-manga-purple hover:border-manga-purple shadow-xl"
+            className="absolute -left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-[var(--mw-border)] bg-[#06101a]/95 text-white opacity-0 transition-all group-hover:opacity-100 hover:border-[var(--mw-accent-coral)]"
             aria-label="Faire défiler vers la gauche"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -223,7 +223,7 @@ const MultiSourceHubSection = () => {
           {/* Carousel Track */}
           <div
             ref={scrollContainerRef}
-            className="flex gap-4 overflow-x-auto hide-scrollbar py-2 px-1 scroll-smooth"
+            className="flex gap-3 overflow-x-auto px-1 py-2 scroll-smooth hide-scrollbar"
           >
             {activeData.isLoading ? (
               <div className="flex gap-4 w-full">
@@ -239,7 +239,7 @@ const MultiSourceHubSection = () => {
               activeData.items.map((manga, index) => (
                 <div
                   key={`${activeTab}-${manga.id}`}
-                  className="min-w-[155px] sm:min-w-[185px] md:min-w-[200px] flex-shrink-0 animate-slide-up-fade"
+                  className="min-w-[165px] flex-shrink-0 animate-slide-up-fade sm:min-w-[190px] md:min-w-[205px]"
                   style={{ animationDelay: `${index * 0.04}s` }}
                 >
                   <div className="relative">
@@ -266,7 +266,7 @@ const MultiSourceHubSection = () => {
           {/* Scroll Right Button */}
           <button
             onClick={() => scroll('right')}
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-[#080c14]/90 border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-manga-purple hover:border-manga-purple shadow-xl"
+            className="absolute -right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-[var(--mw-border)] bg-[#06101a]/95 text-white opacity-0 transition-all group-hover:opacity-100 hover:border-[var(--mw-accent-coral)]"
             aria-label="Faire défiler vers la droite"
           >
             <ChevronRight className="h-5 w-5" />

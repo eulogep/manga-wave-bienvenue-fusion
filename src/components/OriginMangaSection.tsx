@@ -1,152 +1,40 @@
-import { useRef } from 'react';
+import { ArrowRight, Flame } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Flame, Sparkles } from 'lucide-react';
-import MangaCard from './MangaCard';
-import { Button } from '@/components/ui/button';
+import MangaCover from '@/components/MangaCover';
 import { usePopularOriginManga } from '@/hooks/useOriginManga';
 
 const OriginMangaSection = () => {
-  const { data: mangas, isLoading, isError } = usePopularOriginManga();
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const scroll = (direction: 'left' | 'right') => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const amount = container.offsetWidth * 0.75;
-    container.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
-  };
-
+  const { data: mangas = [], isLoading, isError } = usePopularOriginManga();
   if (isError) return null;
 
   return (
-    <section className="py-20 section-padding relative overflow-hidden">
-      {/* ── Ambient background ── */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-0 left-0 w-[600px] h-[400px] bg-manga-purple/6 blur-[150px] rounded-full" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[350px] bg-manga-pink/5 blur-[120px] rounded-full" />
-      </div>
-
-      <div className="container mx-auto relative z-10">
-
-        {/* ── Section Header ── */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8">
+    <section className="bg-[#06101a] py-14 section-padding" aria-labelledby="trending-title">
+      <div className="container mx-auto">
+        <div className="mb-7 flex items-end justify-between gap-6">
           <div>
-            {/* Badges */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="badge-vf inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px]">
-                <Flame className="h-3 w-3" />
-                OriginManga
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border border-manga-cyan/30 text-manga-cyan bg-manga-cyan/8">
-                <Sparkles className="h-3 w-3" />
-                Lecture Directe
-              </span>
-            </div>
-            <h2 className="font-outfit font-bold text-3xl md:text-4xl text-white">
-              Scans <span className="glow-text">Français</span>
-            </h2>
-            <p className="text-white/40 mt-2 text-sm max-w-lg">
-              Lisez les derniers chapitres traduits en français directement dans votre navigateur, avec le lecteur intégré multi-modes.
-            </p>
+            <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-coral)]"><Flame className="h-3.5 w-3.5" /> Classement éditorial</p>
+            <h2 id="trending-title" className="font-editorial text-3xl uppercase text-[var(--mw-text-primary)] md:text-4xl">Tendances du moment</h2>
           </div>
-
-          {/* Nav + CTA */}
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1">
-              <button
-                onClick={() => scroll('left')}
-                aria-label="Défiler vers la gauche"
-                className="h-9 w-9 rounded-full border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white hover:border-white/20 hover:bg-white/[0.05] transition-all"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => scroll('right')}
-                aria-label="Défiler vers la droite"
-                className="h-9 w-9 rounded-full border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white hover:border-white/20 hover:bg-white/[0.05] transition-all"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="btn-outline-glow rounded-full px-5 text-sm"
-              asChild
-            >
-              <Link to="/search?source=originmanga">
-                Voir tout
-                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-              </Link>
-            </Button>
-          </div>
+          <Link to="/search?source=originmanga" className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--mw-text-secondary)] transition-colors hover:text-white sm:flex">Voir tout <ArrowRight className="h-4 w-4" /></Link>
         </div>
 
-        {/* ── Horizontal Carousel ── */}
-        {isLoading ? (
-          <div className="flex gap-4 pb-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-40 sm:w-48 aspect-[3/4] cover-skeleton rounded-xl" />
-            ))}
-          </div>
-        ) : mangas && mangas.length > 0 ? (
-          <div
-            ref={scrollRef}
-            className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth"
-          >
-            {mangas.map((manga, index) => (
-              <div
-                key={manga.id}
-                className="shrink-0 w-40 sm:w-48 animate-slide-up-fade"
-                style={{ animationDelay: `${index * 0.07}s`, opacity: 0 }}
-              >
-                <div className="relative">
-                  {/* VF badge */}
-                  <span className="absolute z-10 top-2 left-2 badge-vf px-2 py-0.5 rounded-full text-[9px] tracking-widest">VF</span>
-                  <MangaCard
-                    id={manga.id}
-                    title={manga.title}
-                    author="OriginManga"
-                    status="ongoing"
-                    genre={['VF']}
-                    imageUrl={manga.coverUrl}
-                    lastUpdate="Lecture in-app"
-                    externalUrl={manga.url}
-                    detailUrl={`/manga/${manga.id}?source=originmanga`}
-                  />
+        <div className="flex snap-x gap-3 overflow-x-auto pb-3 hide-scrollbar lg:grid lg:grid-cols-5 lg:overflow-visible">
+          {(isLoading ? Array.from({ length: 5 }) : mangas.slice(0, 5)).map((manga, index) => (
+            <Link key={typeof manga === 'object' ? manga.id : index} to={typeof manga === 'object' ? `/manga/${manga.id}?source=originmanga` : '#'} className="group relative min-w-[190px] snap-start overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)] transition-colors hover:border-[var(--mw-accent-coral)] lg:min-w-0">
+              <div className="relative aspect-[3/4] overflow-hidden">
+                {typeof manga === 'object' ? <MangaCover src={manga.coverUrl} alt={`Couverture de ${manga.title}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" /> : <div className="h-full w-full animate-pulse bg-[var(--mw-elevated)]" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#06101a] via-transparent to-transparent" />
+                <span className="absolute bottom-[-9px] left-2 font-editorial text-6xl font-semibold leading-none text-[var(--mw-accent-coral)]">{String(index + 1).padStart(2, '0')}</span>
+              </div>
+              <div className="min-h-24 border-t border-[var(--mw-border)] px-3 py-3">
+                <h3 className="line-clamp-2 font-editorial text-sm font-semibold uppercase leading-5 text-white">{typeof manga === 'object' ? manga.title : 'Chargement'}</h3>
+                <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-[var(--mw-text-secondary)]">
+                  <span>Scan français</span>
+                  {typeof manga === 'object' && manga.rating ? <span className="text-manga-gold">★ {manga.rating.toFixed(1)}</span> : null}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : null}
-
-        {/* ── Reader Banner CTA ── */}
-        <div className="mt-10 relative rounded-2xl overflow-hidden">
-          {/* Gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-manga-purple/25 via-[#0f1520] to-manga-cyan/15" />
-          <div className="absolute inset-0 border border-white/[0.06] rounded-2xl" />
-          {/* Glow accent */}
-          <div className="absolute -top-12 -left-12 w-48 h-48 bg-manga-purple/20 blur-[60px] rounded-full" />
-
-          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 p-6 md:p-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-manga-purple/20 border border-manga-purple/30 shrink-0 shadow-glow-purple">
-                <BookOpen className="h-6 w-6 text-manga-purple" />
-              </div>
-              <div>
-                <h3 className="font-outfit font-bold text-lg text-white">Lecteur Multi-Modes</h3>
-                <p className="text-sm text-white/45 mt-0.5 max-w-md">
-                  Mode page par page ou défilement Webtoon — navigation clavier incluse.
-                </p>
-              </div>
-            </div>
-            <Button className="btn-gradient shrink-0 px-6 h-11 rounded-full font-semibold" asChild>
-              <Link to="/search?source=originmanga">
-                Commencer la lecture
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
-            </Button>
-          </div>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
