@@ -11,12 +11,17 @@ import {
   Shuffle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useChapterSourceAlternatives, useUniversalChapterPages } from '@/hooks/useMangaReader';
+import {
+  useChapterSourceAlternatives,
+  useUniversalChapterPages,
+  type ChapterSourceAlternative,
+} from '@/hooks/useMangaReader';
 import { useRecordReading } from '@/hooks/useReadingProgress';
 import { useReaderPreferences } from '@/hooks/useReaderPreferences';
 import { useReaderPreloading } from '@/hooks/useReaderPreloading';
 import ReaderSettingsPanel from '@/components/reader/ReaderSettingsPanel';
 import { shouldFallbackHeightToWidth, type PageFitMeasurement } from '@/components/reader/pageFit';
+import { selectAutomaticFallback } from '@/domain/automaticFallback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +38,9 @@ type Props = {
   chapters?: SourceChapter[];
   initialPage?: number;
   onSelectChapter?: (chapterId: string) => void;
+  triedSources?: string[];
+  autoFallbackApplied?: boolean;
+  onAutomaticSourceFallback?: (alternative: ChapterSourceAlternative, pageIndex: number) => void;
   onClose?: () => void;
 };
 
@@ -62,6 +70,9 @@ const UniversalReader = ({
   chapters = [],
   initialPage = 0,
   onSelectChapter,
+  triedSources = [],
+  autoFallbackApplied = false,
+  onAutomaticSourceFallback,
   onClose,
 }: Props) => {
   const { data: pages, isLoading, isError, error, refetch } = useUniversalChapterPages(source, chapterId);
@@ -70,6 +81,8 @@ const UniversalReader = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [continuousPageCount, setContinuousPageCount] = useState(0);
+  const [fallbackTargetSource, setFallbackTargetSource] = useState<string | null>(null);
+  const [showFallbackSuccess, setShowFallbackSuccess] = useState(autoFallbackApplied);
   const [pageMeasurements, setPageMeasurements] = useState<Record<number, PageFitMeasurement>>({});
   const [viewport, setViewport] = useState(() => ({
     width: typeof window === 'undefined' ? 1024 : window.innerWidth,
@@ -80,6 +93,7 @@ const UniversalReader = ({
   const continuousSentinelRef = useRef<HTMLDivElement>(null);
   const resumedChapterRef = useRef<string>();
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackAttemptRef = useRef<string | null>(null);
   const { recordReading } = useRecordReading();
   const { preferences, updatePreferences, resetPreferences } = useReaderPreferences();
   const isContinuous = preferences.mode === 'vertical' || preferences.mode === 'webtoon';
@@ -171,6 +185,29 @@ const UniversalReader = ({
   const chapterNumber = currentChapterObj?.chapterNumber || '1';
   const displayTitle = chapterTitle || currentChapterObj?.title || `Chapitre ${chapterNumber}`;
   const alternativesQuery = useChapterSourceAlternatives(mangaTitle, chapterNumber, source, isError);
+
+  useEffect(() => {
+    fallbackAttemptRef.current = null;
+    setFallbackTargetSource(null);
+  }, [chapterId, source]);
+
+  useEffect(() => {
+    if (!autoFallbackApplied) return;
+    setShowFallbackSuccess(true);
+    const timer = window.setTimeout(() => setShowFallbackSuccess(false), 3_500);
+    return () => window.clearTimeout(timer);
+  }, [autoFallbackApplied, chapterId, source]);
+
+  useEffect(() => {
+    if (!isError || !onAutomaticSourceFallback || !alternativesQuery.data) return;
+    const target = selectAutomaticFallback(alternativesQuery.data, source, triedSources);
+    if (!target || fallbackAttemptRef.current) return;
+
+    fallbackAttemptRef.current = target.source;
+    setFallbackTargetSource(target.sourceName);
+    const timer = window.setTimeout(() => onAutomaticSourceFallback(target, currentPage), 700);
+    return () => window.clearTimeout(timer);
+  }, [alternativesQuery.data, currentPage, isError, onAutomaticSourceFallback, source, triedSources]);
 
   useEffect(() => {
     setCurrentPage(initialPage);
@@ -326,6 +363,12 @@ const UniversalReader = ({
         </div>
       )}
 
+      {showFallbackSuccess && (
+        <div role="status" aria-live="polite" className="fixed left-1/2 top-20 z-40 -translate-x-1/2 border border-emerald-400/30 bg-emerald-950/95 px-4 py-2 text-xs font-medium text-emerald-200 shadow-xl backdrop-blur-md">
+          Source alternative chargée.
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
       <div
         className={`absolute inset-x-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 md:px-5 ${
@@ -411,12 +454,26 @@ const UniversalReader = ({
         )}
 
         {isError && (
-          <div className="py-16 px-6 text-center max-w-md">
+          <div className="max-w-md px-6 py-16 text-center" aria-live="polite">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
-            <h4 className="text-lg font-bold mb-2">Impossible de charger le chapitre</h4>
-            <p className="text-sm text-muted-foreground mb-6">
-              {error?.message || 'Erreur lors de la récupération des images du chapitre.'}
+            <h4 className="mb-2 text-lg font-bold">
+              {alternativesQuery.isLoading || fallbackTargetSource
+                ? 'Cette source répond lentement.'
+                : 'Ce chapitre est momentanément indisponible.'}
+            </h4>
+            <p className="mb-6 text-sm text-muted-foreground">
+              {fallbackTargetSource
+                ? `Nous chargeons automatiquement ${fallbackTargetSource}…`
+                : alternativesQuery.isLoading
+                  ? 'Nous essayons une autre source…'
+                  : 'Réessayez ou choisissez une autre source disponible ci-dessous.'}
             </p>
+            {!alternativesQuery.isLoading && !fallbackTargetSource && error?.message && (
+              <details className="mb-5 text-left text-xs text-white/45">
+                <summary className="cursor-pointer">Détail technique</summary>
+                <p className="mt-2 break-words">{error.message}</p>
+              </details>
+            )}
             <Button className="btn-gradient" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" /> Réessayer
             </Button>

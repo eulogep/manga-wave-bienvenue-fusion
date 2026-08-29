@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "test:canonical": "node --experimental-strip-types --test tests/canonicalManga.test.ts",
     "test:sources": "node --experimental-strip-types --test tests/sourceResolution.test.ts",
-    "test:p1": "node --experimental-strip-types --test tests/canonicalManga.test.ts tests/sourceResolution.test.ts",
+    "test:p1": "node --experimental-strip-types --test tests/canonicalManga.test.ts tests/sourceResolution.test.ts tests/automaticFallback.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
