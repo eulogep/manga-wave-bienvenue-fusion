@@ -403,9 +403,9 @@ const UniversalReader = ({
 
       {/* Top Navigation Bar */}
       <div
-        className={`absolute inset-x-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 md:px-5 ${
-          showControls ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
-        }`}
+        data-reader-chrome="top"
+        data-visible={showControls}
+        className="reader-top-toolbar absolute inset-x-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md md:px-5"
       >
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {onClose && (
@@ -652,9 +652,9 @@ const UniversalReader = ({
 
             {/* Bottom Controls */}
             <div
-              className={`fixed inset-x-0 bottom-0 z-30 flex min-h-16 flex-col items-center justify-center gap-2 border-t border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md transition-[opacity,transform] duration-200 sm:flex-row sm:flex-wrap ${
-                showControls ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
-              }`}
+              data-reader-chrome="bottom"
+              data-visible={showControls}
+              className="reader-bottom-controls fixed inset-x-0 bottom-0 z-30 flex min-h-16 flex-col items-center justify-center gap-2 border-t border-white/10 bg-[#061622]/94 px-3 py-2 backdrop-blur-md sm:flex-row sm:flex-wrap"
             >
               {hasPrevChapter && (
                 <Button

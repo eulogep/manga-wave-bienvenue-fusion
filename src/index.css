@@ -457,3 +457,30 @@
 .delay-300 { animation-delay: 0.3s; }
 .delay-400 { animation-delay: 0.4s; }
 .delay-500 { animation-delay: 0.5s; }
+
+/* Reader chrome owns its visibility atomically. Keep these rules unlayered and
+   after Tailwind so generated utility order cannot split transform, opacity,
+   and pointer interaction into contradictory states. */
+.reader-top-toolbar,
+.reader-bottom-controls {
+  opacity: 0;
+  pointer-events: none;
+  transition-property: opacity, transform;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reader-top-toolbar {
+  transform: translateY(-100%);
+}
+
+.reader-bottom-controls {
+  transform: translateY(100%);
+}
+
+.reader-top-toolbar[data-visible='true'],
+.reader-bottom-controls[data-visible='true'] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
