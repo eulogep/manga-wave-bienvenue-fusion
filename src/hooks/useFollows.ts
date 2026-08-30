@@ -101,8 +101,8 @@ export function useCanonicalFollow(canonicalMangaId?: number) {
       return { previous };
     },
     onError: (_error, _nextFollowing, context) => {
-      if (user && context?.previous) {
-        queryClient.setQueryData(followQueryKey(user.id), context.previous);
+      if (user && context) {
+        queryClient.setQueryData(followQueryKey(user.id), context.previous ?? []);
       }
     },
     onSettled: async () => {
