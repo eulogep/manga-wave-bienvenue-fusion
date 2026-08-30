@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
+  BellRing,
   BookOpen,
   CalendarDays,
   ChevronLeft,
@@ -31,6 +32,9 @@ import { useCanonicalMangaEntry } from '@/hooks/useCanonicalMangaEntry';
 import type { MangaDexChapter } from '@/integrations/mangadex/client';
 import type { OriginMangaChapter } from '@/integrations/originmanga/client';
 import { getSource, type SourceChapter, type SourceType } from '@/integrations/sources';
+import { useAuth } from '@/hooks/useAuth';
+import { useCanonicalFollow, useCanonicalMangaId } from '@/hooks/useFollows';
+import { useToast } from '@/hooks/use-toast';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -51,6 +55,9 @@ const MangaDetail = () => {
   const { id: routeId = '' } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const requestedSource = searchParams.get('source') as SourceType | null;
 
   const [language, setLanguage] = useState('fr');
@@ -61,6 +68,12 @@ const MangaDetail = () => {
   const source = (requestedSource || canonicalResolution?.source || '') as SourceType;
   const id = requestedSource ? routeId : canonicalResolution?.mangaId || '';
   const loadDirectProvider = Boolean(requestedSource && id);
+  const canonicalFollowIdentity = useCanonicalMangaId(
+    canonicalEntry.numericId,
+    source || undefined,
+    id || undefined,
+  );
+  const follow = useCanonicalFollow(canonicalFollowIdentity.data);
 
   // MangaDex Queries
   const isMangaDex = source === 'mangadex';
@@ -210,6 +223,34 @@ const MangaDetail = () => {
     const readerParams = new URLSearchParams({ lang: readerLanguage, page: '0', title: manga.title });
     if (manga.author) readerParams.set('author', manga.author);
     navigate(`/read/${encodeURIComponent(source)}/${encodeURIComponent(id)}/${encodeURIComponent(chapter.id)}?${readerParams}`);
+  };
+
+  const handleFollow = async () => {
+    if (!user) {
+      const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
+      navigate(`/auth?redirect=${redirect}`);
+      return;
+    }
+    if (!canonicalFollowIdentity.data) {
+      toast({ variant: 'destructive', title: 'Suivi indisponible', description: 'Ce manga ne possède pas encore d’identité canonique.' });
+      return;
+    }
+    const nextFollowing = !follow.isFollowing;
+    try {
+      await follow.setFollowing(nextFollowing);
+      toast({
+        title: nextFollowing ? 'Manga suivi' : 'Suivi arrêté',
+        description: nextFollowing
+          ? 'Manga Wave surveillera les prochains chapitres.'
+          : 'Les prochaines sorties ne seront plus surveillées.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Impossible de modifier le suivi',
+        description: 'Votre état précédent a été restauré.',
+      });
+    }
   };
 
   // Convert OriginManga chapters to universal list if needed
@@ -410,6 +451,23 @@ const MangaDetail = () => {
                     Commencer la lecture
                   </Button>
                 ) : null}
+
+                {canonicalFollowIdentity.data && (
+                  <Button
+                    type="button"
+                    variant={follow.isFollowing ? 'secondary' : 'outline'}
+                    className={follow.isFollowing
+                      ? 'border border-[var(--mw-accent-coral)] bg-[var(--mw-accent-coral)]/15 text-white hover:bg-[var(--mw-accent-coral)]/25'
+                      : 'border-white/20'}
+                    onClick={() => void handleFollow()}
+                    disabled={follow.isUpdating}
+                    aria-pressed={follow.isFollowing}
+                    aria-label={follow.isFollowing ? `Ne plus suivre ${manga.title}` : `Suivre ${manga.title}`}
+                  >
+                    <BellRing className="mr-2 h-4 w-4" />
+                    {follow.isFollowing ? 'Suivi' : 'Suivre'}
+                  </Button>
+                )}
 
                 {manga.externalUrl && (
                   <Button variant="outline" className="border-white/20" asChild>

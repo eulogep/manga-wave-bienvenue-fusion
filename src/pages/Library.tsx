@@ -33,6 +33,7 @@ import type { MangaDexStatus } from '@/integrations/mangadex/client';
 import { canonicalProgressKey } from '@/domain/canonicalProgress';
 import { buildReaderLocation } from '@/domain/readerNavigation';
 import { useFollowedChapterUpdates } from '@/hooks/useFollowedChapterUpdates';
+import { useFollows } from '@/hooks/useFollows';
 
 const PAGE_SIZE = 12;
 
@@ -56,6 +57,11 @@ const Library = () => {
   const { data: library = [], isLoading, isError, error, refetch, isFetching } = useLibrary();
   const { data: historyItems = [] } = useContinueReading();
   const { data: followedUpdates = [] } = useFollowedChapterUpdates();
+  const { data: follows = [] } = useFollows();
+  const followedMangaIds = useMemo(
+    () => new Set(follows.map((follow) => follow.canonicalMangaId)),
+    [follows],
+  );
   const followedUpdatesByManga = useMemo(
     () => new Map(followedUpdates.map((update) => [update.manga.id, update])),
     [followedUpdates],
@@ -274,6 +280,7 @@ const Library = () => {
                               detailUrl={`/manga/${manga.id}`}
                               externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
                               newChapterCount={update?.newChapterCount}
+                              isFollowing={followedMangaIds.has(manga.id)}
                             />
                             {updateUrl && (
                               <Button className="mt-2 h-10 w-full bg-[var(--mw-accent-coral)] text-xs font-bold uppercase text-white" asChild>

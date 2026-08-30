@@ -399,6 +399,45 @@ export type Database = {
           },
         ]
       }
+      user_follows: {
+        Row: {
+          canonical_manga_id: number
+          created_at: string
+          id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canonical_manga_id: number
+          created_at?: string
+          id?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canonical_manga_id?: number
+          created_at?: string
+          id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_canonical_manga_id_fkey"
+            columns: ["canonical_manga_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_manga_catalog"
+            referencedColumns: ["canonical_id"]
+          },
+          {
+            foreignKeyName: "user_follows_canonical_manga_id_fkey"
+            columns: ["canonical_manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_followed_chapter_state: {
         Row: {
           canonical_chapter_key: string
@@ -442,7 +481,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_followed_chapter_state_follow_fkey"
+            columns: ["user_id", "manga_id"]
+            isOneToOne: false
+            referencedRelation: "user_follows"
+            referencedColumns: ["user_id", "canonical_manga_id"]
+          },
+        ]
       }
       user_history: {
         Row: {

@@ -1,4 +1,4 @@
-import { BookOpen, Heart, Star } from 'lucide-react';
+import { BellRing, BookOpen, Heart, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MangaCover from '@/components/MangaCover';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ interface MangaCardProps {
   externalUrl?: string;
   detailUrl?: string;
   newChapterCount?: number;
+  isFollowing?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -43,6 +44,7 @@ const MangaCard = ({
   externalUrl,
   detailUrl,
   newChapterCount = 0,
+  isFollowing = false,
 }: MangaCardProps) => {
   const { user } = useAuth();
   const { toggleFavorite } = useFavorites();
@@ -104,6 +106,11 @@ const MangaCard = ({
       <div className="border-t border-[var(--mw-border)] px-3 py-3">
         <h3 className="line-clamp-2 min-h-10 font-editorial text-sm font-semibold uppercase leading-5 text-[var(--mw-text-primary)]">{title}</h3>
         <p className="mt-1 truncate text-[11px] text-[var(--mw-text-secondary)]">{author}</p>
+        {isFollowing && (
+          <p className="mt-2 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[var(--mw-accent-coral)]">
+            <BellRing className="h-3 w-3" /> Suivi
+          </p>
+        )}
         {genre.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1">
             {genre.slice(0, 2).map((item) => <span key={item} className="text-[9px] font-semibold uppercase tracking-wider text-[var(--mw-text-secondary)]">{item}</span>)}

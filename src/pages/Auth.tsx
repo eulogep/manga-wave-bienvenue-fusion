@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +41,11 @@ const Auth = () => {
           description: isLogin ? "Bienvenue !" : "Vérifiez votre email pour confirmer votre compte"
         });
         if (isLogin) {
-          navigate('/');
+          const requestedRedirect = searchParams.get('redirect');
+          const safeRedirect = requestedRedirect?.startsWith('/') && !requestedRedirect.startsWith('//')
+            ? requestedRedirect
+            : '/';
+          navigate(safeRedirect, { replace: true });
         }
       }
     } catch (error) {

@@ -8,7 +8,8 @@ import {
 import { getSource, isValidSource } from '@/integrations/sources';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useLibrary, type LibraryManga } from '@/hooks/useLibrary';
+import { useFollows } from '@/hooks/useFollows';
+import type { Manga } from '@/hooks/useManga';
 
 type SourceMapping = {
   manga_id: number;
@@ -19,7 +20,7 @@ type SourceMapping = {
 };
 
 export type FollowedMangaUpdate = {
-  manga: LibraryManga;
+  manga: Manga;
   newChapterCount: number;
   latestChapter: FollowedChapterState;
 };
@@ -58,14 +59,15 @@ const toState = (row: {
 
 export function useFollowedChapterUpdates() {
   const { user } = useAuth();
-  const libraryQuery = useLibrary();
-  const mangaIds = libraryQuery.data?.map((manga) => manga.id) || [];
+  const followsQuery = useFollows();
+  const followedMangas = followsQuery.data?.flatMap((follow) => follow.manga ? [follow.manga] : []) || [];
+  const mangaIds = followedMangas.map((manga) => manga.id);
 
   return useQuery({
     queryKey: ['followed-chapter-updates', user?.id, mangaIds.join(',')],
-    enabled: Boolean(user && !libraryQuery.isLoading && mangaIds.length > 0),
+    enabled: Boolean(user && !followsQuery.isLoading && mangaIds.length > 0),
     queryFn: async (): Promise<FollowedMangaUpdate[]> => {
-      if (!user || !libraryQuery.data?.length) return [];
+      if (!user || followedMangas.length === 0) return [];
       const [mappingsResult, stateResult] = await Promise.all([
         supabase
           .from('manga_source_mappings')
@@ -84,7 +86,7 @@ export function useFollowedChapterUpdates() {
       const mappings = (mappingsResult.data || []) as SourceMapping[];
       const existing = (stateResult.data || []).map(toState);
       const observedAt = new Date().toISOString();
-      const detectManga = async (manga: LibraryManga) => {
+      const detectManga = async (manga: Manga) => {
         const candidates = mappings
           .filter((mapping) => mapping.manga_id === manga.id && isValidSource(mapping.source_id))
           .sort((left, right) => languageRank(left.language) - languageRank(right.language) || left.source_id.localeCompare(right.source_id));
@@ -123,8 +125,8 @@ export function useFollowedChapterUpdates() {
         };
       };
       const reconciled: Awaited<ReturnType<typeof detectManga>>[] = [];
-      for (let index = 0; index < libraryQuery.data.length; index += 4) {
-        const batch = libraryQuery.data.slice(index, index + 4);
+      for (let index = 0; index < followedMangas.length; index += 4) {
+        const batch = followedMangas.slice(index, index + 4);
         reconciled.push(...await Promise.all(batch.map(detectManga)));
       }
 

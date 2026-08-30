@@ -181,6 +181,11 @@ test.describe('T-3013 deterministic production-equivalent smoke', () => {
       manga_id: QA_MANGA_ID,
     });
     if (favoriteError) throw favoriteError;
+    const { error: followError } = await qaClient.from('user_follows').insert({
+      user_id: qaUserId,
+      canonical_manga_id: QA_MANGA_ID,
+    });
+    if (followError) throw followError;
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect.poll(() => stateCount(qaClient, qaUserId), { timeout: 60_000 }).toBeGreaterThan(0);
