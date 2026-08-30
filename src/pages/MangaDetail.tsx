@@ -27,9 +27,10 @@ import {
   useUniversalMangaDetail,
   useUniversalMangaChapters,
 } from '@/hooks/useMangaReader';
+import { useCanonicalMangaEntry } from '@/hooks/useCanonicalMangaEntry';
 import type { MangaDexChapter } from '@/integrations/mangadex/client';
 import type { OriginMangaChapter } from '@/integrations/originmanga/client';
-import type { SourceChapter, SourceType } from '@/integrations/sources';
+import { getSource, type SourceChapter, type SourceType } from '@/integrations/sources';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -47,14 +48,19 @@ const statusLabels: Record<string, string> = {
 };
 
 const MangaDetail = () => {
-  const { id = '' } = useParams<{ id: string }>();
+  const { id: routeId = '' } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const source = (searchParams.get('source') || 'mangadex') as SourceType;
+  const requestedSource = searchParams.get('source') as SourceType | null;
 
   const [language, setLanguage] = useState('fr');
   const [chapterOffset, setChapterOffset] = useState(0);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const canonicalEntry = useCanonicalMangaEntry(requestedSource ? undefined : routeId, language);
+  const canonicalResolution = canonicalEntry.resolutionQuery.data;
+  const source = (requestedSource || canonicalResolution?.source || '') as SourceType;
+  const id = requestedSource ? routeId : canonicalResolution?.mangaId || '';
+  const loadDirectProvider = Boolean(requestedSource && id);
 
   // MangaDex Queries
   const isMangaDex = source === 'mangadex';
@@ -64,7 +70,7 @@ const MangaDetail = () => {
     isError: isMangaDexError,
     error: mangaDexError,
     refetch: refetchMangaDex,
-  } = useMangaDexDetail(isMangaDex ? id : undefined);
+  } = useMangaDexDetail(loadDirectProvider && isMangaDex ? id : undefined);
 
   const {
     data: mangaDexChaptersData,
@@ -72,7 +78,7 @@ const MangaDetail = () => {
     isError: isMangaDexChaptersError,
     error: mangaDexChaptersError,
     refetch: refetchMangaDexChapters,
-  } = useMangaDexChapters(isMangaDex ? id : undefined, {
+  } = useMangaDexChapters(loadDirectProvider && isMangaDex ? id : undefined, {
     translatedLanguage: language,
     offset: chapterOffset,
     limit: 100,
@@ -86,7 +92,7 @@ const MangaDetail = () => {
     isError: isOriginError,
     error: originError,
     refetch: refetchOrigin,
-  } = useOriginMangaDetail(isOriginManga ? id : undefined);
+  } = useOriginMangaDetail(loadDirectProvider && isOriginManga ? id : undefined);
 
   // Universal Source Queries (Comick, CrunchyScan, etc.)
   const isUniversal = !isMangaDex && !isOriginManga;
@@ -96,16 +102,36 @@ const MangaDetail = () => {
     isError: isUniversalError,
     error: universalError,
     refetch: refetchUniversal,
-  } = useUniversalMangaDetail(isUniversal ? source : '', isUniversal ? id : undefined);
+  } = useUniversalMangaDetail(loadDirectProvider && isUniversal ? source : '', loadDirectProvider && isUniversal ? id : undefined);
 
   const {
     data: universalChaptersData,
     isLoading: isUniversalChaptersLoading,
     refetch: refetchUniversalChapters,
-  } = useUniversalMangaChapters(isUniversal ? source : '', isUniversal ? id : undefined);
+  } = useUniversalMangaChapters(loadDirectProvider && isUniversal ? source : '', loadDirectProvider && isUniversal ? id : undefined);
 
   // Normalized manga object
-  const manga = isOriginManga
+  const canonicalCatalog = canonicalEntry.catalogQuery.data;
+  const resolvedCanonicalManga = canonicalResolution?.manga;
+  const manga = !requestedSource && canonicalCatalog
+    ? {
+        id: String(canonicalCatalog.canonical_id),
+        title: canonicalCatalog.title || resolvedCanonicalManga?.title || 'Manga',
+        description: canonicalCatalog.description || resolvedCanonicalManga?.synopsis || '',
+        coverImageUrl: canonicalCatalog.cover || resolvedCanonicalManga?.coverUrl || null,
+        author: canonicalCatalog.author || resolvedCanonicalManga?.author || 'Auteur non renseigné',
+        artist: resolvedCanonicalManga?.artist || null,
+        status: canonicalCatalog.status || resolvedCanonicalManga?.status || 'unknown',
+        genres: canonicalCatalog.genres || resolvedCanonicalManga?.genres || [],
+        themes: resolvedCanonicalManga?.themes || [],
+        year: resolvedCanonicalManga?.year || null,
+        contentRating: resolvedCanonicalManga?.contentRating || null,
+        lastChapter: resolvedCanonicalManga?.lastChapter || canonicalResolution?.chapters[0]?.chapterNumber || null,
+        updatedAt: resolvedCanonicalManga?.updatedAt || null,
+        externalUrl: resolvedCanonicalManga?.externalUrl || undefined,
+        sourceName: getSource(source)?.displayName || 'Source automatique',
+      }
+    : isOriginManga
     ? originMangaData
       ? {
           id: originMangaData.id,
@@ -152,12 +178,22 @@ const MangaDetail = () => {
       }
     : null;
 
-  const isLoading = isOriginManga ? isOriginLoading : isUniversal ? isUniversalLoading : isMangaDexLoading;
-  const isError = isOriginManga ? isOriginError : isUniversal ? isUniversalError : isMangaDexError;
-  const error = isOriginManga ? originError : isUniversal ? (universalError as Error) : mangaDexError;
+  const isLoading = !requestedSource
+    ? canonicalEntry.catalogQuery.isLoading
+    : isOriginManga ? isOriginLoading : isUniversal ? isUniversalLoading : isMangaDexLoading;
+  const isError = !requestedSource
+    ? canonicalEntry.catalogQuery.isError || (!canonicalEntry.catalogQuery.isLoading && !canonicalCatalog)
+    : isOriginManga ? isOriginError : isUniversal ? isUniversalError : isMangaDexError;
+  const error = !requestedSource
+    ? canonicalEntry.catalogQuery.error as Error | null
+    : isOriginManga ? originError : isUniversal ? (universalError as Error) : mangaDexError;
 
   const retry = () => {
-    if (isOriginManga) {
+    if (!requestedSource) {
+      void canonicalEntry.catalogQuery.refetch();
+      void canonicalEntry.rankingQuery.refetch();
+      void canonicalEntry.resolutionQuery.refetch();
+    } else if (isOriginManga) {
       void refetchOrigin();
     } else if (isUniversal) {
       void refetchUniversal();
@@ -169,27 +205,34 @@ const MangaDetail = () => {
   };
 
   const handleStartReadingChapter = (chapter: { id: string; language?: string }) => {
+    if (!source || !id || !manga) return;
     const readerLanguage = chapter.language || (isOriginManga ? 'fr' : language);
-    navigate(
-      `/read/${encodeURIComponent(source)}/${encodeURIComponent(id)}/${encodeURIComponent(chapter.id)}?lang=${encodeURIComponent(readerLanguage)}&page=0`,
-    );
+    const readerParams = new URLSearchParams({ lang: readerLanguage, page: '0', title: manga.title });
+    if (manga.author) readerParams.set('author', manga.author);
+    navigate(`/read/${encodeURIComponent(source)}/${encodeURIComponent(id)}/${encodeURIComponent(chapter.id)}?${readerParams}`);
   };
 
   // Convert OriginManga chapters to universal list if needed
-  const originChaptersList: SourceChapter[] = (originMangaData?.chapters || []).map((ch: OriginMangaChapter) => ({
+  const originChaptersList: SourceChapter[] = (!requestedSource && isOriginManga
+    ? canonicalResolution?.chapters || []
+    : originMangaData?.chapters || []).map((ch: OriginMangaChapter | SourceChapter) => ({
     id: ch.id,
     source: 'originmanga' as const,
     mangaId: id,
     chapterNumber: ch.chapterNumber,
     title: ch.title,
     date: ch.date,
-    externalUrl: ch.url,
-    language: 'fr',
+    externalUrl: 'url' in ch ? ch.url : ch.externalUrl,
+    language: 'language' in ch ? ch.language : 'fr',
   }));
 
-  const universalChaptersList: SourceChapter[] = universalChaptersData || [];
+  const universalChaptersList: SourceChapter[] = !requestedSource && isUniversal
+    ? canonicalResolution?.chapters || []
+    : universalChaptersData || [];
 
-  const mangaDexChaptersList: SourceChapter[] = (mangaDexChaptersData?.chapters || []).map((ch: MangaDexChapter) => ({
+  const mangaDexChaptersList: SourceChapter[] = !requestedSource && isMangaDex
+    ? canonicalResolution?.chapters || []
+    : (mangaDexChaptersData?.chapters || []).map((ch: MangaDexChapter) => ({
     id: ch.id,
     source: 'mangadex' as const,
     mangaId: id,
@@ -202,7 +245,7 @@ const MangaDetail = () => {
     pageCount: ch.pageCount,
     language: ch.translatedLanguage,
     externalUrl: ch.externalUrl || ch.mangaDexUrl,
-  }));
+      }));
 
   const readableChapters = isOriginManga
     ? originChaptersList
@@ -215,7 +258,7 @@ const MangaDetail = () => {
     firstReadableChapter?.chapterNumber || manga?.lastChapter || undefined,
     source,
     language,
-    sourcesOpen && Boolean(manga?.title),
+    sourcesOpen && Boolean(manga?.title && source),
   );
 
   if (isLoading) {
@@ -388,6 +431,20 @@ const MangaDetail = () => {
                   Changer de source
                 </Button>
               </div>
+
+              {!requestedSource && canonicalEntry.resolutionQuery.isLoading && (
+                <p className="mt-4 flex items-center gap-2 text-xs text-white/55" aria-live="polite">
+                  <LoaderCircle className="h-4 w-4 animate-spin" /> Recherche de la meilleure édition disponible…
+                </p>
+              )}
+              {!requestedSource && canonicalEntry.resolutionQuery.isError && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100" role="status">
+                  <span>Les informations du manga restent disponibles, mais aucun chapitre ne peut être chargé pour le moment.</span>
+                  <button type="button" className="font-bold underline underline-offset-2" onClick={() => void canonicalEntry.resolutionQuery.refetch()}>
+                    Réessayer
+                  </button>
+                </div>
+              )}
 
               {sourcesOpen && (
                 <div id="manga-source-options" className="mt-4 max-w-2xl border border-[var(--mw-border)] bg-[var(--mw-surface)] p-3" aria-live="polite">

@@ -47,10 +47,14 @@ export function buildReaderLocation(input: {
   chapterId: string;
   language: string;
   pageIndex: number;
+  mangaTitle?: string;
+  mangaAuthor?: string | null;
 }): string {
   const search = new URLSearchParams({
     lang: input.language,
     page: String(Math.max(0, Math.trunc(input.pageIndex))),
   });
+  if (input.mangaTitle) search.set('title', input.mangaTitle);
+  if (input.mangaAuthor) search.set('author', input.mangaAuthor);
   return `/read/${encodeURIComponent(input.source)}/${encodeURIComponent(input.mangaId)}/${encodeURIComponent(input.chapterId)}?${search}`;
 }

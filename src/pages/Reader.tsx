@@ -30,6 +30,8 @@ const Reader = () => {
     language: lang,
     limit: 500,
   });
+  const readerMangaTitle = manga?.title || searchParams.get('title') || undefined;
+  const readerMangaAuthor = manga?.author || searchParams.get('author') || undefined;
 
   const handleSelectChapter = (nextChapterId: string) => {
     navigate(
@@ -52,11 +54,13 @@ const Reader = () => {
       fallbackFrom: source,
       fallbackFromLang: lang,
     });
+    if (readerMangaTitle) nextParams.set('title', readerMangaTitle);
+    if (readerMangaAuthor) nextParams.set('author', readerMangaAuthor);
     navigate(
       `/read/${encodeURIComponent(alternative.source)}/${encodeURIComponent(alternative.mangaId)}/${encodeURIComponent(alternative.chapter.id)}?${nextParams}`,
       { replace: true },
     );
-  }, [lang, navigate, source, triedSources]);
+  }, [lang, navigate, readerMangaAuthor, readerMangaTitle, source, triedSources]);
 
   const handleManualSourceSelection = useCallback((alternative: ChapterSourceAlternative, pageIndex: number) => {
     if (!alternative.chapter) return;
@@ -66,8 +70,10 @@ const Reader = () => {
       chapterId: alternative.chapter.id,
       language: alternative.chapter.language || alternative.language || lang,
       pageIndex,
+      mangaTitle: readerMangaTitle,
+      mangaAuthor: readerMangaAuthor,
     }));
-  }, [lang, navigate]);
+  }, [lang, navigate, readerMangaAuthor, readerMangaTitle]);
 
   const handlePageChange = useCallback((pageIndex: number) => {
     setSearchParams(withReaderPage(searchParams, pageIndex), { replace: true });
@@ -92,8 +98,8 @@ const Reader = () => {
         source={source as SourceType}
         chapterId={chapterId}
         mangaId={mangaId}
-        mangaTitle={manga?.title}
-        mangaAuthor={manga?.author}
+        mangaTitle={readerMangaTitle}
+        mangaAuthor={readerMangaAuthor}
         coverImage={manga?.coverUrl}
         chapters={chapters}
         initialPage={initialPage}

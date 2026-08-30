@@ -43,7 +43,7 @@ const MangaRail = ({ eyebrow, title, description, mangas, favorites, surface = '
               isFavorite={favorites.includes(manga.id)}
               favoriteId={manga.id}
               externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
-              detailUrl={manga.mangadex_id ? `/manga/${manga.mangadex_id}` : undefined}
+              detailUrl={`/manga/${manga.id}`}
             />
           ))}
         </div>
@@ -101,7 +101,7 @@ const HomeCatalogSections = ({ mode }: Props) => {
             <button type="button" onClick={() => setSelectedFormat('all')} aria-pressed={selectedFormat === 'all'} className={`min-h-11 shrink-0 border px-4 text-xs font-semibold uppercase ${selectedFormat === 'all' ? 'border-[var(--mw-accent-coral)] text-white' : 'border-[var(--mw-border)] text-[var(--mw-text-secondary)]'}`}>Tous</button>
             {anonymous.formats.map((format) => <button key={format} type="button" onClick={() => setSelectedFormat(format)} aria-pressed={selectedFormat === format} className={`min-h-11 shrink-0 border px-4 text-xs font-semibold uppercase ${selectedFormat === format ? 'border-[var(--mw-accent-coral)] text-white' : 'border-[var(--mw-border)] text-[var(--mw-text-secondary)]'}`}>{format}</button>)}
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">{formatMangas.map((manga) => <MangaCard key={manga.id} id={manga.id} title={manga.title} author={manga.author || 'Auteur inconnu'} rating={manga.rating} status={manga.status} genre={manga.genre} imageUrl={manga.cover_image} lastUpdate={manga.source_updated_at || manga.created_at} isFavorite={favorites.includes(manga.id)} favoriteId={manga.id} externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined} detailUrl={manga.mangadex_id ? `/manga/${manga.mangadex_id}` : undefined} />)}</div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">{formatMangas.map((manga) => <MangaCard key={manga.id} id={manga.id} title={manga.title} author={manga.author || 'Auteur inconnu'} rating={manga.rating} status={manga.status} genre={manga.genre} imageUrl={manga.cover_image} lastUpdate={manga.source_updated_at || manga.created_at} isFavorite={favorites.includes(manga.id)} favoriteId={manga.id} externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined} detailUrl={`/manga/${manga.id}`} />)}</div>
         </div>
       </section>
       <MangaRail eyebrow="Laissez faire la vague" title="Découverte aléatoire" description="Une sélection renouvelée chaque jour pour sortir des habitudes." mangas={anonymous.randomDiscovery} favorites={favorites} surface="raised" />

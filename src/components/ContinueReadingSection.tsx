@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import MangaCover from '@/components/MangaCover';
 import { useContinueReading, useReadingHistoryActions } from '@/hooks/useReadingProgress';
+import { buildReaderLocation } from '@/domain/readerNavigation';
 
 const relativeDate = (value: string) => {
   const delta = Date.now() - new Date(value).getTime();
@@ -97,11 +98,15 @@ const ContinueReadingSection = () => {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={isLoading}>
             {items.slice(0, 4).map((item) => {
-              const resumeParams = new URLSearchParams({
-                page: String(item.pageIndex || 0),
-                lang: item.language || 'fr',
+              const resumeUrl = buildReaderLocation({
+                source: item.source,
+                mangaId: item.mangaId,
+                chapterId: item.chapterId,
+                language: item.language || 'fr',
+                pageIndex: item.pageIndex || 0,
+                mangaTitle: item.mangaTitle,
+                mangaAuthor: item.mangaAuthor,
               });
-              const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?${resumeParams}`;
               const canonicalKey = item.canonicalKey || `title:${item.mangaTitle.toLowerCase()}`;
 
               return (

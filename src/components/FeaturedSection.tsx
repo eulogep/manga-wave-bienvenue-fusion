@@ -155,7 +155,7 @@ const FeaturedSection = () => {
                   isFavorite={favorites.includes(manga.id)}
                   favoriteId={manga.id}
                   externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
-                  detailUrl={manga.mangadex_id ? `/manga/${manga.mangadex_id}` : undefined}
+                  detailUrl={`/manga/${manga.id}`}
                 />
               </div>
             ))

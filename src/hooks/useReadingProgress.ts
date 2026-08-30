@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { canonicalProgressKey, mergeCanonicalProgress } from '@/domain/canonicalProgress';
+import { buildCanonicalProgressSnapshot, canonicalProgressKey, mergeCanonicalProgress } from '@/domain/canonicalProgress';
 import { normalizeLogicalChapterNumber } from '@/domain/chapterMatching';
 
 export type ReadingProgressItem = {
@@ -48,20 +48,8 @@ export function getLocalHistory(): ReadingProgressItem[] {
 
 export function saveLocalHistoryItem(item: ReadingProgressInput): ReadingProgressItem {
   const currentHistory = getLocalHistory();
-  const now = new Date().toISOString();
-  const pageIndex = item.pageIndex || 0;
-  const totalPages = item.totalPages || 1;
-  const progressPercent = Math.min(100, Math.max(0, Math.round(((pageIndex + 1) / totalPages) * 100)));
-  const canonicalKey = item.canonicalKey || canonicalProgressKey(item.mangaTitle);
-
-  const newItem: ReadingProgressItem = {
-    ...item,
-    canonicalKey,
-    pageIndex,
-    totalPages,
-    readAt: now,
-    progressPercent,
-  };
+  const newItem: ReadingProgressItem = buildCanonicalProgressSnapshot(item);
+  const canonicalKey = newItem.canonicalKey;
 
   // Deduplicate by canonical work: switching provider updates one position.
   const filtered = currentHistory.filter(
@@ -205,7 +193,6 @@ export const useRecordReading = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const pendingRef = useRef<ReadingProgressInput | null>(null);
-  const localTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const remoteTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const flushLocal = useCallback(() => {
@@ -230,8 +217,17 @@ export const useRecordReading = () => {
         .eq('source_manga_id', String(item.mangaId))
         .maybeSingle();
       canonicalMangaId = mapping?.manga_id || null;
+      if (!canonicalMangaId) {
+        const { data: canonicalMatches } = await supabase.rpc('find_canonical_manga', {
+          candidate_title: item.mangaTitle,
+        });
+        const verifiedMatch = canonicalMatches?.find((match) => (
+          match.match_reason === 'exact_title' || match.match_reason === 'exact_alias'
+        ));
+        canonicalMangaId = verifiedMatch?.manga_id || null;
+      }
     }
-    await supabase.from('user_canonical_reading_progress').upsert({
+    const { error } = await supabase.from('user_canonical_reading_progress').upsert({
       user_id: user.id,
       canonical_key: canonicalKey,
       canonical_manga_id: canonicalMangaId,
@@ -250,19 +246,26 @@ export const useRecordReading = () => {
       progress_percentage: Math.min(100, Math.round(((pageIndex + 1) / totalPages) * 100)),
       read_at: new Date().toISOString(),
     }, { onConflict: 'user_id,canonical_key' });
-  }, [user]);
+    if (error) {
+      console.warn('Could not persist canonical reading progress:', error.message);
+      return;
+    }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] }),
+      queryClient.invalidateQueries({ queryKey: ['canonical-progress'] }),
+      queryClient.invalidateQueries({ queryKey: ['homepage-personalized'] }),
+    ]);
+  }, [queryClient, user]);
 
   const mutate = useCallback((item: ReadingProgressInput) => {
     pendingRef.current = item;
-    if (localTimerRef.current) clearTimeout(localTimerRef.current);
     if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
-    localTimerRef.current = setTimeout(flushLocal, 500);
-    remoteTimerRef.current = setTimeout(() => void flushRemote(), 2_000);
+    flushLocal();
+    remoteTimerRef.current = setTimeout(() => void flushRemote(), 750);
   }, [flushLocal, flushRemote]);
 
   useEffect(() => {
     const flush = () => {
-      if (localTimerRef.current) clearTimeout(localTimerRef.current);
       if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
       flushLocal();
       void flushRemote();

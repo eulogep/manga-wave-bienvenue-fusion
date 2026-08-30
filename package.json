@@ -16,6 +16,8 @@
     "test:e2e:reader": "playwright test tests/e2e/reader-p1.spec.ts",
     "test:p2": "node --experimental-strip-types --test tests/homePersonalization.test.ts tests/sourceFirstUx.test.ts",
     "test:t3012": "node --experimental-strip-types --test tests/sourceFirstUx.test.ts",
+    "test:t3012:hotfix": "node --experimental-strip-types --test tests/t3012FunctionalHotfix.test.ts",
+    "verify:t3012:hotfix:db": "node scripts/verify-t3012-hotfix-db.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

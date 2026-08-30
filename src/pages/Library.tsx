@@ -253,7 +253,7 @@ const Library = () => {
                               genre={manga.genre}
                               imageUrl={manga.cover_image}
                               lastUpdate={new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(new Date(manga.source_updated_at || manga.created_at))}
-                              detailUrl={manga.mangadex_id ? `/manga/${manga.mangadex_id}` : undefined}
+                              detailUrl={`/manga/${manga.id}`}
                               externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
                             />
                           </div>
