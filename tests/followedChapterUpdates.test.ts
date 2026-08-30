@@ -62,6 +62,32 @@ test('the new state disappears after that exact chapter is read', () => {
   assert.equal(result.rowsToInsert.length, 0);
 });
 
+test('deterministic lifecycle preserves baseline then transitions unread 0 -> 1 -> 0', () => {
+  const baseline = reconcileFollowedChapters([chapter('200')], [], '2026-08-30T12:00:00.000Z');
+  assert.equal(baseline.unread.length, 0);
+  assert.equal(baseline.rowsToInsert[0].readAt, '2026-08-30T12:00:00.000Z');
+
+  const update = reconcileFollowedChapters(
+    [chapter('201'), chapter('200')],
+    baseline.rowsToInsert,
+    '2026-08-30T12:05:00.000Z',
+  );
+  assert.equal(update.unread.length, 1);
+  assert.equal(update.unread[0].canonicalChapterKey, '201');
+
+  const acknowledged = update.rowsToInsert.map((item) => ({
+    ...item,
+    readAt: '2026-08-30T12:06:00.000Z',
+  }));
+  const afterReading = reconcileFollowedChapters(
+    [chapter('201'), chapter('200')],
+    [...baseline.rowsToInsert, ...acknowledged],
+    '2026-08-30T12:07:00.000Z',
+  );
+  assert.equal(afterReading.unread.length, 0);
+  assert.equal(afterReading.rowsToInsert.length, 0);
+});
+
 test('a new chapter opens directly in the canonical Reader route', () => {
   const url = buildReaderLocation({
     source: 'originmanga',
