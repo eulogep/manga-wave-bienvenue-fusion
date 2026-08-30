@@ -18,6 +18,8 @@
     "test:t3012": "node --experimental-strip-types --test tests/sourceFirstUx.test.ts",
     "test:t3012:hotfix": "node --experimental-strip-types --test tests/t3012FunctionalHotfix.test.ts",
     "verify:t3012:hotfix:db": "node scripts/verify-t3012-hotfix-db.mjs",
+    "test:t3013": "node --experimental-strip-types --test tests/followedChapterUpdates.test.ts",
+    "verify:t3013:db": "node scripts/verify-t3013-db.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

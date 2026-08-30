@@ -31,6 +31,8 @@ import {
 } from '@/hooks/useReadingProgress';
 import type { MangaDexStatus } from '@/integrations/mangadex/client';
 import { canonicalProgressKey } from '@/domain/canonicalProgress';
+import { buildReaderLocation } from '@/domain/readerNavigation';
+import { useFollowedChapterUpdates } from '@/hooks/useFollowedChapterUpdates';
 
 const PAGE_SIZE = 12;
 
@@ -53,6 +55,11 @@ const Library = () => {
   const [activeTab, setActiveTab] = useState<TabOption>('favorites');
   const { data: library = [], isLoading, isError, error, refetch, isFetching } = useLibrary();
   const { data: historyItems = [] } = useContinueReading();
+  const { data: followedUpdates = [] } = useFollowedChapterUpdates();
+  const followedUpdatesByManga = useMemo(
+    () => new Map(followedUpdates.map((update) => [update.manga.id, update])),
+    [followedUpdates],
+  );
 
   const [genre, setGenre] = useState('all');
   const [status, setStatus] = useState<'all' | MangaDexStatus>('all');
@@ -240,7 +247,18 @@ const Library = () => {
                         <span>Page {currentPage + 1} / {totalPages}</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {visibleMangas.map((manga, index) => (
+                        {visibleMangas.map((manga, index) => {
+                          const update = followedUpdatesByManga.get(manga.id);
+                          const updateUrl = update ? buildReaderLocation({
+                            source: update.latestChapter.provider,
+                            mangaId: update.latestChapter.providerMangaId,
+                            chapterId: update.latestChapter.providerChapterId,
+                            language: update.latestChapter.language,
+                            pageIndex: 0,
+                            mangaTitle: manga.title,
+                            mangaAuthor: manga.author,
+                          }) : null;
+                          return (
                           <div key={manga.id} className="animate-slide-up-fade" style={{ animationDelay: `${index * 0.05}s` }}>
                             <MangaCard
                               id={manga.id}
@@ -255,9 +273,16 @@ const Library = () => {
                               lastUpdate={new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(new Date(manga.source_updated_at || manga.created_at))}
                               detailUrl={`/manga/${manga.id}`}
                               externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
+                              newChapterCount={update?.newChapterCount}
                             />
+                            {updateUrl && (
+                              <Button className="mt-2 h-10 w-full bg-[var(--mw-accent-coral)] text-xs font-bold uppercase text-white" asChild>
+                                <Link to={updateUrl}>Lire le chapitre {update.latestChapter.chapterNumber}</Link>
+                              </Button>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       {totalPages > 1 && (
                         <div className="flex justify-center items-center gap-4 mt-10">

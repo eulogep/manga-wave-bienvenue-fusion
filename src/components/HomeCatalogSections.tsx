@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import MangaCard from '@/components/MangaCard';
 import { useManga, type Manga } from '@/hooks/useManga';
 import { buildAnonymousHomeCatalog, buildPersonalizedHomeCatalog } from '@/domain/homePersonalization';
+import FollowedUpdatesSection from '@/components/FollowedUpdatesSection';
 
 type Props = {
   mode: 'anonymous' | 'personalized';
@@ -71,7 +72,7 @@ const HomeCatalogSections = ({ mode }: Props) => {
   if (mode === 'personalized') {
     return (
       <>
-        <MangaRail eyebrow="À lire maintenant" title="Nouveaux chapitres" description="Les séries en cours actualisées le plus récemment." mangas={personalized.newChapters} favorites={favorites} surface="raised" />
+        <FollowedUpdatesSection />
         <MangaRail eyebrow="Sélection personnelle" title="Pour vous" description={personalized.favoriteGenres.length ? `Inspiré par ${personalized.favoriteGenres.slice(0, 3).join(', ')}.` : 'Une sélection populaire pendant que vos goûts se précisent.'} mangas={personalized.forYou} favorites={favorites} />
         <MangaRail eyebrow="Communauté" title="Tendances" description="Les titres qui concentrent le plus d’intérêt dans le catalogue." mangas={personalized.trending} favorites={favorites} surface="raised" />
         <MangaRail eyebrow="Catalogue" title="Récemment mis à jour" description="Les dernières fiches synchronisées, toutes séries confondues." mangas={personalized.recentlyUpdated} favorites={favorites} />

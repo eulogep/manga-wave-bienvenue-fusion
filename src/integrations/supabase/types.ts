@@ -399,6 +399,51 @@ export type Database = {
           },
         ]
       }
+      user_followed_chapter_state: {
+        Row: {
+          canonical_chapter_key: string
+          chapter_number: string
+          chapter_title: string | null
+          first_seen_at: string
+          language: string
+          manga_id: number
+          provider: string
+          provider_chapter_id: string
+          provider_manga_id: string
+          read_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canonical_chapter_key: string
+          chapter_number: string
+          chapter_title?: string | null
+          first_seen_at?: string
+          language?: string
+          manga_id: number
+          provider: string
+          provider_chapter_id: string
+          provider_manga_id: string
+          read_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canonical_chapter_key?: string
+          chapter_number?: string
+          chapter_title?: string | null
+          first_seen_at?: string
+          language?: string
+          manga_id?: number
+          provider?: string
+          provider_chapter_id?: string
+          provider_manga_id?: string
+          read_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_history: {
         Row: {
           chapter_id: number

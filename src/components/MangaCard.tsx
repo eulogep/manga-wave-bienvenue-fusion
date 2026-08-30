@@ -20,6 +20,7 @@ interface MangaCardProps {
   favoriteId?: number;
   externalUrl?: string;
   detailUrl?: string;
+  newChapterCount?: number;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -41,6 +42,7 @@ const MangaCard = ({
   favoriteId,
   externalUrl,
   detailUrl,
+  newChapterCount = 0,
 }: MangaCardProps) => {
   const { user } = useAuth();
   const { toggleFavorite } = useFavorites();
@@ -78,6 +80,11 @@ const MangaCard = ({
         <MangaCover src={imageUrl} alt={`Couverture de ${title}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#06101a]/85 via-transparent to-black/10" />
         <span className={`absolute left-2 top-2 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${statusConfig.cls}`}>{statusConfig.label}</span>
+        {newChapterCount > 0 && (
+          <span className="absolute left-2 top-10 bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+            {newChapterCount} nouveau{newChapterCount > 1 ? 'x' : ''}
+          </span>
+        )}
         <button aria-label={`${isFavorite ? 'Retirer' : 'Ajouter'} ${title} ${isFavorite ? 'des' : 'aux'} favoris`} className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center border border-white/15 bg-black/65 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-[var(--mw-accent-coral)]" onClick={handleFavoriteClick}>
           <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[var(--mw-accent-coral)] text-[var(--mw-accent-coral)]' : 'text-white/85'}`} />
         </button>

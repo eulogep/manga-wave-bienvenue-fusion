@@ -227,11 +227,13 @@ export const useRecordReading = () => {
         canonicalMangaId = verifiedMatch?.manga_id || null;
       }
     }
+    const readAt = new Date().toISOString();
+    const canonicalChapterKey = normalizeLogicalChapterNumber(item.chapterNumber) || item.chapterNumber;
     const { error } = await supabase.from('user_canonical_reading_progress').upsert({
       user_id: user.id,
       canonical_key: canonicalKey,
       canonical_manga_id: canonicalMangaId,
-      canonical_chapter_key: normalizeLogicalChapterNumber(item.chapterNumber) || item.chapterNumber,
+      canonical_chapter_key: canonicalChapterKey,
       last_provider: item.source,
       last_provider_manga_id: String(item.mangaId),
       last_provider_chapter_id: String(item.chapterId),
@@ -244,16 +246,32 @@ export const useRecordReading = () => {
       page_index: pageIndex,
       total_pages: totalPages,
       progress_percentage: Math.min(100, Math.round(((pageIndex + 1) / totalPages) * 100)),
-      read_at: new Date().toISOString(),
+      read_at: readAt,
     }, { onConflict: 'user_id,canonical_key' });
     if (error) {
       console.warn('Could not persist canonical reading progress:', error.message);
       return;
     }
+    if (canonicalMangaId) {
+      const { error: readStateError } = await supabase
+        .from('user_followed_chapter_state')
+        .update({
+          read_at: readAt,
+          provider: item.source,
+          provider_manga_id: String(item.mangaId),
+          provider_chapter_id: String(item.chapterId),
+          language: item.language || 'und',
+        })
+        .eq('user_id', user.id)
+        .eq('manga_id', canonicalMangaId)
+        .eq('canonical_chapter_key', canonicalChapterKey);
+      if (readStateError) console.warn('Could not acknowledge followed chapter:', readStateError.message);
+    }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] }),
       queryClient.invalidateQueries({ queryKey: ['canonical-progress'] }),
       queryClient.invalidateQueries({ queryKey: ['homepage-personalized'] }),
+      queryClient.invalidateQueries({ queryKey: ['followed-chapter-updates'] }),
     ]);
   }, [queryClient, user]);
 
