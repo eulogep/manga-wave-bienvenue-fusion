@@ -40,7 +40,12 @@ console.log(JSON.stringify({
   canonicalId: manga.canonical_id,
   title: manga.title,
   sourceCount: manga.source_count,
-  mappings: (manga.sources || []).map((mapping) => mapping.provider),
+  mappings: (manga.sources || []).map((mapping) => ({
+    provider: mapping.provider,
+    externalId: mapping.external_id,
+    language: mapping.language,
+    available: mapping.available,
+  })),
   rankedEligible: (ranking || []).filter((mapping) => mapping.eligible).length,
   topSource: ranking?.[0]?.source_id,
   topLanguage: ranking?.[0]?.language,
