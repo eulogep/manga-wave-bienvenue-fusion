@@ -1,6 +1,43 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 
-const READER_PATH = '/read/asurascans/solo-leveling-b57aa235/%2Fcomics%2Fsolo-leveling-b57aa235%2Fchapter%2F5?lang=en&page=0';
+const ASURA_MANGA_ID = 'solo-leveling-b57aa235';
+
+type FixtureDetail = {
+  manga: {
+    title: string;
+    chapters: Array<{ id: string; chapterNumber: string }>;
+  };
+};
+
+type FixtureSearch = {
+  results: Array<{ id: string; title: string }>;
+};
+
+let readerPath = '';
+
+async function resolveReaderFixture(request: APIRequestContext) {
+  const asuraResponse = await request.get(`/api/extract/detail/asurascans/${ASURA_MANGA_ID}`);
+  expect(asuraResponse.ok()).toBe(true);
+  const asuraDetail = await asuraResponse.json() as FixtureDetail;
+  expect(asuraDetail.manga.title).toBe('Solo Leveling');
+  const asuraChapter = asuraDetail.manga.chapters.find((chapter) => chapter.chapterNumber === '5');
+  expect(asuraChapter).toBeTruthy();
+
+  const originSearchResponse = await request.get('/api/extract/search/originmanga', {
+    params: { q: asuraDetail.manga.title, page: 1 },
+  });
+  expect(originSearchResponse.ok()).toBe(true);
+  const originSearch = await originSearchResponse.json() as FixtureSearch;
+  const originManga = originSearch.results.find((manga) => manga.title === asuraDetail.manga.title);
+  expect(originManga).toBeTruthy();
+
+  const originResponse = await request.get(`/api/extract/detail/originmanga/${encodeURIComponent(originManga!.id)}`);
+  expect(originResponse.ok()).toBe(true);
+  const originDetail = await originResponse.json() as FixtureDetail;
+  expect(originDetail.manga.chapters.some((chapter) => chapter.chapterNumber === '5')).toBe(true);
+
+  return `/read/asurascans/${ASURA_MANGA_ID}/${encodeURIComponent(asuraChapter!.id)}?lang=en&page=0`;
+}
 
 async function revealChrome(page: Page, cycle = 0) {
   await page.mouse.move(320 + cycle * 80, 280 + cycle * 40);
@@ -8,27 +45,31 @@ async function revealChrome(page: Page, cycle = 0) {
 
 async function expectPointerReachable(page: Page, control: Locator) {
   await expect(control).toBeVisible();
-  await expect.poll(() => control.evaluate((element) => getComputedStyle(element).opacity)).toBe('1');
-
-  const box = await control.boundingBox();
-  const viewport = page.viewportSize();
-  expect(box).not.toBeNull();
-  expect(viewport).not.toBeNull();
-  expect(box!.y).toBeGreaterThanOrEqual(0);
-  expect(box!.y).toBeLessThan(viewport!.height);
-  expect(box!.y + box!.height).toBeGreaterThan(0);
-  expect(box!.height).toBeGreaterThanOrEqual(32);
-
-  const hitBelongsToControl = await control.evaluate((element) => {
+  await expect.poll(() => control.evaluate((element) => {
+    const chrome = element.closest<HTMLElement>('[data-reader-chrome]');
+    const chromeStyle = chrome ? getComputedStyle(chrome) : null;
     const rect = element.getBoundingClientRect();
     const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    return Boolean(hit && (hit === element || element.contains(hit)));
-  });
-  expect(hitBelongsToControl).toBe(true);
+    return Boolean(
+      chrome?.dataset.visible === 'true'
+      && chromeStyle?.opacity === '1'
+      && chromeStyle.transform === 'matrix(1, 0, 0, 1, 0, 0)'
+      && rect.y >= 0
+      && rect.y < window.innerHeight
+      && rect.y + rect.height > 0
+      && rect.height >= 32
+      && hit
+      && (hit === element || element.contains(hit)),
+    );
+  })).toBe(true);
 }
 
+test.beforeAll(async ({ request }) => {
+  readerPath = await resolveReaderFixture(request);
+});
+
 test.beforeEach(async ({ page }) => {
-  await page.goto(READER_PATH, { waitUntil: 'domcontentloaded' });
+  await page.goto(readerPath, { waitUntil: 'domcontentloaded' });
   await expect(page.getByText(/Page 1 \/ 26/)).toBeVisible({ timeout: 60_000 });
 });
 
@@ -67,7 +108,7 @@ test('Settings is pointer reachable, mounts its dialog and exposes source select
   const dialog = page.getByRole('dialog', { name: /réglages du lecteur/i });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText('Ajustement')).toBeVisible();
-  await expect(dialog.getByText('Sources')).toBeVisible();
+  await expect(dialog.getByText('Sources', { exact: true })).toBeVisible();
   await expect(dialog.getByText('AsuraScans', { exact: false })).toBeVisible();
   await expect(dialog.getByRole('button', { name: /OriginManga/i })).toBeVisible({ timeout: 60_000 });
 

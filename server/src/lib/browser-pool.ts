@@ -23,7 +23,9 @@ async function getBrowser(): Promise<Browser> {
   ].filter((value): value is string => Boolean(value));
   const localExecutable = process.platform === 'win32'
     ? windowsCandidates.find((candidate) => existsSync(candidate))
-    : undefined;
+    : process.platform === 'darwin'
+      ? process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || chromium.executablePath()
+      : undefined;
   browser = await chromium.launch({
     headless: true,
     executablePath: localExecutable || await serverlessChromium.executablePath(),

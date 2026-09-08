@@ -20,7 +20,7 @@ const chapterValue = (chapterNumber: string): number => {
   return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
 };
 
-export function sortDetectedChapters(chapters: DetectedFollowedChapter[]): DetectedFollowedChapter[] {
+export function sortDetectedChapters<T extends DetectedFollowedChapter>(chapters: T[]): T[] {
   return [...chapters].sort((left, right) => (
     chapterValue(right.chapterNumber) - chapterValue(left.chapterNumber)
     || right.chapterNumber.localeCompare(left.chapterNumber)
