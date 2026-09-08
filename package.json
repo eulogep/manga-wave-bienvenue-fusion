@@ -57,7 +57,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/supabase-js": "^2.50.2",
-    "@tanstack/react-query": "^5.56.2",
+    "@tanstack/react-query": "^5.81.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
