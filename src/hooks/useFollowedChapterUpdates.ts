@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { normalizeLogicalChapterNumber } from '@/domain/chapterMatching';
 import {
   reconcileFollowedChapters,
@@ -59,6 +59,7 @@ const toState = (row: {
 
 export function useFollowedChapterUpdates() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const followsQuery = useFollows();
   const followedMangas = followsQuery.data?.flatMap((follow) => follow.manga ? [follow.manga] : []) || [];
   const mangaIds = followedMangas.map((manga) => manga.id);
@@ -146,6 +147,7 @@ export function useFollowedChapterUpdates() {
       if (rowsToInsert.length > 0) {
         const { error } = await supabase.from('user_followed_chapter_state').insert(rowsToInsert);
         if (error) throw error;
+        await queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
       }
 
       return reconciled.flatMap(({ manga, reconciliation }) => {

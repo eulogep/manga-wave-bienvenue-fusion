@@ -272,6 +272,7 @@ export const useRecordReading = () => {
       queryClient.invalidateQueries({ queryKey: ['canonical-progress'] }),
       queryClient.invalidateQueries({ queryKey: ['homepage-personalized'] }),
       queryClient.invalidateQueries({ queryKey: ['followed-chapter-updates'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
     ]);
   }, [queryClient, user]);
 

@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { NotificationCenter } from '@/components/NotificationCenter';
 
 const MangaWaveLogo = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -171,6 +172,8 @@ const Header = () => {
                   </Button>
                 )}
               </div>
+
+              {user && <NotificationCenter />}
 
               {/* User */}
               {user ? (

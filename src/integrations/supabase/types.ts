@@ -491,6 +491,72 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          body: string
+          canonical_chapter_key: string
+          canonical_manga_id: number
+          chapter_number: string
+          chapter_title: string | null
+          created_at: string
+          id: number
+          is_read: boolean
+          language: string
+          metadata: Json
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          canonical_chapter_key: string
+          canonical_manga_id: number
+          chapter_number: string
+          chapter_title?: string | null
+          created_at?: string
+          id?: number
+          is_read?: boolean
+          language?: string
+          metadata?: Json
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          canonical_chapter_key?: string
+          canonical_manga_id?: number
+          chapter_number?: string
+          chapter_title?: string | null
+          created_at?: string
+          id?: number
+          is_read?: boolean
+          language?: string
+          metadata?: Json
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_canonical_manga_id_fkey"
+            columns: ["canonical_manga_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_manga_catalog"
+            referencedColumns: ["canonical_id"]
+          },
+          {
+            foreignKeyName: "user_notifications_canonical_manga_id_fkey"
+            columns: ["canonical_manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_history: {
         Row: {
           chapter_id: number
