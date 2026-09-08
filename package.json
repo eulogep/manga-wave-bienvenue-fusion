@@ -24,6 +24,8 @@
     "test:t3014": "node --experimental-strip-types --test tests/t3014Follow.test.ts",
     "test:t3015": "node --experimental-strip-types --test tests/t3015Notifications.test.ts",
     "test:e2e:t3015": "playwright test tests/e2e/t3015-notifications.spec.ts",
+    "test:t3017": "node --experimental-strip-types --test tests/libraryItem.test.ts",
+    "test:e2e:t3017": "playwright test tests/e2e/t3017-library.spec.ts",
     "verify:t3014:db": "node --experimental-strip-types scripts/verify-t3014-db.mjs",
     "verify:t3013:db": "node scripts/verify-t3013-db.mjs",
     "preview": "vite preview"

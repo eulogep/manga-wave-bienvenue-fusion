@@ -1,113 +1,241 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BookMarked,
+  BellRing,
+  Bookmark,
   BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
+  Check,
   Filter,
   Heart,
-  History,
   LibraryBig,
+  MoreVertical,
   Play,
+  Search,
   SlidersHorizontal,
-  Trash2,
-  X,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import MangaCard from '@/components/MangaCard';
 import MangaCover from '@/components/MangaCover';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
-import { useLibrary } from '@/hooks/useLibrary';
-import {
-  useContinueReading,
-  removeLocalHistoryItem,
-  clearLocalHistory,
-} from '@/hooks/useReadingProgress';
-import type { MangaDexStatus } from '@/integrations/mangadex/client';
-import { canonicalProgressKey } from '@/domain/canonicalProgress';
+import { useLibraryItems } from '@/hooks/useLibraryItems';
+import { useFavorites } from '@/hooks/useManga';
+import { useCanonicalFollow } from '@/hooks/useFollows';
+import { useToast } from '@/hooks/use-toast';
 import { buildReaderLocation } from '@/domain/readerNavigation';
-import { useFollowedChapterUpdates } from '@/hooks/useFollowedChapterUpdates';
-import { useFollows } from '@/hooks/useFollows';
+import {
+  filterLibraryItems,
+  isInProgress,
+  sortLibraryItems,
+  searchLibraryItems,
+  type LibraryItem,
+  type LibrarySectionId,
+  type LibrarySortOption,
+} from '@/domain/libraryItem';
 
-const PAGE_SIZE = 12;
+const SECTIONS: { id: LibrarySectionId; label: string; icon: typeof LibraryBig }[] = [
+  { id: 'all', label: 'Tous', icon: LibraryBig },
+  { id: 'in-progress', label: 'En cours', icon: Play },
+  { id: 'favorites', label: 'Favoris', icon: Heart },
+  { id: 'following', label: 'Suivis', icon: BellRing },
+  { id: 'updates', label: 'Nouveautés', icon: Bookmark },
+  { id: 'completed', label: 'Terminés', icon: Check },
+];
 
-type SortOption = 'recent' | 'title' | 'rating' | 'updated';
-type TabOption = 'favorites' | 'history';
+const resumeAriaLabel = (item: LibraryItem) => (
+  item.currentChapterNumber
+    ? `Reprendre ${item.title} au chapitre ${item.currentChapterNumber}`
+    : `Reprendre ${item.title}`
+);
 
-const relativeDate = (value: string) => {
-  const delta = Date.now() - new Date(value).getTime();
-  const minutes = Math.max(1, Math.round(delta / 60_000));
-  if (minutes < 60) return `Il y a ${minutes} min`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `Il y a ${hours} h`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `Il y a ${days} j`;
-  return new Date(value).toLocaleDateString('fr-FR');
+const LibraryCard = ({ item }: { item: LibraryItem }) => {
+  const { toggleFavorite } = useFavorites();
+  const { setFollowing, isUpdating: isFollowUpdating } = useCanonicalFollow(item.canonicalMangaId ?? undefined);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const resumeUrl = item.resume
+    ? buildReaderLocation({
+      source: item.resume.source,
+      mangaId: item.resume.providerMangaId,
+      chapterId: item.resume.chapterId,
+      language: item.resume.language,
+      pageIndex: item.resume.pageIndex,
+      mangaTitle: item.title,
+      mangaAuthor: item.author,
+    })
+    : null;
+
+  const updateUrl = item.unreadUpdate
+    ? buildReaderLocation({
+      source: item.unreadUpdate.provider,
+      mangaId: item.unreadUpdate.providerMangaId,
+      chapterId: item.unreadUpdate.providerChapterId,
+      language: item.unreadUpdate.language,
+      pageIndex: 0,
+      mangaTitle: item.title,
+      mangaAuthor: item.author,
+    })
+    : null;
+
+  const detailUrl = item.canonicalMangaId !== null ? `/manga/${item.canonicalMangaId}` : null;
+
+  const handleFavorite = async () => {
+    if (item.canonicalMangaId === null) return;
+    try {
+      await toggleFavorite.mutateAsync(item.canonicalMangaId);
+      toast({ title: item.favorite ? 'Retiré des favoris' : 'Ajouté aux favoris', description: item.title });
+    } catch {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de modifier les favoris.' });
+    }
+  };
+
+  const handleFollow = async () => {
+    if (item.canonicalMangaId === null || !user) return;
+    try {
+      await setFollowing(!item.following);
+      toast({ title: item.following ? 'Suivi retiré' : 'Manga suivi', description: item.title });
+    } catch {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de modifier le suivi.' });
+    }
+  };
+
+  return (
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1520]/80 shadow-card transition-all duration-300 hover:border-manga-purple/40 hover:shadow-card-hover animate-slide-up-fade">
+      <div className="relative aspect-[3/4] overflow-hidden bg-black/40">
+        <Link to={detailUrl || '#'} aria-label={`Voir la fiche de ${item.title}`}>
+          <MangaCover
+            src={item.cover}
+            alt={`Couverture de ${item.title}`}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        </Link>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
+
+        <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+          {item.following && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-manga-cyan">
+              <BellRing className="h-2.5 w-2.5" /> Suivi
+            </span>
+          )}
+          {item.favorite && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-manga-pink">
+              <Heart className="h-2.5 w-2.5 fill-current" /> Favori
+            </span>
+          )}
+          {item.unreadUpdate && item.unreadUpdate.count > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
+              Nouveau
+            </span>
+          )}
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label={`Actions pour ${item.title}`}
+              className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/65 text-white/85 opacity-0 transition-opacity hover:border-manga-purple group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#0f1520] border-white/15 text-white">
+            <DropdownMenuItem onSelect={handleFavorite} disabled={item.canonicalMangaId === null}>
+              <Heart className="h-3.5 w-3.5 mr-2" /> {item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleFollow} disabled={item.canonicalMangaId === null || isFollowUpdating}>
+              <BellRing className="h-3.5 w-3.5 mr-2" /> {item.following ? 'Ne plus suivre' : 'Suivre'}
+            </DropdownMenuItem>
+            {detailUrl && (
+              <DropdownMenuItem asChild>
+                <Link to={detailUrl}><BookOpen className="h-3.5 w-3.5 mr-2" /> Voir la fiche</Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {item.hasProgress && item.progressPercent !== null && (
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
+            <div className="h-full bg-gradient-to-r from-manga-purple to-manga-cyan" style={{ width: `${item.progressPercent}%` }} />
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col justify-between p-3.5">
+        <div>
+          <Link to={detailUrl || '#'} className="font-outfit text-sm font-bold text-white line-clamp-2 hover:text-manga-purple transition-colors">
+            {item.title}
+          </Link>
+          {item.currentChapterNumber && (
+            <p className="mt-1 text-xs font-medium text-manga-cyan">Chapitre {item.currentChapterNumber}</p>
+          )}
+        </div>
+
+        <div className="mt-3">
+          {updateUrl ? (
+            <Button asChild size="sm" className="h-11 w-full bg-[var(--mw-accent-coral)] text-xs font-bold uppercase text-white hover:bg-[#ff6671]">
+              <Link to={updateUrl} aria-label={`Lire le nouveau chapitre ${item.unreadUpdate?.chapterNumber} de ${item.title}`}>
+                Nouveau chapitre {item.unreadUpdate?.chapterNumber}
+              </Link>
+            </Button>
+          ) : resumeUrl ? (
+            <Button asChild size="sm" className="btn-gradient h-11 w-full text-xs font-semibold">
+              <Link to={resumeUrl} aria-label={resumeAriaLabel(item)}>
+                <Play className="h-3.5 w-3.5 mr-1.5 fill-white" /> Reprendre
+              </Link>
+            </Button>
+          ) : detailUrl ? (
+            <Button asChild size="sm" variant="outline" className="h-11 w-full border-white/20 text-xs font-semibold">
+              <Link to={detailUrl}>Commencer</Link>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
 };
 
 const Library = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabOption>('favorites');
-  const { data: library = [], isLoading, isError, error, refetch, isFetching } = useLibrary();
-  const { data: historyItems = [] } = useContinueReading();
-  const { data: followedUpdates = [] } = useFollowedChapterUpdates();
-  const { data: follows = [] } = useFollows();
-  const followedMangaIds = useMemo(
-    () => new Set(follows.map((follow) => follow.canonicalMangaId)),
-    [follows],
-  );
-  const followedUpdatesByManga = useMemo(
-    () => new Map(followedUpdates.map((update) => [update.manga.id, update])),
-    [followedUpdates],
-  );
+  const { data: items = [], isLoading, isError, error, refetch, isFetching } = useLibraryItems();
 
-  const [genre, setGenre] = useState('all');
-  const [status, setStatus] = useState<'all' | MangaDexStatus>('all');
-  const [sort, setSort] = useState<SortOption>('recent');
-  const [page, setPage] = useState(0);
-
-  const genres = useMemo(
-    () => [...new Set(library.flatMap((manga) => manga.genre))].sort((left, right) => left.localeCompare(right, 'fr')),
-    [library],
-  );
-
-  const filteredLibrary = useMemo(() => {
-    const next = library.filter((manga) => {
-      const matchesGenre = genre === 'all' || manga.genre.includes(genre);
-      const matchesStatus = status === 'all' || manga.status === status;
-      return matchesGenre && matchesStatus;
-    });
-
-    return [...next].sort((left, right) => {
-      if (sort === 'title') return left.title.localeCompare(right.title, 'fr');
-      if (sort === 'rating') return (right.rating || 0) - (left.rating || 0);
-      if (sort === 'updated') return new Date(right.source_updated_at || right.created_at).getTime() - new Date(left.source_updated_at || left.created_at).getTime();
-      return new Date(right.favoritedAt).getTime() - new Date(left.favoritedAt).getTime();
-    });
-  }, [genre, library, sort, status]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredLibrary.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages - 1);
-  const visibleMangas = filteredLibrary.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const [section, setSection] = useState<LibrarySectionId>('all');
+  const [sort, setSort] = useState<LibrarySortOption>('activity');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
-    setPage(0);
-  }, [genre, status, sort]);
+    // Switching sections should not preserve a stale search across very different sets.
+  }, [section]);
 
-  if (loading || (isLoading && activeTab === 'favorites')) {
+  const sectioned = useMemo(() => filterLibraryItems(items, section), [items, section]);
+  const searched = useMemo(() => searchLibraryItems(sectioned, query), [sectioned, query]);
+  const visible = useMemo(() => sortLibraryItems(searched, sort), [searched, sort]);
+
+  const counts = useMemo(() => ({
+    all: items.length,
+    'in-progress': items.filter(isInProgress).length,
+    favorites: items.filter((item) => item.favorite).length,
+    following: items.filter((item) => item.following).length,
+    updates: items.filter((item) => item.unreadUpdate && item.unreadUpdate.count > 0).length,
+    completed: items.filter((item) => item.canonicalStatus === 'completed').length,
+  }), [items]);
+
+  if (loading || (user && isLoading)) {
     return (
       <div className="min-h-screen flex flex-col bg-[#080c14] text-white">
         <Header />
         <main className="flex-1 section-padding py-12" aria-busy="true" aria-live="polite">
           <div className="container mx-auto animate-pulse space-y-8">
             <div className="h-10 rounded-xl bg-white/10 max-w-sm" />
-            <div className="h-24 rounded-2xl bg-white/5" />
+            <div className="h-14 rounded-2xl bg-white/5" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {Array.from({ length: 8 }, (_, index) => <div key={index} className="aspect-[3/4] rounded-2xl bg-white/10" />)}
             </div>
@@ -123,312 +251,113 @@ const Library = () => {
       <Header />
       <main className="flex-1 section-padding py-10 md:py-14">
         <div className="container mx-auto">
-          {/* Header */}
-          <section className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
-            <div>
-              <p className="text-manga-cyan font-semibold tracking-widest text-xs mb-2">ESPACE PERSONNEL</p>
-              <h1 className="text-4xl md:text-5xl font-bold font-japanese mb-2">
-                Ma <span className="glow-text">Bibliothèque</span>
-              </h1>
-              <p className="text-white/50 text-sm md:text-base">
-                Retrouvez vos mangas favoris et reprenez vos lectures où vous vous êtes arrêté.
-              </p>
-            </div>
-
-            {/* Tab switchers */}
-            <div className="flex items-center gap-2 p-1 rounded-xl bg-white/[0.05] border border-white/[0.08] self-start lg:self-auto">
-              <button
-                onClick={() => setActiveTab('favorites')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  activeTab === 'favorites'
-                    ? 'bg-manga-purple text-white shadow-glow-purple'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                <Heart className="h-4 w-4" />
-                Favoris ({library.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  activeTab === 'history'
-                    ? 'bg-manga-purple text-white shadow-glow-purple'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                <History className="h-4 w-4" />
-                Historique ({historyItems.length})
-              </button>
-            </div>
+          <section className="mb-8">
+            <p className="text-manga-cyan font-semibold tracking-widest text-xs mb-2">ESPACE PERSONNEL</p>
+            <h1 className="text-4xl md:text-5xl font-bold font-japanese mb-2">
+              Ma <span className="glow-text">Bibliothèque</span>
+            </h1>
+            <p className="text-white/50 text-sm md:text-base">
+              Un seul endroit pour retrouver, suivre et reprendre vos mangas — quelle que soit la source.
+            </p>
           </section>
 
-          {/* TAB 1: FAVORITES */}
-          {activeTab === 'favorites' && (
+          {!user ? (
+            <section className="rounded-3xl border border-manga-purple/30 bg-gradient-to-br from-manga-purple/15 to-manga-cyan/5 p-8 md:p-12 text-center max-w-2xl mx-auto my-8">
+              <LibraryBig className="h-12 w-12 text-manga-pink mx-auto mb-4" />
+              <h2 className="text-2xl font-bold font-outfit mb-2">Synchronisez votre bibliothèque</h2>
+              <p className="text-white/60 text-sm leading-relaxed mb-6">
+                Connectez-vous pour retrouver vos favoris, vos suivis et votre progression sur tous vos appareils.
+              </p>
+              <Button className="btn-gradient rounded-full px-8" asChild>
+                <Link to="/auth">Se connecter</Link>
+              </Button>
+            </section>
+          ) : isError ? (
+            <section className="container mx-auto max-w-xl text-center rounded-2xl border border-destructive/40 bg-destructive/10 p-8">
+              <h2 className="text-xl font-bold mb-2">Bibliothèque indisponible</h2>
+              <p className="text-white/60 mb-6 text-sm">{error?.message}</p>
+              <Button className="btn-gradient" onClick={() => refetch()} disabled={isFetching}>Réessayer</Button>
+            </section>
+          ) : (
             <>
-              {!user ? (
-                <section className="rounded-3xl border border-manga-purple/30 bg-gradient-to-br from-manga-purple/15 to-manga-cyan/5 p-8 md:p-12 text-center max-w-2xl mx-auto my-8">
-                  <Heart className="h-12 w-12 text-manga-pink mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold font-outfit mb-2">Synchronisez vos favoris</h2>
-                  <p className="text-white/60 text-sm leading-relaxed mb-6">
-                    Connectez-vous pour ajouter des mangas à vos favoris et les retrouver sur tous vos appareils.
-                  </p>
-                  <Button className="btn-gradient rounded-full px-8" asChild>
-                    <Link to="/auth">Se connecter</Link>
-                  </Button>
-                </section>
-              ) : isError ? (
-                <section className="container mx-auto max-w-xl text-center rounded-2xl border border-destructive/40 bg-destructive/10 p-8">
-                  <h2 className="text-xl font-bold mb-2">Bibliothèque indisponible</h2>
-                  <p className="text-white/60 mb-6 text-sm">{error.message}</p>
-                  <Button className="btn-gradient" onClick={() => refetch()} disabled={isFetching}>Réessayer</Button>
-                </section>
-              ) : (
-                <>
-                  <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-8">
-                    <div className="flex flex-col xl:flex-row xl:items-center gap-4">
-                      <div className="flex items-center gap-2 text-xs text-white/50 shrink-0">
-                        <SlidersHorizontal className="h-4 w-4 text-manga-cyan" /> Filtres
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
-                        <Select value={genre} onValueChange={setGenre}>
-                          <SelectTrigger className="bg-[#0f1520] border-white/15 text-white">
-                            <Filter className="h-3.5 w-3.5 mr-2 text-white/40" />
-                            <SelectValue placeholder="Genre" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[#0f1520] border-white/20 max-h-64 text-white">
-                            <SelectItem value="all">Tous les genres</SelectItem>
-                            {genres.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Select value={status} onValueChange={(value) => setStatus(value as 'all' | MangaDexStatus)}>
-                          <SelectTrigger className="bg-[#0f1520] border-white/15 text-white">
-                            <SelectValue placeholder="Statut" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[#0f1520] border-white/20 text-white">
-                            <SelectItem value="all">Tous statuts</SelectItem>
-                            <SelectItem value="ongoing">En cours</SelectItem>
-                            <SelectItem value="completed">Terminé</SelectItem>
-                            <SelectItem value="hiatus">En pause</SelectItem>
-                            <SelectItem value="cancelled">Annulé</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={sort} onValueChange={(value) => setSort(value as SortOption)}>
-                          <SelectTrigger className="bg-[#0f1520] border-white/15 text-white">
-                            <SelectValue placeholder="Trier" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[#0f1520] border-white/20 text-white">
-                            <SelectItem value="recent">Ajoutés récemment</SelectItem>
-                            <SelectItem value="title">Titre A → Z</SelectItem>
-                            <SelectItem value="rating">Meilleures notes</SelectItem>
-                            <SelectItem value="updated">Dernière mise à jour</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </section>
-
-                  {library.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] py-16 px-6 text-center">
-                      <LibraryBig className="h-12 w-12 text-manga-purple mx-auto mb-4 opacity-70" />
-                      <h2 className="text-xl font-bold mb-2">Votre bibliothèque est encore vide</h2>
-                      <p className="text-white/50 max-w-md mx-auto text-sm mb-6">
-                        Ajoutez des mangas à vos favoris en cliquant sur l'icône cœur pour les retrouver ici.
-                      </p>
-                      <Button className="btn-gradient rounded-full px-6" asChild>
-                        <Link to="/search">Explorer le catalogue</Link>
-                      </Button>
-                    </section>
-                  ) : filteredLibrary.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] py-14 px-6 text-center">
-                      <Filter className="h-10 w-10 text-manga-cyan mx-auto mb-3" />
-                      <h2 className="text-lg font-bold mb-2">Aucun favori ne correspond aux filtres</h2>
-                      <Button variant="outline" className="border-white/20 mt-3" onClick={() => { setGenre('all'); setStatus('all'); setSort('recent'); }}>
-                        Réinitialiser les filtres
-                      </Button>
-                    </section>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between mb-6 text-xs text-white/50">
-                        <span>{filteredLibrary.length} titre{filteredLibrary.length > 1 ? 's' : ''}</span>
-                        <span>Page {currentPage + 1} / {totalPages}</span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {visibleMangas.map((manga, index) => {
-                          const update = followedUpdatesByManga.get(manga.id);
-                          const updateUrl = update ? buildReaderLocation({
-                            source: update.latestChapter.provider,
-                            mangaId: update.latestChapter.providerMangaId,
-                            chapterId: update.latestChapter.providerChapterId,
-                            language: update.latestChapter.language,
-                            pageIndex: 0,
-                            mangaTitle: manga.title,
-                            mangaAuthor: manga.author,
-                          }) : null;
-                          return (
-                          <div key={manga.id} className="animate-slide-up-fade" style={{ animationDelay: `${index * 0.05}s` }}>
-                            <MangaCard
-                              id={manga.id}
-                              favoriteId={manga.id}
-                              isFavorite
-                              title={manga.title}
-                              author={manga.author || 'Auteur inconnu'}
-                              rating={manga.rating}
-                              status={manga.status as MangaDexStatus}
-                              genre={manga.genre}
-                              imageUrl={manga.cover_image}
-                              lastUpdate={new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(new Date(manga.source_updated_at || manga.created_at))}
-                              detailUrl={`/manga/${manga.id}`}
-                              externalUrl={manga.mangadex_id ? `https://mangadex.org/title/${manga.mangadex_id}` : undefined}
-                              newChapterCount={update?.newChapterCount}
-                              isFollowing={followedMangaIds.has(manga.id)}
-                            />
-                            {updateUrl && (
-                              <Button className="mt-2 h-10 w-full bg-[var(--mw-accent-coral)] text-xs font-bold uppercase text-white" asChild>
-                                <Link to={updateUrl}>Lire le chapitre {update.latestChapter.chapterNumber}</Link>
-                              </Button>
-                            )}
-                          </div>
-                          );
-                        })}
-                      </div>
-                      {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-4 mt-10">
-                          <Button variant="outline" size="icon" className="border-white/20" disabled={currentPage === 0} onClick={() => setPage((v) => Math.max(0, v - 1))}>
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          <span className="text-xs text-white/60">{currentPage + 1} / {totalPages}</span>
-                          <Button variant="outline" size="icon" className="border-white/20" disabled={currentPage >= totalPages - 1} onClick={() => setPage((v) => Math.min(totalPages - 1, v + 1))}>
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </>
-          )}
-
-          {/* TAB 2: READING HISTORY */}
-          {activeTab === 'history' && (
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-sm text-white/60">
-                  {historyItems.length} titre{historyItems.length > 1 ? 's' : ''} dans votre historique de lecture
-                </p>
-                {historyItems.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-white/40 hover:text-manga-pink"
-                    onClick={() => clearLocalHistory()}
+              <div role="tablist" aria-label="Sections de la bibliothèque" className="mb-6 flex flex-wrap gap-2 overflow-x-auto pb-1">
+                {SECTIONS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    role="tab"
+                    aria-selected={section === id}
+                    onClick={() => setSection(id)}
+                    className={`flex min-h-11 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                      section === id
+                        ? 'bg-manga-purple text-white shadow-glow-purple'
+                        : 'bg-white/[0.05] text-white/60 border border-white/[0.08] hover:text-white'
+                    }`}
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Effacer tout l'historique
-                  </Button>
-                )}
+                    <Icon className="h-4 w-4" /> {label} ({counts[id]})
+                  </button>
+                ))}
               </div>
 
-              {historyItems.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] py-16 px-6 text-center">
-                  <History className="h-12 w-12 text-manga-purple mx-auto mb-4 opacity-70" />
-                  <h2 className="text-xl font-bold mb-2">Aucun historique de lecture</h2>
+              <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-8">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                    <Input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Rechercher dans votre bibliothèque"
+                      aria-label="Rechercher dans votre bibliothèque"
+                      className="h-11 bg-[#0f1520] border-white/15 pl-9 text-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/50 shrink-0">
+                    <SlidersHorizontal className="h-4 w-4 text-manga-cyan" /> Tri
+                  </div>
+                  <Select value={sort} onValueChange={(value) => setSort(value as LibrarySortOption)}>
+                    <SelectTrigger className="h-11 bg-[#0f1520] border-white/15 text-white lg:w-64">
+                      <Filter className="h-3.5 w-3.5 mr-2 text-white/40" />
+                      <SelectValue placeholder="Trier" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0f1520] border-white/20 text-white">
+                      <SelectItem value="activity">Activité récente</SelectItem>
+                      <SelectItem value="lastRead">Dernière lecture</SelectItem>
+                      <SelectItem value="lastUpdated">Dernière mise à jour</SelectItem>
+                      <SelectItem value="title">Titre A–Z</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </section>
+
+              {items.length === 0 ? (
+                <section className="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] py-16 px-6 text-center">
+                  <LibraryBig className="h-12 w-12 text-manga-purple mx-auto mb-4 opacity-70" />
+                  <h2 className="text-xl font-bold mb-2">Ta bibliothèque est vide.</h2>
                   <p className="text-white/50 max-w-md mx-auto text-sm mb-6">
-                    Lorsque vous commencez un chapitre, votre progression est automatiquement sauvegardée ici.
+                    Ajoute des favoris, suis des mangas ou commence une lecture pour les retrouver ici.
                   </p>
                   <Button className="btn-gradient rounded-full px-6" asChild>
                     <Link to="/search">Découvrir des mangas</Link>
                   </Button>
-                </div>
+                </section>
+              ) : visible.length === 0 ? (
+                <section className="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] py-14 px-6 text-center">
+                  <Filter className="h-10 w-10 text-manga-cyan mx-auto mb-3" />
+                  <h2 className="text-lg font-bold mb-2">Aucun titre ne correspond à ce filtre</h2>
+                  <Button variant="outline" className="border-white/20 mt-3" onClick={() => { setQuery(''); setSection('all'); }}>
+                    Réinitialiser les filtres
+                  </Button>
+                </section>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {historyItems.map((item, index) => {
-                    const resumeUrl = `/read/${encodeURIComponent(item.source)}/${encodeURIComponent(item.mangaId)}/${encodeURIComponent(item.chapterId)}?page=${item.pageIndex || 0}`;
-                    const canonicalKey = item.canonicalKey || canonicalProgressKey(item.mangaTitle);
-
-                    return (
-                      <article
-                        key={canonicalKey}
-                        className="group relative rounded-2xl border border-white/[0.08] bg-[#0f1520]/80 hover:bg-[#0f1520] hover:border-manga-purple/40 backdrop-blur-md transition-all duration-300 shadow-card hover:shadow-card-hover overflow-hidden animate-slide-up-fade"
-                        style={{ animationDelay: `${index * 0.04}s` }}
-                      >
-                        {/* Progress Bar */}
-                        <div className="h-1 w-full bg-white/[0.05]">
-                          <div
-                            className="h-full bg-gradient-to-r from-manga-purple to-manga-cyan transition-all duration-300"
-                            style={{ width: `${Math.max(5, item.progressPercent || 0)}%` }}
-                          />
-                        </div>
-
-                        <div className="flex gap-3.5 p-3.5">
-                          {/* Cover */}
-                          <div className="relative w-20 h-28 shrink-0 rounded-xl overflow-hidden bg-black/40 shadow-md">
-                            <MangaCover
-                              src={item.coverImage || null}
-                              alt={`Couverture de ${item.mangaTitle}`}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                          </div>
-
-                          {/* Info */}
-                          <div className="min-w-0 flex flex-col flex-1 justify-between">
-                            <div>
-                              <div className="flex items-start justify-between gap-1">
-                                <Link
-                                  to={`/manga/${item.mangaId}?source=${item.source}`}
-                                  className="font-outfit font-bold text-sm text-white line-clamp-1 hover:text-manga-purple transition-colors"
-                                  title={item.mangaTitle}
-                                >
-                                  {item.mangaTitle}
-                                </Link>
-                                <button
-                                  onClick={() => removeLocalHistoryItem(canonicalKey)}
-                                  className="text-white/30 hover:text-white hover:bg-white/10 rounded p-1 transition-colors -mr-1 -mt-1"
-                                  title="Retirer de l'historique"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-
-                              <p className="text-xs text-white/40 truncate mt-0.5">
-                                {item.mangaAuthor || 'Auteur inconnu'}
-                              </p>
-
-                              <p className="text-xs text-manga-cyan font-medium truncate mt-1.5">
-                                Chapitre {item.chapterNumber}
-                              </p>
-
-                              <div className="flex items-center justify-between text-[11px] text-white/40 mt-1">
-                                <span>
-                                  {item.totalPages > 1
-                                    ? `Page ${(item.pageIndex || 0) + 1}/${item.totalPages}`
-                                    : 'En cours'}
-                                </span>
-                                <span className="inline-flex items-center gap-1 text-[10px]">
-                                  <Clock3 className="h-2.5 w-2.5" />
-                                  {relativeDate(item.readAt)}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Resume CTA */}
-                            <Button
-                              size="sm"
-                              className="btn-gradient h-7 text-xs font-semibold rounded-lg w-full mt-2"
-                              asChild
-                            >
-                              <Link to={resumeUrl}>
-                                <Play className="h-3 w-3 mr-1 fill-white" />
-                                Reprendre
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="flex items-center justify-between mb-6 text-xs text-white/50">
+                    <span>{visible.length} titre{visible.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {visible.map((item) => <LibraryCard key={item.canonicalKey} item={item} />)}
+                  </div>
+                </>
               )}
-            </section>
+            </>
           )}
         </div>
       </main>

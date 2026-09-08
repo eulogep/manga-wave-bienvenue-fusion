@@ -270,9 +270,11 @@ export const useRecordReading = () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['continue-reading-universal'] }),
       queryClient.invalidateQueries({ queryKey: ['canonical-progress'] }),
+      queryClient.invalidateQueries({ queryKey: ['canonical-progress-detailed', user.id] }),
       queryClient.invalidateQueries({ queryKey: ['homepage-personalized'] }),
       queryClient.invalidateQueries({ queryKey: ['followed-chapter-updates'] }),
       queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['library-items', user.id] }),
     ]);
   }, [queryClient, user]);
 

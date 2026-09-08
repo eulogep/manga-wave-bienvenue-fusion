@@ -103,10 +103,14 @@ test('a new chapter opens directly in the canonical Reader route', () => {
 
 test('Homepage, Library and Reader are wired to the followed update state', () => {
   const homepage = read('src/components/HomeCatalogSections.tsx');
+  const libraryHook = read('src/hooks/useLibraryItems.ts');
   const library = read('src/pages/Library.tsx');
   const progress = read('src/hooks/useReadingProgress.ts');
   assert.match(homepage, /<FollowedUpdatesSection \/>/);
-  assert.match(library, /newChapterCount=\{update\?\.newChapterCount\}/);
+  // T-3017: Library V2 aggregates the same useFollowedChapterUpdates signal into
+  // LibraryItem.unreadUpdate instead of passing newChapterCount straight to a card.
+  assert.match(libraryHook, /useFollowedChapterUpdates/);
+  assert.match(library, /item\.unreadUpdate/);
   assert.match(progress, /from\('user_followed_chapter_state'\)[\s\S]*canonical_chapter_key/);
   assert.match(progress, /invalidateQueries\(\{ queryKey: \['followed-chapter-updates'\] \}\)/);
 });

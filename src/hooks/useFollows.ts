@@ -109,6 +109,7 @@ export function useCanonicalFollow(canonicalMangaId?: number) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: followQueryKey(user?.id) }),
         queryClient.invalidateQueries({ queryKey: ['followed-chapter-updates'] }),
+        queryClient.invalidateQueries({ queryKey: ['library-items', user?.id] }),
       ]);
     },
   });
