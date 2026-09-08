@@ -1,3 +1,4 @@
+import type { ReadingHistoryEntry } from "../../domain/readingHistory";
 export type Json =
   | string
   | number
@@ -709,6 +710,12 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
+        Relationships: []
+      }
+      user_reading_history: {
+        Row: ReadingHistoryEntry
+        Insert: never
+        Update: never
         Relationships: []
       }
       user_canonical_reading_progress: {

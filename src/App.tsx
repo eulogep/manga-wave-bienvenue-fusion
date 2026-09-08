@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Search from "./pages/Search";
 import MangaDetail from "./pages/MangaDetail";
+import History from "./pages/History";
 import Library from "./pages/Library";
 import Reader from "./pages/Reader";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/search" element={<Search />} />
             <Route path="/manga/:id" element={<MangaDetail />} />
             <Route path="/read/:source/:mangaId/:chapterId" element={<Reader />} />
+            <Route path="/history" element={<History />} />
             <Route path="/library" element={<Library />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

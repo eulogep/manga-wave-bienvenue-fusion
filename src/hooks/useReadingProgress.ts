@@ -275,6 +275,7 @@ export const useRecordReading = () => {
       queryClient.invalidateQueries({ queryKey: ['followed-chapter-updates'] }),
       queryClient.invalidateQueries({ queryKey: ['notifications'] }),
       queryClient.invalidateQueries({ queryKey: ['library-items', user.id] }),
+      queryClient.invalidateQueries({ queryKey: ['reading-timeline', user.id] }),
     ]);
   }, [queryClient, user]);
 

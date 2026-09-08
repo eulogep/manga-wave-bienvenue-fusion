@@ -195,7 +195,7 @@ test.describe('T-3013 deterministic production-equivalent smoke', () => {
 
     await page.goto('/library');
     await expect(page.getByText('Solo Leveling', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(/^1 nouveau$/)).toHaveCount(0);
+    await expect(page.locator('article', { hasText: 'Solo Leveling' }).getByText('Nouveau', { exact: true })).toHaveCount(0);
 
     exposeSimulatedUpdate = true;
     await page.goto('/');
@@ -206,8 +206,8 @@ test.describe('T-3013 deterministic production-equivalent smoke', () => {
     await expect(updates.getByText('1 nouveau', { exact: true })).toBeVisible();
 
     await page.goto('/library');
-    await expect(page.getByText(/^1 nouveau$/)).toHaveCount(1);
-    const directReaderLink = page.getByRole('link', { name: `Lire le chapitre ${simulatedChapter.chapterNumber}` });
+    await expect(page.locator('article', { hasText: 'Solo Leveling' }).getByText('Nouveau', { exact: true })).toHaveCount(1);
+    const directReaderLink = page.getByRole('link', { name: `Lire le nouveau chapitre ${simulatedChapter.chapterNumber} de Solo Leveling` });
     await expect(directReaderLink).toBeVisible();
     await directReaderLink.click();
 
@@ -222,8 +222,8 @@ test.describe('T-3013 deterministic production-equivalent smoke', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Nouveaux chapitres', exact: true })).toHaveCount(0);
     await page.goto('/library');
-    await expect(page.getByText(/^1 nouveau$/)).toHaveCount(0);
-    await expect(page.getByRole('link', { name: `Lire le chapitre ${simulatedChapter.chapterNumber}` })).toHaveCount(0);
+    await expect(page.locator('article', { hasText: 'Solo Leveling' }).getByText('Nouveau', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: `Lire le nouveau chapitre ${simulatedChapter.chapterNumber} de Solo Leveling` })).toHaveCount(0);
 
     const deletedQaId = qaUserId;
     const deletedObserverId = observerUserId;

@@ -1,0 +1,55 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+// Supply an isolated PGlite module path; no project dependency or remote database is used.
+const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
+const db = new PGlite();
+let checks=0;
+const ok=(condition)=>{assert.ok(condition);checks++;};
+await db.exec(`create role anon; create role authenticated; create schema auth;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+grant usage on schema auth to authenticated;
+create table public.mangas(id bigint primary key,title text,author text,cover_image text);
+create table public.user_history(id bigint primary key, user_id uuid, chapter_id bigint, read_at timestamptz);
+insert into user_history values(1,'00000000-0000-0000-0000-000000000001',42,now());
+create function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at=now();return new;end$$;
+insert into auth.users values ('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002');
+insert into mangas values(110,'Solo Leveling',null,null),(145,'Pick Me Up',null,null);`);
+const progressMigration=fs.readFileSync('supabase/migrations/20260829060000_add_canonical_reading_progress.sql','utf8').split('-- Deterministic, non-destructive backfill.')[0];
+await db.exec(progressMigration);
+await db.exec(fs.readFileSync('supabase/migrations/20260908120000_add_canonical_reading_history.sql','utf8'));
+const owner='00000000-0000-0000-0000-000000000001',other='00000000-0000-0000-0000-000000000002';
+const asUser=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+await asUser(owner);
+const put=async (manga,chapter,time,page=0,provider='asurascans',key=`work:${manga}`)=>db.query(`insert into user_canonical_reading_progress
+(user_id,canonical_key,canonical_manga_id,canonical_chapter_key,last_provider,last_provider_manga_id,last_provider_chapter_id,manga_title,chapter_number,page_index,total_pages,read_at)
+values(auth.uid(),$1,$2,$3,$4,'provider-work','provider-chapter','Provider alias',$3,$5,10,$6)
+on conflict(user_id,canonical_key) do update set canonical_chapter_key=excluded.canonical_chapter_key,chapter_number=excluded.chapter_number,page_index=excluded.page_index,read_at=excluded.read_at,last_provider=excluded.last_provider`,[key,manga,chapter,provider,page,time]);
+const rows=async()=> (await db.query('select * from user_reading_history order by read_at desc,id desc')).rows;
+for(let i=0;i<5;i++) await put(110,'3',`2026-09-07T18:0${i}:00Z`,i);
+ok((await rows()).length===1);ok((await rows())[0].page_index===4);ok((await rows())[0].manga_title==='Solo Leveling');
+await put(110,'3','2026-09-07T18:05:00Z',2,'originmanga','alias:110');
+ok((await rows()).length===1);ok((await rows())[0].provider==='originmanga');
+await put(110,'3','2026-09-07T18:35:00Z',3);ok((await rows()).length===2);
+await put(110,'3','2026-09-07T23:59:00Z');await put(110,'3','2026-09-08T00:01:00Z');ok((await rows()).length===4);
+await put(145,'10','2026-09-08T00:02:00Z',1);await put(110,'4','2026-09-08T00:03:00Z');
+assert.deepEqual((await rows()).slice(0,3).map(r=>r.chapter_number),['4','10','3']);checks++;
+const count=(await rows()).length;
+await put(110,'4','2026-09-08T00:03:00Z');ok((await rows()).length===count);
+const first=(await rows())[0];
+await asUser(other);ok((await rows()).length===0);
+await db.query('delete from user_reading_history where id=$1',[first.id]);
+await put(110,'3','2026-09-08T00:04:00Z');ok((await rows()).length===1);
+await asUser(owner);ok((await rows()).length===count);
+await assert.rejects(()=>db.query('update user_reading_history set page_index=9'));checks++;
+await assert.rejects(()=>db.query('insert into user_reading_history(user_id) values(auth.uid())'));checks++;
+const before=(await db.query('select * from user_canonical_reading_progress order by canonical_key')).rows;
+await db.query('delete from user_reading_history where id=$1',[first.id]);ok((await rows()).length===count-1);
+await db.exec('delete from user_reading_history');ok((await rows()).length===0);
+assert.deepEqual((await db.query('select * from user_canonical_reading_progress order by canonical_key')).rows,before);checks++;
+await asUser(other);ok((await rows()).length===1);
+await db.exec('reset role');ok((await db.query('select * from user_history')).rows.length===1);
+await db.query('delete from auth.users where id=$1',[other]);ok((await db.query('select * from user_reading_history')).rows.length===0);
+await db.close();
+console.log(`T3019_ISOLATED_POSTGRES: ${checks} checks PASS (migration, coalescing, identities, timestamps, RLS, delete/clear isolation, legacy preservation, cascade)`);
