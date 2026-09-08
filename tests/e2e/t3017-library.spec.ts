@@ -149,8 +149,58 @@ test.describe('T-3017 canonical Library V2 deterministic smoke', () => {
     });
     if (progressError) throw progressError;
 
+    // Two more real catalog rows, backdated, for Terminés / Search / Sort coverage —
+    // no invented fixtures, both already exist in the public read-only catalog.
+    const QA_MANGA_COMPLETED = 100; // Kaiju No. 8 — canonical status = completed
+    const QA_MANGA_OTHER = 145; // Pick Me Up, Infinite Gacha — ongoing, distinct title
+    const { error: completedFavoriteError } = await ownerClient.from('user_favorites').insert({
+      user_id: ownerId,
+      manga_id: QA_MANGA_COMPLETED,
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+    });
+    if (completedFavoriteError) throw completedFavoriteError;
+    const { error: otherFavoriteError } = await ownerClient.from('user_favorites').insert({
+      user_id: ownerId,
+      manga_id: QA_MANGA_OTHER,
+      created_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+    });
+    if (otherFavoriteError) throw otherFavoriteError;
+
     await login(page, ownerEmail, ownerPassword);
     await page.goto('/library');
+
+    // Terminés uses canonical series status only (§7 interpretation A).
+    await page.getByRole('tab', { name: /Terminés/ }).click();
+    await expect(page.locator('article', { hasText: 'Kaiju No. 8' })).toHaveCount(1);
+    await expect(page.locator('article', { hasText: 'Solo Leveling' })).toHaveCount(0);
+
+    // Library search matches by title across the whole set.
+    await page.getByRole('tab', { name: /Tous/ }).click();
+    await expect(page.locator('article')).toHaveCount(3);
+    const searchBox = page.getByPlaceholder('Rechercher dans votre bibliothèque');
+    await searchBox.fill('kaiju');
+    await expect(page.locator('article')).toHaveCount(1);
+    await expect(page.locator('article', { hasText: 'Kaiju No. 8' })).toHaveCount(1);
+    await searchBox.fill('aucun-titre-ne-correspond-zzz');
+    await expect(page.getByText('Aucun titre ne correspond à ce filtre')).toBeVisible();
+    await searchBox.fill('');
+
+    // Sort: Titre A–Z orders Kaiju No. 8 < Pick Me Up... < Solo Leveling.
+    await page.getByRole('combobox').filter({ hasText: /Activité récente|Trier/ }).click();
+    await page.getByRole('option', { name: 'Titre A–Z' }).click();
+    await expect.poll(() => page.locator('article').allTextContents()).toEqual(
+      expect.arrayContaining([expect.stringContaining('Kaiju No. 8')]),
+    );
+    const titlesAZ = await page.locator('article').allTextContents();
+    expect(titlesAZ[0]).toContain('Kaiju No. 8');
+    expect(titlesAZ[2]).toContain('Solo Leveling');
+
+    // Sort: Activité récente (default) surfaces the most recently touched item —
+    // Solo Leveling (just favorited/progressed) ahead of the two backdated favorites.
+    await page.getByRole('combobox').filter({ hasText: 'Titre A–Z' }).click();
+    await page.getByRole('option', { name: 'Activité récente' }).click();
+    const titlesRecent = await page.locator('article').allTextContents();
+    expect(titlesRecent[0]).toContain('Solo Leveling');
 
     // One canonical card renders every aggregated state (favorite + progress); no
     // duplicate appears across the "Tous" section (§16 dedup rule).
@@ -176,6 +226,9 @@ test.describe('T-3017 canonical Library V2 deterministic smoke', () => {
     await expect(page.getByRole('button', { name: 'Ne plus suivre Solo Leveling' })).toBeVisible();
 
     await page.goto('/library');
+    await page.getByRole('tab', { name: /Suivis/ }).click();
+    await expect(page.locator('article', { hasText: 'Solo Leveling' })).toHaveCount(1);
+
     await expect.poll(async () => {
       await page.reload({ waitUntil: 'domcontentloaded' });
       return ownerClient.from('user_followed_chapter_state').select('*', { count: 'exact', head: true }).eq('user_id', ownerId)
@@ -201,12 +254,16 @@ test.describe('T-3017 canonical Library V2 deterministic smoke', () => {
     await page.getByRole('link', { name: /Lire le nouveau chapitre/ }).click();
     await expect(page.getByText(/Page 1 \/ \d+/)).toBeVisible({ timeout: 60_000 });
 
-    await page.goto('/library');
-    await page.getByRole('tab', { name: /Nouveautés/ }).click();
-    await expect(page.locator('article', { hasText: 'Solo Leveling' })).toHaveCount(0);
+    // The read acknowledgement is debounced (750ms) and flushed on pagehide/unmount;
+    // wait for the durable DB write before asserting on the UI, same pattern as the
+    // trusted T-3013/T-3014 suites (avoids a race, not a product behavior change).
     await expect.poll(() => (
       ownerClient.from('user_followed_chapter_state').select('*', { count: 'exact', head: true }).eq('user_id', ownerId).is('read_at', null)
         .then(({ count }) => count ?? 0)
-    )).toBe(0);
+    ), { timeout: 30_000 }).toBe(0);
+
+    await page.goto('/library');
+    await page.getByRole('tab', { name: /Nouveautés/ }).click();
+    await expect(page.locator('article', { hasText: 'Solo Leveling' })).toHaveCount(0);
   });
 });

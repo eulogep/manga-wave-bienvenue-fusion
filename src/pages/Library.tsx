@@ -314,7 +314,7 @@ const Library = () => {
                     <SlidersHorizontal className="h-4 w-4 text-manga-cyan" /> Tri
                   </div>
                   <Select value={sort} onValueChange={(value) => setSort(value as LibrarySortOption)}>
-                    <SelectTrigger className="h-11 bg-[#0f1520] border-white/15 text-white lg:w-64">
+                    <SelectTrigger aria-label="Trier la bibliothèque" className="h-11 bg-[#0f1520] border-white/15 text-white lg:w-64">
                       <Filter className="h-3.5 w-3.5 mr-2 text-white/40" />
                       <SelectValue placeholder="Trier" />
                     </SelectTrigger>
