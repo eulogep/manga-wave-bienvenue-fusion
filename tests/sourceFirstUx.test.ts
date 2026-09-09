@@ -44,7 +44,8 @@ test('discovery surfaces do not present providers as the primary UX', () => {
 
   assert.doesNotMatch(homepage, /MultiSourceHubSection/);
   assert.doesNotMatch(search, /Quick source pills|MOTEUR MULTI-SOURCES|Recherche <span className="glow-text">Multi-Sources/);
-  assert.match(search, /Options avancées · Choisir une source/);
+  assert.match(search, /useCanonicalSearch/);
+  assert.doesNotMatch(search, /useComickSearch|useMangaFireSearch|useOriginMangaSearch/);
   assert.doesNotMatch(continueReading, /SOURCE_LABELS|sourceLabel/);
   assert.doesNotMatch(library, /SOURCE_BADGES|const badge =/);
 });
