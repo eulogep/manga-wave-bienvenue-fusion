@@ -4,6 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { buildCanonicalProgressSnapshot, canonicalProgressKey, mergeCanonicalProgress } from '@/domain/canonicalProgress';
 import { normalizeLogicalChapterNumber } from '@/domain/chapterMatching';
+import {
+  continueReadingQueryKey,
+  getContinueReadingAuthState,
+  getContinueReadingPlaceholder,
+  resolveContinueReadingItems,
+  shouldFetchContinueReading,
+} from '@/domain/continueReadingHydration';
 
 export type ReadingProgressItem = {
   canonicalKey?: string;
@@ -122,8 +129,10 @@ export const useReadingHistoryActions = () => {
  * Hook to retrieve all recently read mangas (LocalStorage + Supabase sync)
  */
 export const useContinueReading = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [localItems, setLocalItems] = useState<ReadingProgressItem[]>(() => getLocalHistory());
+  const authState = getContinueReadingAuthState(authLoading, user?.id);
+  const localRevision = localItems.map((item) => item.readAt).join('|');
 
   // Listen to custom local storage change events for real-time updates
   useEffect(() => {
@@ -139,49 +148,44 @@ export const useContinueReading = () => {
   }, []);
 
   return useQuery({
-    queryKey: ['continue-reading-universal', user?.id, localItems.map((item) => item.readAt).join('|')],
+    queryKey: continueReadingQueryKey(authState, user?.id, localRevision),
     queryFn: async (): Promise<ReadingProgressItem[]> => {
       const local = getLocalHistory();
 
-      // If user is logged in, try to fetch remote history as well
       if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('user_canonical_reading_progress')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('read_at', { ascending: false })
-            .limit(50);
+        const { data, error } = await supabase
+          .from('user_canonical_reading_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('read_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
 
-          if (!error && data) {
-            const remoteItems: ReadingProgressItem[] = data.map((item) => ({
-              canonicalKey: item.canonical_key,
-              canonicalMangaId: item.canonical_manga_id,
-              source: item.last_provider,
-              mangaId: item.last_provider_manga_id,
-              mangaTitle: item.manga_title,
-              mangaAuthor: item.manga_author,
-              coverImage: item.cover_image,
-              chapterId: item.last_provider_chapter_id,
-              chapterNumber: item.chapter_number,
-              chapterTitle: item.chapter_title,
-              pageIndex: item.page_index,
-              totalPages: item.total_pages,
-              readAt: item.read_at,
-              progressPercent: item.progress_percentage,
-              language: item.language,
-            }));
+        const remoteItems: ReadingProgressItem[] = (data || []).map((item) => ({
+          canonicalKey: item.canonical_key,
+          canonicalMangaId: item.canonical_manga_id,
+          source: item.last_provider,
+          mangaId: item.last_provider_manga_id,
+          mangaTitle: item.manga_title,
+          mangaAuthor: item.manga_author,
+          coverImage: item.cover_image,
+          chapterId: item.last_provider_chapter_id,
+          chapterNumber: item.chapter_number,
+          chapterTitle: item.chapter_title,
+          pageIndex: item.page_index,
+          totalPages: item.total_pages,
+          readAt: item.read_at,
+          progressPercent: item.progress_percentage,
+          language: item.language,
+        }));
 
-            return mergeCanonicalProgress([...remoteItems, ...local]);
-          }
-        } catch {
-          // Fallback to local
-        }
+        return resolveContinueReadingItems(authState, local, mergeCanonicalProgress(remoteItems));
       }
 
-      return local;
+      return resolveContinueReadingItems(authState, local, []);
     },
-    initialData: localItems,
+    enabled: shouldFetchContinueReading(authState),
+    placeholderData: getContinueReadingPlaceholder(authState, localItems),
     staleTime: 1000 * 10,
   });
 };

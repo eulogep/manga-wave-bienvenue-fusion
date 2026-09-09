@@ -16,7 +16,7 @@
     "test:e2e:reader": "playwright test tests/e2e/reader-p1.spec.ts",
     "test:e2e:t3013": "playwright test tests/e2e/t3013-deterministic-smoke.spec.ts",
     "test:e2e:t3014": "playwright test tests/e2e/t3014-follow.spec.ts",
-    "test:p2": "node --experimental-strip-types --test tests/homePersonalization.test.ts tests/sourceFirstUx.test.ts",
+    "test:p2": "node --experimental-strip-types --test tests/homePersonalization.test.ts tests/sourceFirstUx.test.ts tests/continueReadingHydration.test.ts",
     "test:t3012": "node --experimental-strip-types --test tests/sourceFirstUx.test.ts",
     "test:t3012:hotfix": "node --experimental-strip-types --test tests/t3012FunctionalHotfix.test.ts",
     "verify:t3012:hotfix:db": "node scripts/verify-t3012-hotfix-db.mjs",

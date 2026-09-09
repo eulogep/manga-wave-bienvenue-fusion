@@ -88,7 +88,8 @@ test('real Supabase ownership, session coalescing, chronology, pagination and de
   await page.goto('/library'); await expect(page.locator('article',{hasText:'Solo Leveling'})).toHaveCount(1);
 });
 
-test('Reader writes history without favorite/follow, source switch coalesces, exact reopen survives history clear', async ({page}) => {
+test('Reader writes canonical retention loop across favorite, follow, notifications, library and history', async ({page,browser}) => {
+  test.setTimeout(180_000);
   const owner=await account();
   const mappings=await checked(await admin.from('manga_source_mappings').select('manga_id,source_id,source_manga_id').in('manga_id',[154,145]));
   const a=mappings.find(m=>m.manga_id===154&&m.source_id==='originmanga')!;
@@ -96,11 +97,12 @@ test('Reader writes history without favorite/follow, source switch coalesces, ex
   const b=mappings.find(m=>m.manga_id===145&&m.source_id==='asurascans')!;
   expect(a&&asura&&b).toBeTruthy();
   // Controlled chapter/page payloads; identities and canonical resolution use real catalog mappings.
-  await page.route('**/api/extract/detail/**', async route=>{
+  const installDetailFixture=async(target:typeof page)=>target.route('**/api/extract/detail/**', async route=>{
     const path=new URL(route.request().url()).pathname; const m=mappings.find(m=>path.endsWith(`/${m.source_id}/${encodeURIComponent(m.source_manga_id)}`));
     if(!m) return route.continue();
     await route.fulfill({json:{manga:{id:m.source_manga_id,title:m.manga_id===154?'Chronicles of the Demon Faction':'Pick Me Up, Infinite Gacha',coverUrl:null,author:null,status:'ongoing',genres:[],synopsis:'',chapters:['3','4','10'].map(n=>({id:`history-${m.manga_id}-${n}`,chapterNumber:n,title:null,date:new Date().toISOString(),language:m.source_id==='originmanga'?'fr':'en',url:''}))}}});
   });
+  await installDetailFixture(page);
   const svg='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200"><rect width="800" height="1200" fill="#345"/></svg>');
   await page.route('**/api/extract/pages/**',route=>route.fulfill({json:{images:Array.from({length:6},()=>svg)}}));
   await page.goto('/auth'); await page.getByLabel('Email').fill(owner.email); await page.getByLabel('Mot de passe').fill(owner.password); await page.getByRole('button',{name:'Se connecter',exact:true}).click(); await expect(page).toHaveURL(/\/$/);
@@ -118,6 +120,7 @@ test('Reader writes history without favorite/follow, source switch coalesces, ex
   expect((await rows()).map(r=>r.chapter_number)).toEqual(['4','10','3']);
   expect(await checked(await owner.client.from('user_favorites').select('*'))).toHaveLength(0);
   expect(await checked(await owner.client.from('user_follows').select('*'))).toHaveLength(0);
+  await checked(await owner.client.from('user_favorites').insert({user_id:owner.id,manga_id:154}));
   await checked(await owner.client.from('user_follows').insert({user_id:owner.id,canonical_manga_id:154}));
   await checked(await owner.client.from('user_followed_chapter_state').insert(['3','4','10'].map(n=>({
     user_id:owner.id,manga_id:154,canonical_chapter_key:n,chapter_number:n,provider:'originmanga',provider_manga_id:a.source_manga_id,provider_chapter_id:`history-154-${n}`,language:'fr',read_at:n==='4'?null:new Date().toISOString(),
@@ -128,6 +131,9 @@ test('Reader writes history without favorite/follow, source switch coalesces, ex
   await expect.poll(async()=> (await checked(await owner.client.from('user_followed_chapter_state').select('*').is('read_at',null))).length).toBe(0);
   expect((await checked(await owner.client.from('user_notifications').select('*'))).every(r=>r.is_read)).toBe(true);
   expect(await rows()).toHaveLength(3);
+  await page.goto('/'); await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.getByRole('heading',{name:'Continuer la lecture',exact:true})).toBeVisible();
+  await expect(page.getByRole('article').filter({hasText:'Chronicles of the Demon Faction'})).toHaveCount(1);
   await page.goto('/library'); await page.getByRole('tab',{name:/Nouveautés/}).click(); await expect(page.locator('article',{hasText:'Chronicles of the Demon Faction'})).toHaveCount(0);
   await page.goto('/history');
   await page.getByRole('button',{name:'Rouvrir Chronicles of the Demon Faction au chapitre 3, page 4',exact:true}).click();
@@ -135,12 +141,35 @@ test('Reader writes history without favorite/follow, source switch coalesces, ex
   await expect(page.getByRole('img',{name:'Page 4',exact:true})).toBeVisible();
   await expect.poll(async()=> (await rows())[0].chapter_number).toBe('3');
   expect(await rows()).toHaveLength(3);
-  expect(await checked(await owner.client.from('user_favorites').select('*'))).toHaveLength(0);
+  expect(await checked(await owner.client.from('user_favorites').select('*'))).toHaveLength(1);
   expect(await checked(await owner.client.from('user_follows').select('*'))).toHaveLength(1);
-  await page.goto('/history'); await page.getByRole('button',{name:'Effacer l’historique',exact:true}).click(); await page.getByRole('button',{name:'Confirmer la suppression',exact:true}).click(); await expect(page.getByTestId('history-entry')).toHaveCount(0);
+
+  const freshContext=await browser.newContext(); const fresh=await freshContext.newPage(); await installDetailFixture(fresh);
+  await fresh.goto('/auth'); await fresh.getByLabel('Email').fill(owner.email); await fresh.getByLabel('Mot de passe').fill(owner.password); await fresh.getByRole('button',{name:'Se connecter',exact:true}).click(); await expect(fresh).toHaveURL(/\/$/);
+  await fresh.reload({waitUntil:'domcontentloaded'}); await fresh.waitForTimeout(2_000);
+  const freshHomepageProgress=fresh.getByRole('article').filter({hasText:'Chronicles of the Demon Faction'});
+  const freshHomepageProgressCount=await freshHomepageProgress.count();
+  await expect(freshHomepageProgress).toContainText('Chapitre 3'); await expect(freshHomepageProgress).toContainText('Page 4/6');
+  await freshHomepageProgress.getByRole('link',{name:'Reprendre',exact:true}).click();
+  await expect(fresh).toHaveURL(/history-154-3\?.*page=3/); await expect(fresh.getByText('Page 4 / 6')).toBeVisible();
+  await fresh.goto('/library'); await fresh.reload({waitUntil:'domcontentloaded'}); await expect(fresh.locator('article',{hasText:'Chronicles of the Demon Faction'})).toHaveCount(1);
+  await fresh.goto('/history'); await fresh.reload({waitUntil:'domcontentloaded'}); await expect(fresh.getByTestId('history-entry')).toHaveCount(3); await freshContext.close();
+
+  await page.goto('/history');
+  await page.getByRole('button',{name:'Supprimer la lecture de Pick Me Up, Infinite Gacha, chapitre 10',exact:true}).click(); await expect(page.getByTestId('history-entry')).toHaveCount(2);
+  expect(await checked(await owner.client.from('user_canonical_reading_progress').select('*'))).toHaveLength(2);
+  expect(await checked(await owner.client.from('user_favorites').select('*'))).toHaveLength(1);
+  expect(await checked(await owner.client.from('user_follows').select('*'))).toHaveLength(1);
+  await page.getByRole('button',{name:'Effacer l’historique',exact:true}).click(); await page.getByRole('button',{name:'Confirmer la suppression',exact:true}).click(); await expect(page.getByTestId('history-entry')).toHaveCount(0);
   await page.goto('/library'); await page.getByRole('tab',{name:/En cours/}).click(); await page.getByRole('link',{name:'Reprendre Chronicles of the Demon Faction au chapitre 3',exact:true}).click();
   await expect(page.getByText('Page 4 / 6')).toBeVisible();
   await expect.poll(async()=> (await rows()).length).toBe(1);
+  await page.goto('/manga/154'); await page.getByRole('button',{name:'Ne plus suivre Chronicles of the Demon Faction'}).click();
+  await expect.poll(async()=> (await checked(await owner.client.from('user_follows').select('*'))).length).toBe(0);
+  expect(await checked(await owner.client.from('user_favorites').select('*'))).toHaveLength(1);
+  expect(await checked(await owner.client.from('user_canonical_reading_progress').select('*'))).toHaveLength(2);
+  expect(await rows()).toHaveLength(1);
+  expect(freshHomepageProgressCount, 'fresh-session Homepage must hydrate canonical Supabase progress').toBe(1);
 });
 
 test('History UI fixture: loading, error, search, pagination, mobile, keyboard and confirmed deletion', async ({ page }, testInfo) => {
