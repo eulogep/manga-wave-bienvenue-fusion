@@ -3,7 +3,9 @@ import { comickExtractor } from './comick.js';
 import { crunchyScanExtractor } from './crunchyscan.js';
 import { mangaDexExtractor } from './mangadex.js';
 import { mangaFireExtractor } from './mangafire.js';
+import { mangaPillExtractor } from './mangapill.js';
 import { originMangaExtractor } from './originmanga.js';
+import { sushiScanExtractor } from './sushiscan.js';
 import type { SourceExtractor } from '../lib/extractor-types.js';
 
 export const extractors: Record<string, SourceExtractor> = {
@@ -13,6 +15,8 @@ export const extractors: Record<string, SourceExtractor> = {
   crunchyscan: crunchyScanExtractor,
   mangafire: mangaFireExtractor,
   asurascans: asuraScansExtractor,
+  mangapill: mangaPillExtractor,
+  sushiscan: sushiScanExtractor,
 };
 
 export function getExtractor(sourceId: string): SourceExtractor | null {

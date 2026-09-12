@@ -26,6 +26,13 @@ const IMAGE_HOST_SUFFIXES = [
   'lelmanga.com',
   'originmanga.com',
   'wp.com',
+  // MangaPill's page CDN (verified live: enforces Referer-based hotlink
+  // protection, hence the pre-proxied URLs this extractor returns).
+  'readdetectiveconan.com',
+  // Sushi-Scan: cover images are self-hosted (wp-content); chapter page
+  // images are served from its own CDN mirror domain.
+  'sushiscan.fr',
+  'yaoiscan.fr',
 ];
 
 const stringParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value || '';
@@ -67,11 +74,16 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   if (action === 'image-proxy') {
     const target = allowedImageUrl(stringParam(request.query.url));
     if (!target) return response.status(400).json({ error: 'URL d’image non autorisée.' });
+    // Some CDNs (verified live: MangaPill's) key hotlink protection to the
+    // *site* that embeds the image, not the image host itself — an
+    // extractor may request a specific Referer via this optional param
+    // instead of the default same-host fallback below.
+    const explicitReferer = stringParam(request.query.referer).trim();
     try {
       const upstream = await fetch(target, {
         headers: {
           Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-          Referer: `${target.protocol}//${target.host}/`,
+          Referer: explicitReferer || `${target.protocol}//${target.host}/`,
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
         },
         signal: AbortSignal.timeout(15_000),

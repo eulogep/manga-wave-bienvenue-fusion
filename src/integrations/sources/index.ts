@@ -4,6 +4,8 @@ import { crunchyScanSource } from './crunchyscan';
 import { comickSource } from './comick';
 import { mangaFireSource } from './mangafire';
 import { asuraScansSource } from './asurascans';
+import { mangaPillSource } from './mangapill';
+import { sushiScanSource } from './sushiscan';
 import type { MangaSource, SourceSearchResult, SourceType } from './types';
 
 export * from './types';
@@ -13,6 +15,8 @@ export { crunchyScanSource } from './crunchyscan';
 export { comickSource } from './comick';
 export { mangaFireSource } from './mangafire';
 export { asuraScansSource } from './asurascans';
+export { mangaPillSource } from './mangapill';
+export { sushiScanSource } from './sushiscan';
 
 export const sources: Record<string, MangaSource> = {
   mangadex: mangaDexSource,
@@ -21,6 +25,8 @@ export const sources: Record<string, MangaSource> = {
   comick: comickSource,
   mangafire: mangaFireSource,
   asurascans: asuraScansSource,
+  mangapill: mangaPillSource,
+  sushiscan: sushiScanSource,
 };
 
 export const sourceList: MangaSource[] = [
@@ -30,6 +36,8 @@ export const sourceList: MangaSource[] = [
   crunchyScanSource,
   mangaFireSource,
   asuraScansSource,
+  mangaPillSource,
+  sushiScanSource,
 ];
 
 export function getSource(sourceId: SourceType | string): MangaSource | undefined {

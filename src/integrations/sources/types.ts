@@ -4,6 +4,8 @@ export type SourceType =
   | 'crunchyscan'
   | 'mangafire'
   | 'asurascans'
+  | 'mangapill'
+  | 'sushiscan'
   | 'comick'
   | 'shikimori'
   | 'kitsu'
