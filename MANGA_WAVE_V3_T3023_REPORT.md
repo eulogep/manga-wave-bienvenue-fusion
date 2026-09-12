@@ -4,12 +4,40 @@ Date: 2026-09-13
 
 ## OVERALL_STATUS
 
-`IMPLEMENTED_LOCALLY / VERIFIED / MIGRATION_PENDING_APPLICATION`. Ranking is fully designed,
-implemented, unit-tested and wired into the UI (homepage + `/ranking`). 212/212 unit tests pass
-(18 new), TypeScript is clean, ESLint is 0 errors, the production bundle builds, and a live-browser
-check confirms the homepage and `/ranking` render their graceful states without crashing while the
-RPC doesn't exist yet. The additive migration is prepared and reviewed but not yet applied — see
-`MIGRATION_APPLICATION` below for the current state of that gate after the T-3022 experience.
+`APPROVED / LIVE`. Ranking is fully designed, implemented, unit-tested, deployed and verified
+against production. 212/212 unit tests pass (18 new), TypeScript is clean, ESLint is 0 errors, the
+production bundle builds, and `public.get_manga_ranking` has been exercised both by a
+database-backed E2E fixture and by direct production reads.
+
+## MIGRATION APPLICATION (authorized and completed)
+
+Explicit authorization was given to run `npx supabase db push` for
+`20260913090000_add_manga_ranking_rpc.sql`, scoped to exactly what was reviewed in this report (1
+index, 1 shared helper revoked from client roles, 1 refactored function, 1 new function). Applied
+directly this time (`supabase db push` succeeded on the first attempt, no async-approval surprise
+like T-3022's). Verified independently, not assumed:
+
+- `supabase migration list`: every local migration now has a matching `remote` timestamp, including
+  `20260913090000`.
+- `_canonical_activity_window` called directly with the anon key: `401`,
+  `"permission denied for function _canonical_activity_window"` — confirms it is genuinely
+  unreachable by clients, exactly as designed.
+- `get_trending_manga` and `get_manga_ranking` both called directly with the anon key: `200`, correct
+  shapes, matching the same real pre-existing activity (canonical manga 142: 1 follow + 1 favorite
+  from 2026-08-30) that T-3022's report already established as the only real signal in production.
+
+## CORRECTION TO THIS REPORT'S EARLIER DRAFT
+
+The pre-authorization draft of this report (and a comment in the original E2E fixture) stated
+"Kaiju No. 8 (id 100) has real production views" as the basis for a legacy-fallback test scenario.
+That was wrong, and was caught during this validation pass, not before: a direct query
+(`mangas?select=id&views=gt.0`) returns **zero rows** — every single row in production currently has
+`views = 0`. It is not a stale-but-nonzero seed as assumed; the column was apparently never
+populated with any baseline number at all. This makes today's real-world state even more honest
+than what was designed for: the `work.views > 0` guard in `get_manga_ranking` means the legacy
+fallback path cannot fire at all right now, for any query, confirmed live (see PRODUCTION_SMOKE). The
+E2E fixture's second scenario was rewritten to assert exactly that, rather than a candidate that
+cannot exist.
 
 ## AUDIT — every existing "Popular" / "Top" / rating-based surface
 
@@ -175,45 +203,66 @@ convention) out of `CommandSearchDialog.tsx` and `TrendingSection.tsx`, since `R
 would otherwise have been a third copy-paste of the same three lines. All three call sites updated
 and re-verified (`npx tsc --noEmit`, targeted `eslint`, full unit suite).
 
-## MIGRATION_APPLICATION
-
-`supabase/migrations/20260913090000_add_manga_ranking_rpc.sql` is prepared, reviewed line-by-line
-above, and additive-only: 1 new index, 1 new internal helper function (revoked from every role), 1
-refactored function (`get_trending_manga`, behavior-preserving), 1 new function
-(`get_manga_ranking`). No existing column, row, table, or RLS policy is altered or dropped.
-
-Given the T-3022 experience in this same session — where `supabase db push` was correctly blocked by
-this environment's permission layer, then a later, unrelated command surfaced that the approval had
-in fact resolved and applied it asynchronously — this report is being finalized with the migration
-**not yet confirmed applied**. The same verification discipline will be followed: before treating any
-apply as real, `supabase migration list` will be checked independently and the RPC will be called
-directly, exactly as was done for T-3022, rather than assuming success or attempting to force it
-through an alternate path.
-
 ## PRODUCTION_SMOKE
 
-Pending the migration's confirmed application. Given the current real activity in the database
-(T-3022's report already established this is at most 1-2 real rows total, all from 2026-08-30), the
-honest expectation once `get_manga_ranking` is live is the same as T-3022's:
+**PASS_WITH_INSUFFICIENT_ORGANIC_ACTIVITY** — the honest, pre-registered expectation, confirmed live,
+not a fabricated green checkmark:
 
-```
-PRODUCTION_ACTIVITY_INSUFFICIENT_FOR_MEANINGFUL_RANKING
-```
+- `get_manga_ranking(window_days=30)` (anon key, direct REST): one real row (canonical manga 142,
+  `score: 5, unique_readers: 0, new_follows: 1, new_favorites: 1, legacy_fallback: false`) — the same
+  genuine 2026-08-30 activity T-3022 already found. `legacy_fallback` correctly `false` (it's real
+  activity, just not reading-based).
+- `get_manga_ranking(window_days=1, include_legacy_fallback=true)`: **zero rows** — confirms live
+  that the legacy-views path cannot fire today (every `mangas.views` is 0; see CORRECTION above).
+- **Deterministic E2E fixture** (`tests/e2e/t3023-ranking.spec.ts`) run against production, twice
+  (once caught a real test bug, fixed, re-run clean): **2/2 PASS**. Built 5 real QA users across 3
+  real catalog works, seeded rows through the real `user_canonical_reading_progress` insert path
+  (firing T-3019's trigger), read back via the **anonymous** client, and confirmed live: a
+  same-day spike (1 user, 6 sessions, 1 distinct day) and a 20-day one-user binge (capped at
+  `distinct_active_days = 5`) both score below sustained engagement from 3 distinct users each
+  active on 3 different days over ~3 weeks — the core T-3023 distinction, proven end-to-end, not
+  just in unit tests. No QA user id or `@example.invalid` email ever appeared in either RPC's
+  response. QA cleanup verified: zero `t3023`-prefixed accounts remain.
+- **Homepage** (anonymous, production): "Populaires" rail renders the one real low-confidence result
+  alongside the honest disclosure banner ("Classement basé sur une activité récente encore
+  limitée…") — never presented as a confident top ranking. "Voir tout" links on both the Trending
+  and Ranking homepage rails verified to point to `/trending` and `/ranking` respectively.
+- **`/ranking`** (production): all four window tabs (24h/7d/30d/Tout) exercised live — 24h and 7d
+  correctly show the full empty state (zero real activity in those shorter windows); 30d and Tout
+  show the one real result with the low-confidence banner. Zero unhandled page errors.
+- **Mobile** (390×844, 430×932, production): 7px and 0px horizontal overflow respectively — the 7px
+  is the pre-existing, already-documented site-wide Header overflow (same as T-3017/T-3022's
+  findings), not added by Ranking.
+- **Accessibility** (axe-core scan of `/ranking`'s `<main>`): found and fixed two real issues before
+  finalizing this report — a status-label contrast violation (`text-white/40` → `/70`) and an
+  unlabeled cross-page link relying on hover-only underline (now always underlined). Re-scanned
+  clean: only the single pre-existing, already-documented `bg-manga-purple` tab-pill contrast token
+  remains (same one flagged in the T-3017 and T-3022 reports, not introduced here).
+- **Regression** (production): `t3022-trending.spec.ts` **1/1 PASS** (proves the `get_trending_manga`
+  refactor is behavior-preserving live, not just in unit tests), `t3020-search.spec.ts` **7/7 PASS**
+  (+2 correctly skipped), `t3021-command-search.spec.ts` **7/7 PASS**, `reader-p1.spec.ts`
+  **4/4 PASS**.
 
-with the homepage/`/ranking` correctly showing either the empty state or a small number of
-`legacy_fallback`-flagged rows with the low-confidence disclosure banner — never a fabricated
-top-ranked list.
+## RLS / PRIVACY VERIFICATION (live)
+
+Direct anonymous REST reads against the three private activity tables all return zero rows (either
+an empty array, for tables where the anon role has no matching RLS policy, or an explicit `401`
+"permission denied" for `user_reading_history`, which additionally revokes the anon grant entirely) —
+confirmed live, not just via the existing T-3013/T-3014 test suites (unchanged, not touched by this
+migration). `_canonical_activity_window` is confirmed unreachable directly (`401`). Both public RPCs'
+actual live responses contain only aggregate integers/booleans — no `user_id`, no email, verified by
+inspecting the real JSON, not just the `RETURNS TABLE` clause.
 
 ## REGRESSIONS
 
 - Full unit suite: **212/212 PASS** (194 pre-existing + 18 new).
 - T-3022 regression (critical, since `get_trending_manga` was internally refactored):
-  `npm run test:t3022` — **16/16 PASS**, unchanged.
+  `npm run test:t3022` — **16/16 PASS** unit, **1/1 PASS** E2E against production, unchanged.
 - `npx tsc --noEmit -p .`: **clean**.
 - `npm run lint`: **0 errors**, 61 pre-existing warnings (unchanged).
 - `npm run build`: **PASS**.
-- Live-browser check (local dev server, RPC intentionally absent): homepage and `/ranking` render
-  with **zero unhandled page errors**.
+- Production E2E: T-3020 7/7, T-3021 7/7, T-3022 1/1, T-3023 2/2, Reader 4/4 — all re-run against the
+  live `3b929fa` deployment.
 
 ## TYPESCRIPT
 
@@ -225,37 +274,59 @@ PASS: 0 errors.
 
 ## BUILD
 
-PASS. Local candidate asset `assets/index-DT_cyGRg.js`.
+PASS. Deployed asset `assets/index-DBYZanw6.js`, byte-identical to the local build of `3b929fa`.
 
-## ACCEPTANCE (pending migration application + production smoke)
+## DEPLOYMENT
+
+Committed as `2ba9e73` (feature) and `3b929fa` (accessibility follow-up), pushed to `origin/main`
+(fast-forward, no `--force` either time), deployed by the existing Vercel pipeline. Migration
+`20260913090000_add_manga_ranking_rpc.sql` applied directly via `npx supabase db push` under the
+explicit authorization above; confirmed via `supabase migration list` and live RPC calls (see
+MIGRATION APPLICATION above).
+
+## ACCEPTANCE
 
 ```
 TRENDING_DISTINCT_FROM_RANKING:   PASS (different weighting: recency+volume vs. repeat-readership)
 SHARED_AGGREGATION_LAYER:         PASS (_canonical_activity_window; get_trending_manga refactored
-                                   to use it, not duplicated)
+                                   to use it, not duplicated; confirmed unreachable directly)
 RATING_AUDITED_AND_EXCLUDED:      PASS (186/343 rows are provider-hardcoded constants; excluded
                                    entirely, not down-weighted)
-VIEWS_LEGACY_FALLBACK_ONLY:       PASS (explicitly flagged, opt-out supported, never blended)
-ANTI_SPAM_DEDUP:                  PASS (per-user session AND active-day cap)
+VIEWS_LEGACY_FALLBACK_ONLY:       PASS (explicitly flagged, opt-out supported, never blended;
+                                   confirmed live that it correctly never fires today since every
+                                   mangas.views is 0 in production)
+ANTI_SPAM_DEDUP:                  PASS (per-user session AND active-day cap; proven live in the
+                                   E2E fixture, not just unit tests)
 CANONICAL_DEDUP:                  PASS
-RLS:                              PASS (private tables untouched; both RPCs return aggregates only)
-REQUIRED_TEST_DISTINCTIONS_1-5:   PASS (unit + E2E fixture)
-HOMEPAGE_INTEGRATION:             PASS (replaces the mislabeled fake "Populaires" rail)
-T3022_REGRESSION:                 PASS (16/16, including live E2E fixture — pending re-run post-deploy)
+RLS:                              PASS (private tables untouched; verified live that anon direct
+                                   reads return zero rows; both RPCs' live responses contain no
+                                   user_id/email)
+REQUIRED_TEST_DISTINCTIONS_1-5:   PASS (unit + live production E2E fixture)
+HOMEPAGE_INTEGRATION:             PASS (replaces the mislabeled fake "Populaires" rail; verified
+                                   live, including the low-confidence disclosure banner)
+MOBILE:                           PASS (390×844 7px / 430×932 0px; the 7px is the pre-existing
+                                   sitewide Header issue, not added by Ranking)
+ACCESSIBILITY:                    PASS (found and fixed 2 real issues during this validation pass;
+                                   only the pre-existing, already-documented bg-manga-purple token
+                                   remains)
+T3020_REGRESSION:                 PASS (production E2E 7/7, +2 correctly skipped)
+T3021_REGRESSION:                 PASS (production E2E 7/7)
+T3022_REGRESSION:                 PASS (16/16 unit + 1/1 production E2E, confirming the
+                                   get_trending_manga refactor is behavior-preserving live)
+READER:                           PASS (production E2E 4/4)
 TYPESCRIPT:                       PASS
 ESLINT:                           0 ERRORS
 BUILD:                            PASS
-MIGRATION_APPLIED:                PENDING
-PRODUCTION_SMOKE:                 PENDING
-FINAL:                            FIX_T3023_BEFORE_T3024 — pending only migration application and
-                                   its post-apply validation; no code defect is open.
+T3023_DATABASE:                   APPLIED
+T3023_PRODUCTION:                 PASS
+PRODUCTION_SMOKE:                 PASS_WITH_INSUFFICIENT_ORGANIC_ACTIVITY
+QA_CLEANUP:                       PASS (zero t3023-prefixed accounts remain)
+FINAL:                            APPROVE_T3023
 ```
 
 ## NEXT STEP
 
-Apply `20260913090000_add_manga_ranking_rpc.sql`, independently verify via `supabase migration list`
-and a direct anon-key RPC call (same discipline as T-3022), re-run `npm run test:e2e:t3022` (proving
-the refactor didn't regress Trending) and `npm run test:e2e:t3023` against production, run full
-production smoke (mobile 390×844/430×932, axe scan, T-3020/T-3021/T-3022/Reader/P1/P2 regression),
-update this report's `PRODUCTION_SMOKE`/`ACCEPTANCE` sections with real results, then continue
-autonomously to T-3024 Recommendations per the standing directive.
+T-3023 is closed. Continuing autonomously to **T-3024 — Recommendations** per the standing directive,
+which can now consume `_canonical_activity_window` directly (or a thin wrapper over it) for
+canonical popularity/engagement features instead of scraping the UI or recomputing joins — the
+shared-aggregation-layer groundwork this ticket was asked to lay.
