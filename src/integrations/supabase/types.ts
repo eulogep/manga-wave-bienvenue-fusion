@@ -185,6 +185,7 @@ export type Database = {
           artist: string | null
           author: string | null
           content_rating: string | null
+          country_of_origin: string | null
           cover_image: string | null
           created_at: string
           description: string | null
@@ -193,6 +194,10 @@ export type Database = {
           last_synced_at: string | null
           manga_type: string | null
           mangadex_id: string | null
+          metadata_confidence: string | null
+          metadata_external_id: string | null
+          metadata_source: string | null
+          metadata_updated_at: string | null
           normalized_title: string
           rating: number | null
           source_updated_at: string | null
@@ -206,6 +211,7 @@ export type Database = {
           artist?: string | null
           author?: string | null
           content_rating?: string | null
+          country_of_origin?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
@@ -214,6 +220,10 @@ export type Database = {
           last_synced_at?: string | null
           manga_type?: string | null
           mangadex_id?: string | null
+          metadata_confidence?: string | null
+          metadata_external_id?: string | null
+          metadata_source?: string | null
+          metadata_updated_at?: string | null
           normalized_title: string
           rating?: number | null
           source_updated_at?: string | null
@@ -227,6 +237,7 @@ export type Database = {
           artist?: string | null
           author?: string | null
           content_rating?: string | null
+          country_of_origin?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
@@ -235,6 +246,10 @@ export type Database = {
           last_synced_at?: string | null
           manga_type?: string | null
           mangadex_id?: string | null
+          metadata_confidence?: string | null
+          metadata_external_id?: string | null
+          metadata_source?: string | null
+          metadata_updated_at?: string | null
           normalized_title?: string
           rating?: number | null
           source_updated_at?: string | null

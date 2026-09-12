@@ -6,7 +6,31 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { useCanonicalSourceRanking } from '@/hooks/useSourceResolution';
 
-type CanonicalCatalogRow = Database['public']['Views']['canonical_manga_catalog']['Row'];
+type CanonicalMangaRow = Database['public']['Tables']['mangas']['Row'];
+type CanonicalMappingRow = Database['public']['Tables']['manga_source_mappings']['Row'];
+
+export type CanonicalDetailCatalog = {
+  canonical_id: number;
+  normalized_title: string;
+  title: string;
+  alternative_titles: string[];
+  author: string | null;
+  artist: string | null;
+  type: string | null;
+  status: string;
+  cover: string | null;
+  description: string | null;
+  genres: string[];
+  rating: number | null;
+  content_rating: string | null;
+  country_of_origin: string | null;
+  metadata_source: string | null;
+  metadata_confidence: string | null;
+  metadata_updated_at: string | null;
+  source_updated_at: string | null;
+  source_count: number;
+  sources: CatalogSource[];
+};
 
 type CatalogSource = {
   provider?: string;
@@ -22,7 +46,7 @@ export type CanonicalEntryResolution = {
   attemptedSources: string[];
 };
 
-const parseFallbackCandidates = (catalog: CanonicalCatalogRow | null | undefined): CanonicalDetailCandidate[] => {
+const parseFallbackCandidates = (catalog: CanonicalDetailCatalog | null | undefined): CanonicalDetailCandidate[] => {
   if (!Array.isArray(catalog?.sources)) return [];
   return (catalog.sources as CatalogSource[]).flatMap((mapping, index) => {
     if (!mapping.provider || !mapping.external_id || !isValidSource(mapping.provider)) return [];
@@ -39,15 +63,43 @@ export function useCanonicalMangaEntry(canonicalRouteId: string | undefined, pre
   const numericId = canonicalRouteId && /^\d+$/.test(canonicalRouteId) ? Number(canonicalRouteId) : undefined;
   const catalogQuery = useQuery({
     queryKey: ['canonical-manga-detail', numericId],
-    queryFn: async (): Promise<CanonicalCatalogRow | null> => {
+    queryFn: async (): Promise<CanonicalDetailCatalog | null> => {
       if (numericId === undefined) return null;
-      const { data, error } = await supabase
-        .from('canonical_manga_catalog')
-        .select('*')
-        .eq('canonical_id', numericId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      const [mangaResult, mappingsResult] = await Promise.all([
+        supabase.from('mangas').select('*').eq('id', numericId).maybeSingle(),
+        supabase.from('manga_source_mappings').select('*').eq('manga_id', numericId).order('source_id'),
+      ]);
+      if (mangaResult.error) throw mangaResult.error;
+      if (mappingsResult.error) throw mappingsResult.error;
+      const manga = mangaResult.data as CanonicalMangaRow | null;
+      if (!manga) return null;
+      const mappings = (mappingsResult.data || []) as CanonicalMappingRow[];
+      return {
+        canonical_id: manga.id,
+        normalized_title: manga.normalized_title,
+        title: manga.title,
+        alternative_titles: manga.aliases || [],
+        author: manga.author,
+        artist: manga.artist,
+        type: manga.manga_type,
+        status: manga.status,
+        cover: manga.cover_image,
+        description: manga.description,
+        genres: manga.genre || [],
+        rating: manga.rating,
+        content_rating: manga.content_rating,
+        country_of_origin: manga.country_of_origin,
+        metadata_source: manga.metadata_source,
+        metadata_confidence: manga.metadata_confidence,
+        metadata_updated_at: manga.metadata_updated_at,
+        source_updated_at: manga.source_updated_at,
+        source_count: mappings.filter((mapping) => mapping.available).length,
+        sources: mappings.map((mapping) => ({
+          provider: mapping.source_id,
+          external_id: mapping.source_manga_id,
+          available: mapping.available,
+        })),
+      };
     },
     enabled: numericId !== undefined,
     staleTime: 5 * 60_000,

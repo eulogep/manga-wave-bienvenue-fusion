@@ -9,8 +9,10 @@ import {
   ChevronRight,
   ExternalLink,
   FileText,
+  Globe2,
   Languages,
   LoaderCircle,
+  Star,
   Users,
   Play,
   Shuffle,
@@ -36,6 +38,13 @@ import { getSource, type SourceChapter, type SourceType } from '@/integrations/s
 import { useAuth } from '@/hooks/useAuth';
 import { useCanonicalFollow, useCanonicalMangaId } from '@/hooks/useFollows';
 import { useToast } from '@/hooks/use-toast';
+import {
+  canonicalAliases,
+  canonicalMetadataSourceLabel,
+  canonicalOriginLabel,
+  canonicalTypeLabel,
+} from '@/domain/canonicalDetailPresentation';
+import { discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -131,17 +140,24 @@ const MangaDetail = () => {
     ? {
         id: String(canonicalCatalog.canonical_id),
         title: canonicalCatalog.title || resolvedCanonicalManga?.title || 'Manga',
+        aliases: canonicalAliases(canonicalCatalog.title, canonicalCatalog.alternative_titles),
         description: canonicalCatalog.description || resolvedCanonicalManga?.synopsis || '',
         coverImageUrl: canonicalCatalog.cover || resolvedCanonicalManga?.coverUrl || null,
         author: canonicalCatalog.author || resolvedCanonicalManga?.author || 'Auteur non renseigné',
-        artist: resolvedCanonicalManga?.artist || null,
+        artist: canonicalCatalog.artist || resolvedCanonicalManga?.artist || null,
+        type: canonicalCatalog.type,
+        countryOfOrigin: canonicalCatalog.country_of_origin,
         status: canonicalCatalog.status || resolvedCanonicalManga?.status || 'unknown',
         genres: canonicalCatalog.genres || resolvedCanonicalManga?.genres || [],
         themes: resolvedCanonicalManga?.themes || [],
         year: resolvedCanonicalManga?.year || null,
-        contentRating: resolvedCanonicalManga?.contentRating || null,
+        rating: canonicalCatalog.rating,
+        contentRating: canonicalCatalog.content_rating || resolvedCanonicalManga?.contentRating || null,
         lastChapter: resolvedCanonicalManga?.lastChapter || canonicalResolution?.chapters[0]?.chapterNumber || null,
-        updatedAt: resolvedCanonicalManga?.updatedAt || null,
+        updatedAt: canonicalCatalog.metadata_updated_at || canonicalCatalog.source_updated_at || resolvedCanonicalManga?.updatedAt || null,
+        metadataSource: canonicalMetadataSourceLabel(canonicalCatalog.metadata_source),
+        metadataConfidence: canonicalCatalog.metadata_confidence,
+        sourceCount: canonicalCatalog.source_count,
         externalUrl: resolvedCanonicalManga?.externalUrl || undefined,
         sourceName: getSource(source)?.displayName || 'Source automatique',
       }
@@ -150,17 +166,24 @@ const MangaDetail = () => {
       ? {
           id: originMangaData.id,
           title: originMangaData.title,
+          aliases: [] as string[],
           description: originMangaData.synopsis || '',
           coverImageUrl: originMangaData.coverUrl,
           author: originMangaData.author || 'Auteur non renseigné',
           artist: originMangaData.artist,
+          type: null,
+          countryOfOrigin: null,
           status: originMangaData.status.toLowerCase() || 'ongoing',
           genres: originMangaData.genres,
           themes: [] as string[],
           year: null,
+          rating: null,
           contentRating: null,
           lastChapter: originMangaData.chapters[0]?.chapterNumber || null,
           updatedAt: null,
+          metadataSource: null,
+          metadataConfidence: null,
+          sourceCount: 1,
           externalUrl: `https://www.originmanga.com/manga.php?id=${id}`,
           sourceName: 'OriginManga (FR)',
         }
@@ -170,17 +193,24 @@ const MangaDetail = () => {
       ? {
           id: universalData.id,
           title: universalData.title,
+          aliases: [] as string[],
           description: universalData.synopsis || '',
           coverImageUrl: universalData.coverUrl,
           author: universalData.author || 'Auteur non renseigné',
           artist: universalData.artist,
+          type: null,
+          countryOfOrigin: null,
           status: universalData.status.toLowerCase() || 'ongoing',
           genres: universalData.genres,
           themes: [] as string[],
           year: universalData.year || null,
+          rating: null,
           contentRating: null,
           lastChapter: universalData.lastChapter || null,
           updatedAt: null,
+          metadataSource: null,
+          metadataConfidence: null,
+          sourceCount: 1,
           externalUrl: universalData.externalUrl || undefined,
           sourceName: source.toUpperCase(),
         }
@@ -188,6 +218,13 @@ const MangaDetail = () => {
     : mangaDexData
     ? {
         ...mangaDexData,
+        aliases: [] as string[],
+        type: null,
+        countryOfOrigin: null,
+        rating: null,
+        metadataSource: null,
+        metadataConfidence: null,
+        sourceCount: 1,
         sourceName: 'MangaDex',
       }
     : null;
@@ -353,11 +390,13 @@ const MangaDetail = () => {
         year: 'numeric',
       }).format(new Date(manga.updatedAt))
     : null;
+  const typeLabel = canonicalTypeLabel(manga.type);
+  const originLabel = canonicalOriginLabel(manga.countryOfOrigin);
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--mw-background)]">
       <Header />
-      <main className="flex-1 section-padding py-10 md:py-14">
+      <main className="flex-1 section-padding py-10 md:py-14" data-testid="manga-detail-v2">
         <div className="container mx-auto space-y-10">
           <Link
             to="/search"
@@ -368,7 +407,8 @@ const MangaDetail = () => {
           </Link>
 
           {/* MANGA OVERVIEW SECTION */}
-          <section className="grid grid-cols-1 gap-8 border-b border-[var(--mw-border)] pb-12 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] lg:gap-12">
+          <section className="relative isolate grid grid-cols-1 gap-8 overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]/80 p-5 pb-10 md:grid-cols-[260px_1fr] md:p-8 lg:grid-cols-[300px_1fr] lg:gap-12" aria-labelledby="manga-title">
+            {manga.coverImageUrl && <div className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.08] blur-2xl scale-110" style={{ backgroundImage: `url(${manga.coverImageUrl})` }} aria-hidden="true" />}
             <div className="mx-auto md:mx-0 w-full max-w-[300px]">
               <MangaCover
                 src={manga.coverImageUrl}
@@ -379,9 +419,17 @@ const MangaDetail = () => {
 
             <div>
               <div className="flex flex-wrap gap-2 mb-4">
+                {typeLabel && (
+                  <Badge className={`border-0 ${discoveryTypeBadgeClass(manga.type)}`}>{typeLabel}</Badge>
+                )}
                 <Badge variant="secondary" className="bg-white/10 text-white border-0">
                   {statusLabels[manga.status] || manga.status}
                 </Badge>
+                {originLabel && (
+                  <Badge variant="outline" className="border-white/15 text-white/75">
+                    <Globe2 className="mr-1 h-3 w-3" aria-hidden="true" /> {originLabel}
+                  </Badge>
+                )}
                 {manga.contentRating && (
                   <Badge variant="secondary" className="bg-white/10 text-white border-0">
                     {manga.contentRating}
@@ -389,13 +437,19 @@ const MangaDetail = () => {
                 )}
               </div>
 
-              <h1 className="mb-4 font-editorial text-4xl font-semibold uppercase leading-tight md:text-5xl">{manga.title}</h1>
+              <h1 id="manga-title" className="mb-4 break-words font-editorial text-4xl font-semibold uppercase leading-tight md:text-5xl">{manga.title}</h1>
               <p className="text-lg text-muted-foreground mb-6">
                 Par <span className="text-white font-medium">{manga.author}</span>
                 {manga.artist && manga.artist !== manga.author && (
                   <> · Illustrations : <span className="text-white font-medium">{manga.artist}</span></>
                 )}
               </p>
+
+              {manga.aliases.length > 0 && (
+                <p className="mb-6 text-sm leading-6 text-white/50" data-testid="canonical-aliases">
+                  <span className="font-semibold text-white/65">Aussi connu sous :</span> {manga.aliases.join(' · ')}
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-2 mb-7">
                 {manga.genres.map((genre) => (
@@ -414,11 +468,21 @@ const MangaDetail = () => {
                 {manga.description || 'Aucun synopsis disponible pour ce titre.'}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+                <div className="border border-[var(--mw-border)] bg-black/15 p-4">
+                  <Star className="h-5 w-5 text-manga-gold mb-2" />
+                  <p className="text-xs text-muted-foreground">Note</p>
+                  <p className="font-semibold">{manga.rating == null ? 'Non renseignée' : `${manga.rating.toFixed(1)} / 10`}</p>
+                </div>
                 <div className="border border-[var(--mw-border)] bg-[var(--mw-surface)] p-4">
                   <CalendarDays className="h-5 w-5 text-manga-pink mb-2" />
                   <p className="text-xs text-muted-foreground">Année</p>
                   <p className="font-semibold">{manga.year || 'Non renseignée'}</p>
+                </div>
+                <div className="border border-[var(--mw-border)] bg-black/15 p-4">
+                  <Shuffle className="h-5 w-5 text-manga-purple mb-2" />
+                  <p className="text-xs text-muted-foreground">Éditions disponibles</p>
+                  <p className="font-semibold" data-testid="canonical-source-count">{manga.sourceCount || 'Aucune confirmée'}</p>
                 </div>
                 <div className="border border-[var(--mw-border)] bg-[var(--mw-surface)] p-4">
                   <BookOpen className="h-5 w-5 text-manga-cyan mb-2" />
@@ -435,6 +499,14 @@ const MangaDetail = () => {
                   </div>
                 )}
               </div>
+
+              {manga.metadataSource && (
+                <p className="mb-6 text-xs text-white/40" data-testid="canonical-provenance">
+                  Métadonnées canoniques vérifiées via {manga.metadataSource}
+                  {manga.metadataConfidence ? ` · confiance ${manga.metadataConfidence}` : ''}
+                  {formattedUpdatedAt ? ` · ${formattedUpdatedAt}` : ''}
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-3">
                 {/* First chapter fast start button */}
