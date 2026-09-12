@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, BookMarked, LogOut, X, Compass, Flame, Home, Library, TrendingUp } from 'lucide-react';
+import { Search, Menu, User, BookMarked, LogOut, X, Compass, Dices, Home, Library, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useCommandSearch } from '@/hooks/useCommandSearch';
@@ -31,7 +31,7 @@ const MangaWaveLogo = () => (
 const navLinks = [
   { label: 'Accueil', to: '/', icon: Home },
   { label: 'Mangas', to: '/search', icon: Compass },
-  { label: 'Découvrir', to: '/search', icon: Flame },
+  { label: 'Surprise', to: '/random', icon: Dices },
   { label: 'Tendances', to: '/trending', icon: TrendingUp },
 ];
 
@@ -191,7 +191,7 @@ const Header = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/auth')}
-                  className="h-10 border border-[var(--mw-border)] px-4 text-xs font-semibold uppercase tracking-wider text-white/75 hover:border-[var(--mw-accent-coral)] hover:bg-transparent hover:text-white"
+                  className="h-10 border border-[var(--mw-border)] px-2 sm:px-4 text-xs font-semibold uppercase tracking-wider text-white/75 hover:border-[var(--mw-accent-coral)] hover:bg-transparent hover:text-white"
                   aria-label="Se connecter"
                 >
                   Connexion

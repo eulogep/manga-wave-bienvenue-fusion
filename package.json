@@ -36,6 +36,8 @@
     "test:e2e:t3023": "playwright test tests/e2e/t3023-ranking.spec.ts",
     "test:t3024": "node --experimental-strip-types --test tests/recommendations.test.ts",
     "test:e2e:t3024": "playwright test tests/e2e/t3024-recommendations.spec.ts",
+    "test:t3025": "node --experimental-strip-types --test tests/randomDiscovery.test.ts",
+    "test:e2e:t3025": "playwright test tests/e2e/t3025-random.spec.ts",
     "test:content-rating": "node --experimental-strip-types --test tests/contentRating.test.ts",
     "test:e2e:new-sources": "playwright test tests/e2e/new-sources.spec.ts",
     "test:t3019": "node --experimental-strip-types --test tests/readingHistory.test.ts",

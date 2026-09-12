@@ -15,6 +15,7 @@ import History from "./pages/History";
 import Library from "./pages/Library";
 import Trending from "./pages/Trending";
 import Ranking from "./pages/Ranking";
+import Random from "./pages/Random";
 import Reader from "./pages/Reader";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/library" element={<Library />} />
               <Route path="/trending" element={<Trending />} />
               <Route path="/ranking" element={<Ranking />} />
+              <Route path="/random" element={<Random />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -13,6 +13,7 @@ import {
   X,
   CornerDownLeft,
   BookMarked,
+  Dices,
 } from 'lucide-react';
 import {
   Dialog,
@@ -53,7 +54,7 @@ export const CommandSearchDialog: React.FC = () => {
 
   // Lazy-load canonical catalog snapshot when dialog opens
   const catalog = useCanonicalSearch(isOpen);
-  const { items: readingProgress } = useContinueReading();
+  const { data: readingProgress } = useContinueReading();
 
   const trimmedQuery = query.trim();
   const hasQuery = Boolean(normalizeQuery(trimmedQuery));
@@ -336,6 +337,16 @@ export const CommandSearchDialog: React.FC = () => {
                   >
                     <Library className="h-4 w-4 text-white/60 shrink-0" />
                     <span className="text-sm font-medium">Ma bibliothèque</span>
+                  </CommandItem>
+
+                  <CommandItem
+                    value="nav-random"
+                    onSelect={() => handleSelect(() => navigate('/random'))}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                    data-testid="command-nav-random"
+                  >
+                    <Dices className="h-4 w-4 text-manga-cyan shrink-0" />
+                    <span className="text-sm font-medium">Surprends-moi</span>
                   </CommandItem>
 
                   <CommandItem

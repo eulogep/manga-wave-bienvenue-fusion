@@ -809,6 +809,19 @@ export type Database = {
         }
         Relationships: []
       }
+      manga_trending_scores: {
+        Row: {
+          canonical_manga_id: number
+          computed_at: string
+          favorite_events: number
+          follow_events: number
+          progress_update_events: number
+          reading_session_events: number
+          score: number
+          unique_users: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       complete_source_sync: {
@@ -836,6 +849,25 @@ export type Database = {
           manga_id: number
           match_reason: string
           title: string
+        }[]
+      }
+      get_manga_ranking: {
+        Args: {
+          include_legacy_fallback?: boolean
+          max_sessions_per_user?: number
+          result_limit?: number
+          window_days?: number | null
+        }
+        Returns: {
+          canonical_manga_id: number
+          distinct_active_days: number
+          legacy_fallback: boolean
+          new_favorites: number
+          new_follows: number
+          rank: number
+          reading_sessions: number
+          score: number
+          unique_readers: number
         }[]
       }
       normalize_manga_title: { Args: { value: string }; Returns: string }
