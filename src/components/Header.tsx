@@ -4,6 +4,7 @@ import { Search, Menu, User, BookMarked, LogOut, X, Compass, Flame, Home, Librar
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { useCommandSearch } from '@/hooks/useCommandSearch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,11 +36,10 @@ const navLinks = [
 ];
 
 const Header = () => {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { openWithQuery, shortcutLabel, isOpen } = useCommandSearch();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -59,13 +59,8 @@ const Header = () => {
     navigate('/');
   };
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const q = searchQuery.trim();
-    if (q.length < 2) return;
-    navigate(`/search?q=${encodeURIComponent(q)}`);
-    setIsSearchOpen(false);
-    setSearchQuery('');
+  const handleOpenSearch = () => {
+    openWithQuery();
   };
 
   const isActive = (to: string) => {
@@ -84,7 +79,7 @@ const Header = () => {
         }`}
       >
         <div className="container mx-auto section-padding">
-          <div className="flex h-[72px] items-center justify-between gap-4">
+          <div className="flex h-[72px] items-center justify-between gap-2 sm:gap-4">
 
             {/* ── Logo ── */}
             <button
@@ -134,44 +129,24 @@ const Header = () => {
             {/* ── Right Actions ── */}
             <div className="flex items-center gap-1 sm:gap-2">
 
-              {/* Search — expandable */}
-              <div className="relative flex items-center">
-                {isSearchOpen ? (
-                  <form onSubmit={submitSearch} className="flex items-center gap-2 animate-fade-blur-in">
-                    <Input
-                      type="search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Titre, auteur, genre…"
-                      minLength={2}
-                      className="w-52 sm:w-72 h-9 bg-white/[0.06] border-white/[0.12] text-white placeholder:text-white/40 rounded-full pl-4 pr-4 focus:border-manga-purple/50 focus:bg-white/[0.08] transition-all duration-200"
-                      autoFocus
-                      onBlur={() => {
-                        if (!searchQuery.trim()) setIsSearchOpen(false);
-                      }}
-                      aria-label="Rechercher un manga"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-                      className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
-                      aria-label="Fermer la recherche"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </form>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsSearchOpen(true)}
-                    className="h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"
-                    aria-label="Ouvrir la recherche"
-                  >
-                    <Search className="h-4.5 w-4.5" />
-                  </Button>
-                )}
-              </div>
+              {/* Command Search Trigger */}
+              <button
+                type="button"
+                onClick={handleOpenSearch}
+                className="group flex h-9 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-2.5 text-xs text-white/50 transition-all hover:border-[var(--mw-accent-coral)]/50 hover:bg-white/[0.08] hover:text-white sm:w-48 md:w-56 lg:w-64"
+                aria-label={`Recherche rapide (${shortcutLabel})`}
+                aria-haspopup="dialog"
+                aria-expanded={isOpen}
+                data-testid="header-command-search-button"
+              >
+                <Search className="h-4 w-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
+                <span className="hidden sm:inline-block flex-1 text-left truncate text-white/40 group-hover:text-white/70">
+                  Rechercher un manga...
+                </span>
+                <kbd className="hidden sm:inline-flex items-center rounded bg-white/[0.08] border border-white/[0.12] px-1.5 py-0.5 text-[10px] font-mono tracking-tight text-white/60 group-hover:text-white">
+                  {shortcutLabel}
+                </kbd>
+              </button>
 
               {user && <NotificationCenter />}
 
@@ -263,6 +238,23 @@ const Header = () => {
             </div>
 
             <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openWithQuery();
+                }}
+                className="flex items-center justify-between px-4 py-3 rounded-xl font-medium text-white/80 bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-all mb-1 text-left"
+                aria-label="Ouvrir la recherche rapide"
+              >
+                <span className="flex items-center gap-3">
+                  <Search className="h-4.5 w-4.5 text-[var(--mw-accent-coral)]" />
+                  <span>Recherche rapide</span>
+                </span>
+                <kbd className="font-mono text-[11px] bg-white/[0.08] px-2 py-0.5 rounded text-white/60">
+                  {shortcutLabel}
+                </kbd>
+              </button>
               {navLinks.map(({ label, to, icon: Icon }) => (
                 <Link
                   key={to}
