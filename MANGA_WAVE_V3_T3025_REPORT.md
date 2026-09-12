@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## STATUS
 
-LOCAL_IMPLEMENTATION_COMPLETE / PRODUCTION_DEPLOYMENT_PENDING.
+PRODUCTION_VALIDATED / APPROVED.
 
 T-3025 adds a canonical random-discovery route without a database migration, runtime metadata
 provider, or user-data dependency. The implementation reuses the T-3020 catalog snapshot already
@@ -66,6 +66,11 @@ No migration or remote database write is part of T-3025.
 - TypeScript server: **PASS**.
 - ESLint: **0 errors**, 61 historical Fast Refresh warnings.
 - Build: **PASS**, `assets/index-DAjc44xE.js` and `assets/index-BogRH1xc.css`.
+- Production deployment: **PASS**, commit `4fb7959b9ea35c8dbeaddbf8901620feaa5210e0`.
+- Production asset: **PASS**, `assets/index-CL72zCY7.js` and `assets/index-BogRH1xc.css`.
+- Production T-3025 E2E: **3/3 PASS** with controlled responses and **1/1 PASS** against the real
+  canonical catalog. The real run selected Manga, Manhwa, and Manhua and observed zero provider
+  extraction requests.
 - Lockfiles: **unchanged**.
 - Database migrations: **none**.
 - QA accounts: **none created**.
@@ -94,12 +99,11 @@ TYPESCRIPT:                   PASS
 ESLINT:                       PASS (0 errors)
 BUILD:                        PASS
 DATABASE_CHANGE:              NONE
-PRODUCTION_SMOKE:             PENDING_DEPLOYMENT
-T3025_FINAL:                  READY_TO_DEPLOY
+PRODUCTION_SMOKE:             PASS (3 controlled + 1 real-catalog)
+T3025_FINAL:                  APPROVED
 ```
 
 ## NEXT STEP
 
-Push the prepared T-3025 commit to `origin/main`, let the existing Vercel deployment complete, then
-run the production real-catalog smoke and regressions. T-3026 starts only after T-3025 production
-acceptance passes.
+T-3025 is closed. T-3026 Manga Detail V2 is unblocked and may start from the deployed canonical
+catalog contract.
