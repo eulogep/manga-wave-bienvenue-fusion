@@ -1,4 +1,5 @@
 import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
+import { providerHttp } from '../lib/provider-http.js';
 
 // Sushi-Scan: a French Madara/WordPress scan site (same underlying CMS as
 // the existing "crunchyscan" extractor, which actually targets LelManga —
@@ -15,7 +16,6 @@ import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib
 // unmarked. This extractor itself only extracts what the site publishes;
 // it does not filter.
 const BASE = 'https://sushiscan.fr';
-const REQUEST_TIMEOUT = 15_000;
 
 function decodeHtml(value: string): string {
   return value
@@ -31,16 +31,11 @@ function decodeHtml(value: string): string {
 }
 
 async function getHtml(path: string): Promise<string> {
-  const response = await fetch(`${BASE}${path}`, {
+  return providerHttp.getText(`${BASE}${path}`, {
     headers: {
-      Accept: 'text/html,application/xhtml+xml',
       'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
     },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT),
   });
-  if (!response.ok) throw new Error(`Sushi-Scan a répondu ${response.status}.`);
-  return response.text();
 }
 
 function firstMatch(html: string, pattern: RegExp): string | null {

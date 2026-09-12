@@ -1,7 +1,7 @@
 import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
+import { providerHttp } from '../lib/provider-http.js';
 
 const BASE = 'https://www.originmanga.com';
-const REQUEST_TIMEOUT = 15_000;
 
 function decodeHtml(value: string): string {
   return value
@@ -18,16 +18,11 @@ function decodeHtml(value: string): string {
 }
 
 async function getHtml(path: string): Promise<string> {
-  const response = await fetch(`${BASE}${path}`, {
+  return providerHttp.getText(`${BASE}${path}`, {
     headers: {
-      Accept: 'text/html,application/xhtml+xml',
       'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-      'User-Agent': 'MangaWave/1.0 (+public chapter reader)',
     },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT),
   });
-  if (!response.ok) throw new Error(`OriginManga a répondu ${response.status}.`);
-  return response.text();
 }
 
 function parseCards(html: string, limit = 40): SearchResult[] {

@@ -43,6 +43,7 @@
     "test:t3027": "node --experimental-strip-types --test tests/chapterList.test.ts",
     "test:e2e:t3027": "playwright test tests/e2e/t3027-chapter-list.spec.ts",
     "test:content-rating": "node --experimental-strip-types --test tests/contentRating.test.ts",
+    "test:provider-resilience": "node --experimental-strip-types --test tests/providerRequestPolicy.test.ts",
     "test:e2e:new-sources": "playwright test tests/e2e/new-sources.spec.ts",
     "test:t3019": "node --experimental-strip-types --test tests/readingHistory.test.ts",
     "test:e2e:t3019": "playwright test tests/e2e/t3019-history.spec.ts",

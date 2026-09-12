@@ -1,4 +1,5 @@
 import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
+import { providerHttp } from '../lib/provider-http.js';
 
 // MangaPill: a plain server-rendered HTML aggregator (no Cloudflare/JS
 // challenge observed), English catalogue. Verified live before writing this
@@ -7,19 +8,13 @@ import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib
 // catalogue is manga/manhua-oriented, not a full replacement for the
 // manhwa-focused sources already integrated.
 const BASE = 'https://mangapill.com';
-const REQUEST_TIMEOUT = 15_000;
 
 async function getHtml(path: string): Promise<string> {
-  const response = await fetch(`${BASE}${path}`, {
+  return providerHttp.getText(`${BASE}${path}`, {
     headers: {
-      Accept: 'text/html,application/xhtml+xml',
       'Accept-Language': 'en-US,en;q=0.9',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
     },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT),
   });
-  if (!response.ok) throw new Error(`MangaPill a répondu ${response.status}.`);
-  return response.text();
 }
 
 function decodeHtml(value: string): string {
