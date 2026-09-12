@@ -1,0 +1,17 @@
+[
+  {
+    "source": "kitsu",
+    "externalId": 54139,
+    "reason": "2026-09-10 sample review: aliases include Chainsaw Man: Public Safety Saga and チェンソーマン 第二部; part/arc scope requires editorial review before enriching the full series."
+  },
+  {
+    "source": "kitsu",
+    "externalId": 37855,
+    "reason": "2026-09-10 sample review: Komi-san wa and Communication Shougai desu. are truncated fragments in the synonym list; alias quality needs editorial review."
+  },
+  {
+    "source": "kitsu",
+    "externalId": 12619,
+    "reason": "2026-09-10 sample review: a Thai alias contains the editorial annotation (SIC); retain this record for alias quality review rather than importing the annotation."
+  }
+]
