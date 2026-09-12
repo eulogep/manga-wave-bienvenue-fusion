@@ -71,3 +71,8 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## License
+
+Proprietary — all rights reserved. See [LICENSE](./LICENSE). This project aggregates content from
+third-party manga sources it does not own; no license is granted to that content.
