@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## STATUS
 
-LOCAL_IMPLEMENTATION_COMPLETE / PRODUCTION_DEPLOYMENT_PENDING.
+PRODUCTION_VALIDATED / APPROVED.
 
 ## ROOT CAUSE
 
@@ -46,6 +46,12 @@ chapter from provider array order rather than the earliest valid logical chapter
 - Lockfiles: **unchanged**.
 - Database migrations and remote writes: **none**.
 - QA accounts: **none created**.
+- Git deployment: **PASS**, `origin/main` at `d0ce23b1fc1e6198e10644d50e88c1fbb90115e2`.
+- Vercel production deployment: **PASS**.
+- Production assets: `assets/index-5-u2Ng-9.js` and `assets/index-CkN5cte7.css`.
+- Production controlled T-3027 E2E: **2/2 PASS**.
+- Production real-catalog T-3027 E2E: **1/1 PASS**.
+- Production real-catalog T-3026 regression: **1/1 PASS**.
 
 ## ACCEPTANCE
 
@@ -68,12 +74,12 @@ TYPESCRIPT:                    PASS
 ESLINT:                        PASS (0 errors)
 BUILD:                         PASS
 DATABASE_CHANGE:               NONE
-PRODUCTION_SMOKE:              PENDING_DEPLOYMENT
-T3027_FINAL:                   READY_TO_DEPLOY
+PRODUCTION_SMOKE:              PASS (3/3 T-3027)
+T3026_PRODUCTION_REGRESSION:   PASS (1/1)
+T3027_FINAL:                   APPROVED
 ```
 
 ## NEXT STEP
 
-Push the T-3026 closure report and T-3027 implementation, wait for the existing Vercel Git
-deployment, then execute controlled and real-catalog production smoke. P4 work starts only after
-T-3027 production acceptance passes.
+T-3027 is closed. P4 can start with a measured mobile and accessibility audit of the production
+surfaces, followed only by fixes backed by reproducible evidence.
