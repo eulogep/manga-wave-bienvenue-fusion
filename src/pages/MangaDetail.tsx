@@ -5,15 +5,11 @@ import {
   BellRing,
   BookOpen,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
-  FileText,
   Globe2,
   Languages,
   LoaderCircle,
   Star,
-  Users,
   Play,
   Shuffle,
 } from 'lucide-react';
@@ -45,6 +41,8 @@ import {
   canonicalTypeLabel,
 } from '@/domain/canonicalDetailPresentation';
 import { discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
+import ChapterListV2 from '@/components/ChapterListV2';
+import { firstReadableChapter as findFirstReadableChapter } from '@/domain/chapterList';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -130,6 +128,8 @@ const MangaDetail = () => {
   const {
     data: universalChaptersData,
     isLoading: isUniversalChaptersLoading,
+    isError: isUniversalChaptersError,
+    error: universalChaptersError,
     refetch: refetchUniversalChapters,
   } = useUniversalMangaChapters(loadDirectProvider && isUniversal ? source : '', loadDirectProvider && isUniversal ? id : undefined);
 
@@ -331,7 +331,7 @@ const MangaDetail = () => {
     : isUniversal
       ? universalChaptersList
       : mangaDexChaptersList;
-  const firstReadableChapter = readableChapters[readableChapters.length - 1] || readableChapters[0];
+  const firstReadableChapter = findFirstReadableChapter(readableChapters);
   const sourceOptionsQuery = useChapterSourceAlternatives(
     manga?.title,
     firstReadableChapter?.chapterNumber || manga?.lastChapter || undefined,
@@ -631,7 +631,7 @@ const MangaDetail = () => {
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-7">
               <div>
                 <p className="text-manga-cyan font-medium mb-2">LECTURE EN LIGNE</p>
-                <h2 className="font-editorial text-3xl uppercase">Chapitres disponibles</h2>
+                <h2 id="chapter-list-heading" className="font-editorial text-3xl uppercase">Chapitres disponibles</h2>
                 <p className="text-muted-foreground mt-2">
                   Choisissez un chapitre et Manga Wave ouvrira automatiquement l’édition disponible.
                 </p>
@@ -667,252 +667,42 @@ const MangaDetail = () => {
               )}
             </div>
 
-            {/* ORIGIN MANGA CHAPTERS LIST */}
-            {isOriginManga && (
-              <div>
-                {originChaptersList.length > 0 ? (
-                  <div className="divide-y divide-[var(--mw-border)] overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]">
-                    {originChaptersList.map((chapter) => {
-                      return (
-                        <article
-                          key={chapter.id}
-                          className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:bg-white/5"
-                        >
-                          <FileText className="h-5 w-5 text-manga-purple shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">
-                              Chapitre {chapter.chapterNumber}
-                              {chapter.title ? ` — ${chapter.title}` : ''}
-                            </h3>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                              {chapter.date && <span>{chapter.date}</span>}
-                              <Badge variant="outline" className="text-[10px] border-white/20">
-                                Scan FR
-                              </Badge>
-                            </div>
-                          </div>
+            <ChapterListV2
+              chapters={readableChapters}
+              isLoading={!requestedSource
+                ? canonicalEntry.resolutionQuery.isLoading
+                : isOriginManga
+                  ? isOriginLoading
+                  : isUniversal
+                    ? isUniversalChaptersLoading
+                    : isMangaDexChaptersLoading}
+              errorMessage={!requestedSource
+                ? canonicalEntry.resolutionQuery.isError
+                  ? canonicalEntry.resolutionQuery.error.message
+                  : null
+                : isUniversal && isUniversalChaptersError
+                  ? (universalChaptersError as Error).message
+                  : isMangaDex && isMangaDexChaptersError
+                    ? mangaDexChaptersError.message
+                    : null}
+              emptyMessage={isMangaDex
+                ? 'Essayez une autre langue dans le sélecteur ci-dessus.'
+                : 'Aucun chapitre lisible n’a été trouvé pour ce titre.'}
+              onRetry={retry}
+              onRead={handleStartReadingChapter}
+              total={loadDirectProvider && isMangaDex ? mangaDexChaptersData?.total : readableChapters.length}
+              offset={loadDirectProvider && isMangaDex ? chapterOffset : 0}
+              remotePageSize={100}
+              onPreviousPage={loadDirectProvider && isMangaDex ? () => {
+                setChapterOffset((offset) => Math.max(0, offset - 100));
+                document.getElementById('chapter-list-heading')?.scrollIntoView({ behavior: 'smooth' });
+              } : undefined}
+              onNextPage={loadDirectProvider && isMangaDex ? () => {
+                setChapterOffset((offset) => offset + 100);
+                document.getElementById('chapter-list-heading')?.scrollIntoView({ behavior: 'smooth' });
+              } : undefined}
+            />
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button
-                              className="border-white/30"
-                              variant="outline"
-                              onClick={() =>
-                                handleStartReadingChapter({
-                                  id: chapter.id,
-                                  language: 'fr',
-                                })
-                              }
-                            >
-                              <Play className="h-4 w-4 mr-2" />
-                              Lire le chapitre
-                            </Button>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
-                    <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Aucun chapitre disponible</h3>
-                    <p className="text-muted-foreground">Aucun chapitre lisible n&apos;a été trouvé pour ce titre.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* UNIVERSAL SOURCES CHAPTERS LIST (COMICK, CRUNCHYSCAN, ETC.) */}
-            {isUniversal && (
-              <div>
-                {isUniversalChaptersLoading ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 py-14 text-center" aria-busy="true">
-                    <LoaderCircle className="h-8 w-8 animate-spin text-manga-purple mx-auto mb-4" />
-                    <p className="text-muted-foreground">Chargement des chapitres…</p>
-                  </div>
-                ) : universalChaptersList.length > 0 ? (
-                  <div className="divide-y divide-[var(--mw-border)] overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]">
-                    {universalChaptersList.map((chapter) => {
-                      return (
-                        <article
-                          key={chapter.id}
-                          className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:bg-white/5"
-                        >
-                          <FileText className="h-5 w-5 text-manga-purple shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">
-                              Chapitre {chapter.chapterNumber}
-                              {chapter.title ? ` — ${chapter.title}` : ''}
-                            </h3>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                              {chapter.date && <span>{chapter.date}</span>}
-                              {chapter.scanlationGroup && (
-                                <span className="text-white/70">Par {chapter.scanlationGroup}</span>
-                              )}
-                              <Badge variant="outline" className="text-[10px] border-white/20">
-                                {chapter.language ? chapter.language.toUpperCase() : 'SCAN'}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button
-                              className="border-white/30"
-                              variant="outline"
-                              onClick={() =>
-                                handleStartReadingChapter({
-                                  id: chapter.id,
-                                  language: chapter.language,
-                                  })
-                              }
-                            >
-                              <Play className="h-4 w-4 mr-2" />
-                              Lire le chapitre
-                            </Button>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
-                    <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Aucun chapitre disponible</h3>
-                    <p className="text-muted-foreground">Aucun chapitre n&apos;a été trouvé sur {source.toUpperCase()} pour ce titre.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* MANGADEX CHAPTERS LIST */}
-            {isMangaDex && (
-              <>
-                {isMangaDexChaptersLoading && (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 py-14 text-center" aria-busy="true">
-                    <LoaderCircle className="h-8 w-8 animate-spin text-manga-purple mx-auto mb-4" />
-                    <p className="text-muted-foreground">Chargement des chapitres…</p>
-                  </div>
-                )}
-
-                {isMangaDexChaptersError && (
-                  <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
-                    <h3 className="text-xl font-bold mb-2">Liste des chapitres indisponible</h3>
-                    <p className="text-muted-foreground mb-5">{mangaDexChaptersError.message}</p>
-                    <Button className="btn-gradient" onClick={() => refetchMangaDexChapters()}>
-                      Réessayer
-                    </Button>
-                  </div>
-                )}
-
-                {!isMangaDexChaptersLoading && !isMangaDexChaptersError && mangaDexChaptersData && (
-                  <>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Chapitres {mangaDexChaptersData.total === 0 ? 0 : chapterOffset + 1} à{' '}
-                      {Math.min(chapterOffset + mangaDexChaptersData.chapters.length, mangaDexChaptersData.total)} sur{' '}
-                      {mangaDexChaptersData.total.toLocaleString('fr-FR')} dans cette langue.
-                    </p>
-                    {mangaDexChaptersData.chapters.length > 0 ? (
-                      <div className="divide-y divide-[var(--mw-border)] overflow-hidden border border-[var(--mw-border)] bg-[var(--mw-surface)]">
-                        {mangaDexChaptersData.chapters.map((chapter) => {
-                          return (
-                            <article
-                              key={chapter.id}
-                              className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:bg-white/5"
-                            >
-                              <FileText className="h-5 w-5 text-manga-purple shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold truncate">
-                                  {chapter.volume ? `Tome ${chapter.volume} · ` : ''}Chapitre {chapter.chapter || 'spécial'}
-                                  {chapter.title ? ` — ${chapter.title}` : ''}
-                                </h3>
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                                  <span>
-                                    {new Intl.DateTimeFormat('fr-FR', {
-                                      day: 'numeric',
-                                      month: 'short',
-                                      year: 'numeric',
-                                    }).format(new Date(chapter.readableAt))}
-                                  </span>
-                                  <span>
-                                    {chapter.pageCount} page{chapter.pageCount > 1 ? 's' : ''}
-                                  </span>
-                                  {chapter.scanlationGroups.length > 0 && (
-                                    <span className="inline-flex items-center gap-1">
-                                      <Users className="h-3.5 w-3.5" /> {chapter.scanlationGroups.join(', ')}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Button
-                                  className="border-white/30"
-                                  variant="outline"
-                                  onClick={() =>
-                                    handleStartReadingChapter({
-                                      id: chapter.id,
-                                      language: chapter.translatedLanguage,
-                                    })
-                                  }
-                                >
-                                  <Play className="h-4 w-4 mr-2" />
-                                  Lire le chapitre
-                                </Button>
-
-                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white" asChild>
-                                  <a
-                                    href={chapter.externalUrl || chapter.mangaDexUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    title="Ouvrir sur MangaDex"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 py-14 px-6 text-center">
-                        <BookOpen className="h-10 w-10 text-manga-purple mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Aucun chapitre dans cette langue</h3>
-                        <p className="text-muted-foreground">Essayez une autre langue dans le sélecteur ci-dessus.</p>
-                      </div>
-                    )}
-
-                    {mangaDexChaptersData.total > 100 && (
-                      <div className="flex items-center justify-center gap-4 mt-8">
-                        <Button
-                          variant="outline"
-                          className="border-white/30"
-                          disabled={chapterOffset === 0}
-                          onClick={() => {
-                            setChapterOffset((offset) => Math.max(0, offset - 100));
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Chapitres précédents
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="border-white/30"
-                          disabled={chapterOffset + 100 >= mangaDexChaptersData.total}
-                          onClick={() => {
-                            setChapterOffset((offset) => offset + 100);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                        >
-                          Chapitres suivants
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
           </section>
 
           <SimilarWorksSection canonicalMangaId={canonicalFollowIdentity.data} />
