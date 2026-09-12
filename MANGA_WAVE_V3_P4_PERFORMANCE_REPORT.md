@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## STATUS
 
-LOCAL_VALIDATED / PRODUCTION_DEPLOYMENT_PENDING.
+PRODUCTION_VALIDATED / APPROVED.
 
 ## MEASURED BOTTLENECK
 
@@ -58,6 +58,10 @@ chunks are absent until their route or interaction is requested.
 - ESLint: **0 errors**, 61 historical Fast Refresh warnings.
 - Production application build: **PASS**, `assets/index-BAQZBuH0.js` and
   `assets/index-CXOkOY9i.css`.
+- Remote `origin/main`: **PASS**, `e5f99690c5fc751d742722c9f1aa6dee2b8feaa6`.
+- Production asset: **PASS**, `assets/index-BAQZBuH0.js`.
+- Production initial JavaScript transfer: **203,529 encoded bytes**.
+- Production route and regression smoke: **12/12 PASS**.
 - Lockfiles: **unchanged**.
 - Database and remote writes: **none**.
 
@@ -70,7 +74,8 @@ HOMEPAGE_EAGER_PATH:           PASS
 SECONDARY_ROUTES_DEFERRED:     PASS
 COMMAND_SEARCH_DEFERRED:       PASS
 ACCESSIBLE_LOADING_STATE:      PASS
-INITIAL_JS_ENCODED_BYTES:      195959
+LOCAL_INITIAL_JS_BYTES:        195959
+PROD_INITIAL_JS_BYTES:         203529
 ENTRY_CHUNK_RAW_REDUCTION:     80.9%
 ENTRY_CHUNK_GZIP_REDUCTION:    81.2%
 OFFLINE_LAZY_ROUTE:            PASS
@@ -82,12 +87,12 @@ TYPESCRIPT:                    PASS
 ESLINT:                        PASS (0 errors)
 BUILD:                         PASS
 LOCKFILES:                     PRESERVED
-PRODUCTION_SMOKE:              PENDING_DEPLOYMENT
-P4_PERFORMANCE_FINAL:          READY_TO_DEPLOY
+PRODUCTION_ASSET:              assets/index-BAQZBuH0.js
+PRODUCTION_SMOKE:              PASS (12/12)
+P4_PERFORMANCE_FINAL:          APPROVED
 ```
 
 ## NEXT STEP
 
-Commit this isolated performance change, push only after explicit authorization, then verify the
-production asset graph, lazy-route requests, Command Search interaction and offline Search reopen.
-Continue P4 accessibility measurement after production acceptance.
+Continue P4 accessibility measurement. Any later production push remains subject to explicit
+authorization.
