@@ -37,13 +37,7 @@ import {
   normalizeQuery,
   type SearchWork,
 } from '@/domain/canonicalSearch';
-
-const statusLabels: Record<string, string> = {
-  ongoing: 'En cours',
-  completed: 'Terminé',
-  hiatus: 'En pause',
-  cancelled: 'Annulé',
-};
+import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
 
 export const CommandSearchDialog: React.FC = () => {
   const { isOpen, setIsOpen, initialQuery, shortcutLabel } = useCommandSearch();
@@ -229,7 +223,7 @@ export const CommandSearchDialog: React.FC = () => {
                                 ) : null}
                                 {work.status ? (
                                   <span className="text-[10px] text-white/40 hidden sm:inline">
-                                    {statusLabels[work.status] || work.status}
+                                    {discoveryStatusLabel(work.status)}
                                   </span>
                                 ) : null}
                               </div>

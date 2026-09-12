@@ -3,21 +3,7 @@ import { Link } from 'react-router-dom';
 import MangaCover from '@/components/MangaCover';
 import { useTrendingRanking } from '@/hooks/useTrending';
 import type { TrendingWindow } from '@/domain/trending';
-
-const statusLabels: Record<string, string> = {
-  ongoing: 'En cours',
-  completed: 'Terminé',
-  hiatus: 'En pause',
-  cancelled: 'Annulé',
-};
-
-const typeBadgeClass = (type: string | null) => (
-  type === 'manhwa'
-    ? 'bg-sky-500/20 text-sky-300'
-    : type === 'manhua'
-      ? 'bg-amber-500/20 text-amber-300'
-      : 'bg-purple-500/20 text-purple-300'
-);
+import { discoveryStatusLabel, discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
 
 const WINDOW_LABELS: Record<TrendingWindow, string> = {
   '24h': '24 h',
@@ -117,7 +103,7 @@ const TrendingSection = ({
                   #{item.rank}
                 </span>
                 {item.work.manga_type && (
-                  <span className={`absolute right-2 top-2 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${typeBadgeClass(item.work.manga_type)}`}>
+                  <span className={`absolute right-2 top-2 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${discoveryTypeBadgeClass(item.work.manga_type)}`}>
                     {item.work.manga_type}
                   </span>
                 )}
@@ -127,7 +113,7 @@ const TrendingSection = ({
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--mw-accent-coral)]">{item.label}</span>
                   {item.work.status && (
-                    <span className="text-[10px] text-white/40">{statusLabels[item.work.status] || item.work.status}</span>
+                    <span className="text-[10px] text-white/40">{discoveryStatusLabel(item.work.status)}</span>
                   )}
                 </div>
               </div>

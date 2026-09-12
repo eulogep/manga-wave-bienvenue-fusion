@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import TrendingSection from '@/components/TrendingSection';
-import type { TrendingWindow } from '@/domain/trending';
+import RankingSection from '@/components/RankingSection';
+import type { RankingWindow } from '@/domain/ranking';
 
-const Trending = () => {
-  const [window, setWindow] = useState<TrendingWindow>('7d');
+const Ranking = () => {
+  const [window, setWindow] = useState<RankingWindow>('30d');
 
   return (
     <div className="min-h-screen flex flex-col bg-[#080c14] text-white">
@@ -16,15 +16,15 @@ const Trending = () => {
           <section className="mb-8">
             <p className="text-manga-cyan font-semibold tracking-widest text-xs mb-2">COMMUNAUTÉ</p>
             <h1 className="text-4xl md:text-5xl font-bold font-japanese mb-2">
-              <span className="glow-text">Tendances</span>
+              <span className="glow-text">Classement</span>
             </h1>
             <p className="text-white/50 text-sm md:text-base max-w-2xl">
-              Les mangas qui gagnent le plus d’attention en ce moment sur Manga Wave, d’après la
-              lecture, les suivis et les favoris récents des lecteurs — jamais une popularité figée.{' '}
-              <Link to="/ranking" className="text-manga-cyan hover:underline">Voir le classement général</Link>.
+              Les mangas avec l’intérêt le plus durable sur Manga Wave — lecture répétée dans le
+              temps, suivis et favoris — pas un pic d’un jour.{' '}
+              <Link to="/trending" className="text-manga-cyan hover:underline">Voir les tendances du moment</Link>.
             </p>
           </section>
-          <TrendingSection window={window} onWindowChange={setWindow} showWindowTabs title="Classement" />
+          <RankingSection window={window} onWindowChange={setWindow} showWindowTabs title="Classement général" />
         </div>
       </main>
       <Footer />
@@ -32,4 +32,4 @@ const Trending = () => {
   );
 };
 
-export default Trending;
+export default Ranking;
