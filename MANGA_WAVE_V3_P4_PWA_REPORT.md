@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## STATUS
 
-LOCAL_VALIDATED / PRODUCTION_DEPLOYMENT_PENDING.
+PRODUCTION_VALIDATED / APPROVED.
 
 ## OBSERVED GAP
 
@@ -50,6 +50,12 @@ the cache.
 - PWA icon visual inspection: **PASS**.
 - Lockfiles: **unchanged**.
 - Database and remote writes: **none**.
+- Git deployment: **PASS**, `origin/main` at `57035fe39ef90eea60c4a22730ac60d798ae3917`.
+- Production application asset: **PASS**, `assets/index-6TQLAZAj.js`.
+- Production manifest and service worker: **PASS**.
+- Production 192/512 px icon integrity: **PASS**.
+- Production offline Chromium E2E: **1/1 PASS**.
+- Production combined P4 smoke: **3/3 PASS**.
 
 ## ACCEPTANCE
 
@@ -71,12 +77,11 @@ TYPESCRIPT:                    PASS
 ESLINT:                        PASS (0 errors)
 BUILD:                         PASS
 LOCKFILES:                     PRESERVED
-PRODUCTION_SMOKE:              PENDING_DEPLOYMENT
-P4_PWA_FINAL:                  READY_TO_DEPLOY
+PRODUCTION_SMOKE:              PASS (3/3)
+P4_PWA_FINAL:                  APPROVED
 ```
 
 ## NEXT STEP
 
-Commit this isolated PWA foundation, push only after explicit authorization, then verify manifest,
-service-worker control and offline route recovery against the deployed production origin. Continue
-P4 with performance and accessibility measurements after production acceptance.
+Continue P4 with current production performance and accessibility measurements. Preserve the
+validated offline shell and use its production smoke as a regression gate for later changes.
