@@ -4,10 +4,18 @@ Date: 2026-09-14
 
 ## OVERALL_STATUS
 
-`IMPLEMENTED / VERIFIED LOCALLY / AWAITING DEPLOYMENT VERIFICATION`. No database migration is
-required for this ticket — everything is additive application code reusing existing, already-live
-infrastructure. 233/233 unit tests pass (12 new), TypeScript clean, ESLint 0 errors, build passes.
-See PRODUCTION SMOKE below for the post-deploy verification pass.
+`APPROVED / LIVE`. No database migration was required for this ticket — everything is additive
+application code reusing existing, already-live infrastructure. 233/233 unit tests pass (12 new),
+TypeScript clean, ESLint 0 errors, build passes, and both the feature and the full regression suite
+have been verified against the deployed production build.
+
+## COMMITS / DEPLOYMENT
+
+- `552025d` — feat: add canonical Recommendations (T-3024)
+
+Pushed to `origin/main` (fast-forward, no `--force`), deployed by the existing Vercel pipeline.
+Confirmed: production serves `assets/index-C9M9FAfM.js`, byte-identical to the local build of
+`552025d` (rebuilt and diffed the filename directly).
 
 ## 1. ROADMAP / TICKET DEFINITION
 
@@ -160,15 +168,50 @@ trivially satisfiable for the database layer — there is nothing new to regress
 - Local browser check (dev server, real database): `/manga/2` renders real Similar Works (6 cards,
   zero page errors); `/manga/145` (unenriched) renders no section and no crash.
 
-## 10. PRODUCTION SMOKE
+## 10. PRODUCTION SMOKE — all PASS
 
-_Recorded once deployed — see the acceptance table for live PASS/FAIL status; do not infer
-completion from this section's presence alone._
+- **Deployment verified**: `assets/index-C9M9FAfM.js` live, byte-identical to the local build.
+- **E2E** (`npm run test:e2e:t3024`, against production): **2/2 PASS**. `/manga/2` (Sono Bisque
+  Doll, real MangaDex-enriched metadata) shows "Vous aimerez aussi" with real overlapping catalog
+  works (never itself, at most 6); `/manga/145` (unenriched) renders no section and no page error.
+- **Homepage** (production, real browser): anonymous homepage renders normally after the
+  `homePersonalization.ts` fix (no visible change was expected or observed — the fix only changed
+  the internal cold-start tie-break basis, which isn't separately labeled in the UI); zero page
+  errors.
+- **QA cleanup**: not applicable — this feature is content-based, not activity-based, so no QA
+  fixture/account was created. Verified directly: zero `t3024`-prefixed accounts exist (none were
+  ever created).
+- **Regression** (production): `t3020-search.spec.ts` 7/7 PASS (+2 correctly skipped),
+  `t3021-command-search.spec.ts` 7/7 PASS, **`t3022-trending.spec.ts` 3/3 PASS** (the explicitly
+  frozen ticket — confirmed still fully correct live, not just untouched in git), `t3023-ranking.spec.ts`
+  2/2 PASS, `reader-p1.spec.ts` 4/4 PASS.
+- **Frozen-file check re-confirmed** against the final deployed commit: `git diff --stat` on every
+  T-3022 source/migration/test file between `9445c36` (T-3022's last commit) and `552025d`
+  (T-3024's commit) is empty.
+
+## ACCEPTANCE
+
+```
+CONTENT_BASED_SIMILARITY:      PASS (genre/author/type, never rating/views)
+NO_FABRICATED_RESULTS:         PASS (zero-overlap excluded entirely; unenriched work -> no section)
+NO_NEW_MIGRATION_NEEDED:       PASS (reuses T-3020 cached snapshot + already-fetched user data)
+HIDDEN_ASSUMPTIONS_FIXED:      PASS (dead views/rating tie-break -> recency; follows -> now counted)
+T3020_DEPENDENCY:              PASS (canonical snapshot reused, not re-derived)
+T3021_REGRESSION:               PASS (production E2E 7/7)
+T3022_FROZEN:                   PASS (zero diff; production E2E 3/3 confirms live behavior intact)
+T3023_REGRESSION:               PASS (production E2E 2/2)
+READER_REGRESSION:              PASS (production E2E 4/4)
+UNIT_TESTS:                     PASS (233/233, 12 new)
+TYPESCRIPT:                     PASS
+ESLINT:                         0 ERRORS
+BUILD:                          PASS
+PRODUCTION_E2E:                 PASS (2/2)
+PRODUCTION_SMOKE:                PASS
+QA_CLEANUP:                     PASS (no accounts created)
+FINAL:                          APPROVE_T3024
+```
 
 ## NEXT STEP
 
-Commit, push, wait for deployment, verify `assets/index-*.js` matches the local build, run
-`npm run test:e2e:t3024` and the T-3020/T-3021/T-3022/T-3023/Reader regression suites against
-production, verify Similar Works and the homepage "Pour vous" fix live, update this report's
-PRODUCTION SMOKE / ACCEPTANCE sections with real results, then stop per the standing instruction
-(do not advance to T-3025 automatically).
+T-3024 is closed. Per the standing instruction, **not** advancing to T-3025 automatically —
+stopping here for review.
