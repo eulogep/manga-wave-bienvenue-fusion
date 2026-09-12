@@ -8,6 +8,7 @@ const mangaDexUserAgent =
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  build: { modulePreload: false },
   server: {
     host: '::',
     port: 8080,
