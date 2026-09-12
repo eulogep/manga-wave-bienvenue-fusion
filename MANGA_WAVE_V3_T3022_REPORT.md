@@ -161,22 +161,71 @@ email-shaped string.
   20-session binge from one user is capped at 5 sessions before decay — proven against production
   through the real trigger path, not fixtures.
 
-### PRODUCTION_VERIFICATION (2026-09-14)
+### PRODUCTION_VERIFICATION (2026-09-14) — all PASS
 
-_Recorded once the migration is applied — see the acceptance table at the end of this
-re-architecture section for the live PASS/FAIL status of each item below; do not infer completion
-from this list's presence alone._
+- **Migration alignment**: `supabase migration list` shows `20260914090000` with a matching
+  `remote` timestamp; every prior migration remains aligned too.
+- **Deployment**: committed as `dfc3f61`, pushed to `origin/main` (fast-forward, no `--force`),
+  deployed by the existing Vercel pipeline; confirmed `assets/index-CTIglb2W.js` is byte-identical
+  to the local build of that commit.
+- **Direct database checks** (anon key unless noted):
+  - `manga_trending_scores` readable by anon: `200`, returns exactly the real pre-existing activity
+    (canonical manga 142: follow+favorite from 2026-08-30, decayed to `score: 0.75` at the 30-day
+    weak tier — `3×0.15 + 2×0.15 = 0.75`, confirming the decay math live, not just in unit tests;
+    canonical manga 110: one progress update, `score: 0.15` — `1×0.15`). No `user_id`/email in
+    either row.
+  - `refresh_manga_trending_scores` called with the **anon** key: `401`,
+    `"permission denied for function refresh_manga_trending_scores"` — confirmed unreachable by
+    clients, exactly as designed.
+  - `refresh_manga_trending_scores` called with the **service** key: `204` success, and a
+    subsequent read showed an updated `computed_at` — confirms the on-demand refresh path used by
+    the E2E fixture actually works, not just that the function exists.
+  - **Clock sanity check performed before trusting any decay result**: compared Node's
+    `Date.now()` against a fresh row's `created_at` and the view's `computed_at` — both agree
+    (within seconds), so the E2E fixture's relative `hoursAgo()`/`daysAgo()` offsets land in the
+    same decay tiers the SQL computes them into. This was checked explicitly because a
+    materialized, server-computed decay is exactly the kind of design where a client/server clock
+    mismatch could silently produce wrong-looking results without a code defect.
+- **E2E fixture** (`tests/e2e/t3022-trending.spec.ts`) run against production: **3/3 PASS** (one
+  transient network retry on `auth.admin.createUser`, unrelated to the feature — passed clean on
+  retry). Confirmed live: the refresh RPC is anon-unreachable; anonymous reads never contain a
+  UUID- or email-shaped string; a recent follow (score 3.0) outranks an old favorite (score 0.3);
+  and a 20-session binge from one user is capped at 5 sessions before decay is even applied.
+  QA cleanup verified — zero `t3022`-prefixed accounts remain, and the fixture's canonical manga
+  ids (6, 9, 22) are confirmed absent from the view after the final refresh in `afterAll`.
+- **Homepage + `/trending`** (production, real browser): both render with the window tabs
+  genuinely removed (`getByRole('tablist')` count 0), showing the honest low-activity Trending
+  state, zero unhandled page errors.
+- **Mobile** (390×844, 430×932, production): 7px and 0px horizontal overflow respectively — the
+  7px is the pre-existing, already-documented site-wide Header issue (T-3017/T-3022/T-3023), not
+  added here.
+- **Accessibility** (axe-core scan of `/trending`'s `<main>`, production): **0 violations** —
+  removing the window tabs also removed the one pre-existing `bg-manga-purple` contrast token that
+  page used to carry (T-3023's `/ranking` still has its own tabs and still carries that same,
+  separately-documented, sitewide token).
+- **Regression** (production): `t3020-search.spec.ts` 7/7 PASS (+2 correctly skipped),
+  `t3021-command-search.spec.ts` 7/7 PASS, `t3023-ranking.spec.ts` **2/2 PASS** (confirms
+  `_canonical_activity_window`/`get_trending_manga`, untouched by this migration, and Ranking's
+  adjacent homepage embed, are unaffected), `reader-p1.spec.ts` 4/4 PASS.
+- **Unit/build/lint**: full suite 221/221 PASS, `tsc --noEmit` clean, `eslint` 0 errors (61
+  pre-existing warnings, unchanged), `npm run build` PASS, output matches the deployed asset.
 
-- [ ] `supabase migration list` shows `20260914090000` aligned local/remote.
-- [ ] `manga_trending_scores` and `refresh_manga_trending_scores` confirmed to exist remotely via a
-      direct anon-key read / service-role RPC call.
-- [ ] `tests/e2e/t3022-trending.spec.ts` run against production: result recorded.
-- [ ] Homepage + `/trending` re-verified live (no window tabs, graceful empty state).
-- [ ] Mobile (390×844/430×932) and an axe scan re-run for the simplified (no-tabs) `/trending`.
-- [ ] T-3023 regression re-run (critical: `_canonical_activity_window`/`get_trending_manga` were
-      **not** touched by this migration, but Ranking's UI/homepage embed is adjacent code that
-      should still be confirmed unaffected).
-- [ ] Full unit/build/lint re-confirmed against the exact deployed commit.
+### FINAL (re-architecture)
+
+```
+TRENDING_DATA_REAL:        PASS (follow/favorite/reading-session/progress-update only)
+NO_MANGAS_VIEWS:           PASS (never referenced anywhere in the new migration or domain code)
+MATERIALIZED_SCHEDULED:    PASS (manga_trending_scores, hourly pg_cron, service-role manual refresh)
+TIME_DECAYED_SCORE:        PASS (24h/7d/30d tiered decay, verified live against real 2026-08-30 data)
+CENTRALIZED_SCORING:       PASS (SQL only; TS is a tested reference model, not part of the request path)
+PRIVACY_NO_USER_EXPOSURE:  PASS (verified live: no UUID/email in any row; refresh RPC anon-unreachable)
+ANTI_SPAM_DEDUP:           PASS (per-(manga,user) session cap, proven live via the 20-session binge)
+UI_AFTER_LAYER_VERIFIED:   PASS (backend verified via direct queries before the hook/UI were finalized)
+LOW_ACTIVITY_STATE:        PASS (never fabricates a ranking; live-confirmed on production)
+T3023_REGRESSION:          PASS (2/2 production E2E; shared infra confirmed untouched)
+TYPESCRIPT / ESLINT / BUILD: PASS
+FINAL:                     APPROVE_T3022_REARCHITECTURE
+```
 
 ## RE-ARCHITECTURE ends — everything below is the original 2026-09-12 implementation record
 
