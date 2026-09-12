@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## STATUS
 
-LOCAL_VALIDATED / PRODUCTION_DEPLOYMENT_PENDING.
+PRODUCTION_VALIDATED / APPROVED.
 
 ## OBSERVED DEFECT
 
@@ -41,6 +41,11 @@ Fresh production browser evidence at 1200 px:
   `assets/index-CkN5cte7.css`.
 - Lockfiles: **unchanged**.
 - Database and remote writes: **none**.
+- Git deployment: **PASS**, `origin/main` at `d31c68fcbf3d7da1a30926a660dfbdbb1b2de23c`.
+- Production asset: **PASS**, `assets/index-UFWrDfXa.js`.
+- Production Playwright smoke: **2/2 PASS**.
+- Production Chromium at 1200 px: **24 cards, 0 nested anchors, 0 horizontal overflow**.
+- Production Chromium at 390 x 844: **24 cards, 0 nested anchors, 0 horizontal overflow**.
 
 ## ACCEPTANCE
 
@@ -57,12 +62,12 @@ TYPESCRIPT:                    PASS
 ESLINT:                        PASS (0 errors)
 BUILD:                         PASS
 LOCKFILES:                     PRESERVED
-PRODUCTION_SMOKE:              PENDING_DEPLOYMENT
-P4_CARD_SEMANTICS_FINAL:       READY_TO_DEPLOY
+PRODUCTION_SMOKE:              PASS (2/2)
+P4_CARD_SEMANTICS_FINAL:       APPROVED
 ```
 
 ## NEXT STEP
 
-Commit the T-3027 production closure and this isolated P4 correction. Push only after explicit
-authorization, wait for the existing Vercel deployment, then verify the production DOM at desktop
-and 390 px before continuing the wider P4 audit.
+Continue the wider P4 audit from current production evidence. Prioritize the next reproducible
+mobile, accessibility, performance or resilience defect and keep the validated card semantics as a
+regression gate.
