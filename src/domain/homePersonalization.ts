@@ -27,13 +27,28 @@ export type AnonymousHomeCatalog<T extends HomeCatalogItem> = {
 };
 
 const updatedAt = (manga: HomeCatalogItem) => new Date(manga.source_updated_at || manga.created_at).getTime() || 0;
-const popularity = (manga: HomeCatalogItem) => manga.views + (manga.rating || 0) * 1_000;
 
-export function rankFavoriteGenres<T extends HomeCatalogItem>(mangas: T[], favoriteIds: number[]): string[] {
-  const favorites = new Set(favoriteIds);
+// T-3024 correctness fix: `trending`/`popular` used to be ordered by
+// `views + rating * 1000`. Audited in T-3022/T-3023: `mangas.views` is never
+// incremented anywhere in the app, and 186/343 production `mangas.rating`
+// values are exactly one of three provider-scraper hardcoded constants —
+// neither is a real signal. Neither field is rendered as "Trending" or
+// "Popular" anywhere in the UI any more (T-3022/T-3023 replaced those rails
+// with the real materialized/aggregate systems); these two fields now exist
+// only as this module's internal cold-start recommendation pool, and they
+// are ordered by real catalog recency instead, matching the same basis
+// `recent`/`newChapters`/`recentlyUpdated` already use honestly.
+const recencyRank = (manga: HomeCatalogItem) => updatedAt(manga);
+
+export function rankFavoriteGenres<T extends HomeCatalogItem>(
+  mangas: T[],
+  favoriteIds: number[],
+  followedIds: number[] = [],
+): string[] {
+  const engaged = new Set([...favoriteIds, ...followedIds]);
   const counts = new Map<string, number>();
   mangas.forEach((manga) => {
-    if (!favorites.has(manga.id)) return;
+    if (!engaged.has(manga.id)) return;
     manga.genre.forEach((genre) => counts.set(genre, (counts.get(genre) || 0) + 1));
   });
   return [...counts]
@@ -46,24 +61,27 @@ export function buildPersonalizedHomeCatalog<T extends HomeCatalogItem>(
   mangas: T[],
   favoriteIds: number[],
   limit = 6,
+  followedIds: number[] = [],
 ): PersonalizedHomeCatalog<T> {
-  const favorites = new Set(favoriteIds);
-  const favoriteGenres = rankFavoriteGenres(mangas, favoriteIds);
+  // Favorite + Follow both express real interest (P1/T-3014); using only
+  // favorites for genre affinity ignored a real, already-tracked signal.
+  const engaged = new Set([...favoriteIds, ...followedIds]);
+  const favoriteGenres = rankFavoriteGenres(mangas, favoriteIds, followedIds);
   const genrePriority = new Map(favoriteGenres.map((genre, index) => [genre, favoriteGenres.length - index]));
   const recent = [...mangas].sort((left, right) => updatedAt(right) - updatedAt(left) || left.title.localeCompare(right.title, 'fr'));
-  const trending = [...mangas].sort((left, right) => popularity(right) - popularity(left) || left.title.localeCompare(right.title, 'fr'));
+  const trending = [...mangas].sort((left, right) => recencyRank(right) - recencyRank(left) || left.title.localeCompare(right.title, 'fr'));
   const recommendations = mangas
-    .filter((manga) => !favorites.has(manga.id))
+    .filter((manga) => !engaged.has(manga.id))
     .map((manga) => ({
       manga,
       affinity: manga.genre.reduce((score, genre) => score + (genrePriority.get(genre) || 0), 0),
     }))
-    .sort((left, right) => right.affinity - left.affinity || popularity(right.manga) - popularity(left.manga))
+    .sort((left, right) => right.affinity - left.affinity || recencyRank(right.manga) - recencyRank(left.manga))
     .map(({ manga }) => manga);
 
   return {
     newChapters: recent.filter((manga) => manga.status === 'ongoing').slice(0, limit),
-    forYou: (favoriteIds.length ? recommendations : trending).slice(0, limit),
+    forYou: (engaged.size ? recommendations : trending).slice(0, limit),
     trending: trending.slice(0, limit),
     recentlyUpdated: recent.slice(0, limit),
     favoriteGenres,
@@ -77,7 +95,7 @@ export function buildAnonymousHomeCatalog<T extends HomeCatalogItem>(
   limit = 6,
 ): AnonymousHomeCatalog<T> {
   const latest = [...mangas].sort((left, right) => updatedAt(right) - updatedAt(left) || left.title.localeCompare(right.title, 'fr'));
-  const popular = [...mangas].sort((left, right) => popularity(right) - popularity(left) || left.title.localeCompare(right.title, 'fr'));
+  const popular = [...mangas].sort((left, right) => recencyRank(right) - recencyRank(left) || left.title.localeCompare(right.title, 'fr'));
   const offset = mangas.length ? Math.abs(Math.trunc(seed)) % mangas.length : 0;
   const rotated = [...mangas.slice(offset), ...mangas.slice(0, offset)];
   const formats = [...new Set(mangas.map((manga) => manga.manga_type?.trim()).filter((type): type is string => Boolean(type)))]

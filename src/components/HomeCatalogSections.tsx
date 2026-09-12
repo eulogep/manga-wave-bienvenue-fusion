@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MangaCard from '@/components/MangaCard';
 import { useManga, type Manga } from '@/hooks/useManga';
+import { useFollows } from '@/hooks/useFollows';
 import { buildAnonymousHomeCatalog, buildPersonalizedHomeCatalog } from '@/domain/homePersonalization';
 import FollowedUpdatesSection from '@/components/FollowedUpdatesSection';
 import TrendingSection from '@/components/TrendingSection';
@@ -58,10 +59,15 @@ const MangaRail = ({ eyebrow, title, description, mangas, favorites, surface = '
 
 const HomeCatalogSections = ({ mode }: Props) => {
   const { mangas, favorites, isLoading, isError } = useManga();
+  const { data: follows = [] } = useFollows();
+  const followedIds = useMemo(() => follows.map((follow) => follow.canonicalMangaId), [follows]);
   const [selectedFormat, setSelectedFormat] = useState<string>('all');
   const seed = useMemo(() => Number(new Date().toISOString().slice(0, 10).replace(/-/g, '')), []);
   const anonymous = useMemo(() => buildAnonymousHomeCatalog(mangas, seed), [mangas, seed]);
-  const personalized = useMemo(() => buildPersonalizedHomeCatalog(mangas, favorites), [favorites, mangas]);
+  const personalized = useMemo(
+    () => buildPersonalizedHomeCatalog(mangas, favorites, 6, followedIds),
+    [favorites, mangas, followedIds],
+  );
   const formatMangas = useMemo(
     () => (selectedFormat === 'all' ? mangas : mangas.filter((manga) => manga.manga_type === selectedFormat)).slice(0, 6),
     [mangas, selectedFormat],

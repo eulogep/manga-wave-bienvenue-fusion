@@ -29,6 +29,7 @@ import {
   useUniversalMangaChapters,
 } from '@/hooks/useMangaReader';
 import { useCanonicalMangaEntry } from '@/hooks/useCanonicalMangaEntry';
+import SimilarWorksSection from '@/components/SimilarWorksSection';
 import type { MangaDexChapter } from '@/integrations/mangadex/client';
 import type { OriginMangaChapter } from '@/integrations/originmanga/client';
 import { getSource, type SourceChapter, type SourceType } from '@/integrations/sources';
@@ -841,6 +842,8 @@ const MangaDetail = () => {
               </>
             )}
           </section>
+
+          <SimilarWorksSection canonicalMangaId={canonicalFollowIdentity.data} />
 
           <p className="text-xs text-muted-foreground text-center mt-12">
             Métadonnées, chapitres et scans fournis par {manga.sourceName}.

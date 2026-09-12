@@ -32,3 +32,24 @@ test('anonymous homepage creates latest, popular, formats and deterministic disc
   assert.deepEqual(home.formats, ['manga', 'manhua', 'manhwa']);
   assert.deepEqual(home.randomDiscovery.map(({ id }) => id), [3, 4, 1, 2]);
 });
+
+// T-3024: `trending`/`popular` no longer depend on mangas.views or
+// mangas.rating (audited as dead/untrustworthy in T-3022/T-3023) — they are
+// ordered by real catalog recency instead.
+test('the "trending"/"popular" cold-start pool is ordered by real recency, not views/rating', () => {
+  const skewedByFakeRating = [
+    { id: 10, title: 'Old but "rated" 10', genre: [], status: 'ongoing', manga_type: 'manga', rating: 10, views: 999_999, source_updated_at: '2020-01-01', created_at: '2020-01-01' },
+    { id: 11, title: 'Recent, no rating', genre: [], status: 'ongoing', manga_type: 'manga', rating: null, views: 0, source_updated_at: '2026-09-01', created_at: '2020-01-01' },
+  ];
+  const home = buildAnonymousHomeCatalog(skewedByFakeRating, 0, 2);
+  assert.deepEqual(home.popular.map(({ id }) => id), [11, 10]);
+});
+
+test('follows contribute to genre affinity alongside favorites (T-3014 signal was previously ignored)', () => {
+  assert.deepEqual(rankFavoriteGenres(mangas, [], [1, 2]), ['Action', 'Fantasy']);
+});
+
+test('For You excludes followed works too, not only favorites', () => {
+  const home = buildPersonalizedHomeCatalog(mangas, [], 3, [1]);
+  assert.equal(home.forYou.some((manga) => manga.id === 1), false);
+});

@@ -34,6 +34,8 @@
     "test:e2e:t3022": "playwright test tests/e2e/t3022-trending.spec.ts",
     "test:t3023": "node --experimental-strip-types --test tests/ranking.test.ts",
     "test:e2e:t3023": "playwright test tests/e2e/t3023-ranking.spec.ts",
+    "test:t3024": "node --experimental-strip-types --test tests/recommendations.test.ts",
+    "test:e2e:t3024": "playwright test tests/e2e/t3024-recommendations.spec.ts",
     "test:t3019": "node --experimental-strip-types --test tests/readingHistory.test.ts",
     "test:e2e:t3019": "playwright test tests/e2e/t3019-history.spec.ts",
     "test:t3017": "node --experimental-strip-types --test tests/libraryItem.test.ts",
