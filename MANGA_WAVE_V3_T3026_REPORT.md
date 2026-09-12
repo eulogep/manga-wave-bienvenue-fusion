@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## STATUS
 
-LOCAL_IMPLEMENTATION_COMPLETE / PRODUCTION_DEPLOYMENT_PENDING.
+PRODUCTION_VALIDATED / APPROVED.
 
 ## ROOT CAUSE
 
@@ -41,6 +41,10 @@ outage could therefore remove useful detail even though the canonical database r
 - TypeScript server: **PASS**.
 - ESLint: **0 errors**, 61 historical Fast Refresh warnings.
 - Production build: **PASS**, `assets/index-ti5Q81B8.js` and `assets/index-CYDPpfSu.css`.
+- Production deployment: **PASS**, commit `b73901440c5a286a32772a832cb5779750392d31`.
+- Production asset: **PASS**, `assets/index-ti5Q81B8.js` and `assets/index-CYDPpfSu.css`.
+- Production T-3026 E2E: **2/2 PASS** with controlled provider outage/not-found responses and
+  **1/1 PASS** against the real enriched canonical catalog.
 - Real browser visual check: **PASS**, no console error.
 - Mobile 390 px: **PASS**, no horizontal overflow.
 - Lockfiles: **unchanged**.
@@ -69,12 +73,11 @@ TYPESCRIPT:                    PASS
 ESLINT:                        PASS (0 errors)
 BUILD:                         PASS
 DATABASE_CHANGE:               NONE
-PRODUCTION_SMOKE:              PENDING_DEPLOYMENT
-T3026_FINAL:                   READY_TO_DEPLOY
+PRODUCTION_SMOKE:              PASS (2 controlled + 1 real-catalog)
+T3026_FINAL:                   APPROVED
 ```
 
 ## NEXT STEP
 
-Push the prepared T-3025 closure report and T-3026 implementation, let the existing Vercel Git
-deployment complete, then run the controlled and real-catalog production smoke. T-3027 begins only
-after T-3026 production acceptance passes.
+T-3026 is closed. T-3027 Chapter List V2 is unblocked and starts from the preserved strict chapter
+identity, canonical Reader navigation and multi-source fallback contracts.
