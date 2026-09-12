@@ -121,7 +121,7 @@ const RankingSection = ({
                       {item.label}
                     </span>
                     {item.work.status && (
-                      <span className="text-[10px] text-white/40">{discoveryStatusLabel(item.work.status)}</span>
+                      <span className="text-[10px] text-white/70">{discoveryStatusLabel(item.work.status)}</span>
                     )}
                   </div>
                 </div>

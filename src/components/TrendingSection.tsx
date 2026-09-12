@@ -113,7 +113,7 @@ const TrendingSection = ({
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--mw-accent-coral)]">{item.label}</span>
                   {item.work.status && (
-                    <span className="text-[10px] text-white/40">{discoveryStatusLabel(item.work.status)}</span>
+                    <span className="text-[10px] text-white/70">{discoveryStatusLabel(item.work.status)}</span>
                   )}
                 </div>
               </div>

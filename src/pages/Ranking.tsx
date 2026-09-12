@@ -21,7 +21,7 @@ const Ranking = () => {
             <p className="text-white/50 text-sm md:text-base max-w-2xl">
               Les mangas avec l’intérêt le plus durable sur Manga Wave — lecture répétée dans le
               temps, suivis et favoris — pas un pic d’un jour.{' '}
-              <Link to="/trending" className="text-manga-cyan hover:underline">Voir les tendances du moment</Link>.
+              <Link to="/trending" className="text-manga-cyan underline underline-offset-2 hover:text-white">Voir les tendances du moment</Link>.
             </p>
           </section>
           <RankingSection window={window} onWindowChange={setWindow} showWindowTabs title="Classement général" />

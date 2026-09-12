@@ -21,7 +21,7 @@ const Trending = () => {
             <p className="text-white/50 text-sm md:text-base max-w-2xl">
               Les mangas qui gagnent le plus d’attention en ce moment sur Manga Wave, d’après la
               lecture, les suivis et les favoris récents des lecteurs — jamais une popularité figée.{' '}
-              <Link to="/ranking" className="text-manga-cyan hover:underline">Voir le classement général</Link>.
+              <Link to="/ranking" className="text-manga-cyan underline underline-offset-2 hover:text-white">Voir le classement général</Link>.
             </p>
           </section>
           <TrendingSection window={window} onWindowChange={setWindow} showWindowTabs title="Classement" />
