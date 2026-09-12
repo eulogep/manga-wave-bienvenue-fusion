@@ -3,6 +3,7 @@ import MangaCard from '@/components/MangaCard';
 import { useManga, type Manga } from '@/hooks/useManga';
 import { buildAnonymousHomeCatalog, buildPersonalizedHomeCatalog } from '@/domain/homePersonalization';
 import FollowedUpdatesSection from '@/components/FollowedUpdatesSection';
+import TrendingSection from '@/components/TrendingSection';
 
 type Props = {
   mode: 'anonymous' | 'personalized';
@@ -74,7 +75,12 @@ const HomeCatalogSections = ({ mode }: Props) => {
       <>
         <FollowedUpdatesSection />
         <MangaRail eyebrow="Sélection personnelle" title="Pour vous" description={personalized.favoriteGenres.length ? `Inspiré par ${personalized.favoriteGenres.slice(0, 3).join(', ')}.` : 'Une sélection populaire pendant que vos goûts se précisent.'} mangas={personalized.forYou} favorites={favorites} />
-        <MangaRail eyebrow="Communauté" title="Tendances" description="Les titres qui concentrent le plus d’intérêt dans le catalogue." mangas={personalized.trending} favorites={favorites} surface="raised" />
+        <section className="bg-[#08131d] py-12 section-padding" aria-labelledby="trending-heading">
+          <div className="container mx-auto">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-blue)]">Activité récente</p>
+            <TrendingSection window="7d" limit={6} />
+          </div>
+        </section>
         <MangaRail eyebrow="Catalogue" title="Récemment mis à jour" description="Les dernières fiches synchronisées, toutes séries confondues." mangas={personalized.recentlyUpdated} favorites={favorites} />
         {personalized.favoriteGenres.length > 0 && (
           <section className="bg-[#08131d] py-10 section-padding" aria-labelledby="favorite-genres-title">
@@ -93,6 +99,12 @@ const HomeCatalogSections = ({ mode }: Props) => {
   return (
     <>
       <MangaRail eyebrow="Nouveautés" title="Dernières sorties" description="Les titres récemment actualisés dans le catalogue Manga Wave." mangas={anonymous.latest} favorites={favorites} />
+      <section className="bg-[#08131d] py-12 section-padding" aria-labelledby="trending-heading">
+        <div className="container mx-auto">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-blue)]">Activité récente</p>
+          <TrendingSection window="7d" limit={6} />
+        </div>
+      </section>
       <MangaRail eyebrow="Les plus consultés" title="Populaires" description="Une sélection ordonnée par intérêt et appréciation." mangas={anonymous.popular} favorites={favorites} surface="raised" />
       <section className="bg-[#06101a] py-10 section-padding" aria-labelledby="formats-title">
         <div className="container mx-auto">

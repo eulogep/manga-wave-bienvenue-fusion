@@ -1,8 +1,7 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, BookMarked, LogOut, X, Compass, Flame, Home, Library } from 'lucide-react';
+import { Search, Menu, User, BookMarked, LogOut, X, Compass, Flame, Home, Library, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useCommandSearch } from '@/hooks/useCommandSearch';
 import {
@@ -33,6 +32,7 @@ const navLinks = [
   { label: 'Accueil', to: '/', icon: Home },
   { label: 'Mangas', to: '/search', icon: Compass },
   { label: 'Découvrir', to: '/search', icon: Flame },
+  { label: 'Tendances', to: '/trending', icon: TrendingUp },
 ];
 
 const Header = () => {

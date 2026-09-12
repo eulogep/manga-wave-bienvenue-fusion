@@ -29,6 +29,8 @@
     "test:e2e:t3020": "playwright test tests/e2e/t3020-search.spec.ts",
     "test:t3021": "node --experimental-strip-types --test tests/commandSearch.test.ts",
     "test:e2e:t3021": "playwright test tests/e2e/t3021-command-search.spec.ts",
+    "test:t3022": "node --experimental-strip-types --test tests/trending.test.ts",
+    "test:e2e:t3022": "playwright test tests/e2e/t3022-trending.spec.ts",
     "test:t3019": "node --experimental-strip-types --test tests/readingHistory.test.ts",
     "test:e2e:t3019": "playwright test tests/e2e/t3019-history.spec.ts",
     "test:t3017": "node --experimental-strip-types --test tests/libraryItem.test.ts",
