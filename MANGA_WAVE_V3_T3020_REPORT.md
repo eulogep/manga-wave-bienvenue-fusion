@@ -1,6 +1,35 @@
 # T-3020 — Search V2
 
-Date: 2026-09-10
+Date: 2026-09-10 (git-committed and re-verified live on 2026-09-12)
+
+## GIT/DEPLOYMENT RECONCILIATION (2026-09-12)
+
+This report, the enrichment pipeline (`scripts/metadata/`), the additive migration, and the
+catalog-sync fix were all produced and (per the sections below) actually applied to the live
+Supabase database on 2026-09-10 — but none of it had been committed to git. `origin/main` and the
+deployed Vercel build were still at `2aa549c` (Search V2 application code only). This left the repo
+unable to explain its own production database schema/data.
+
+Reconciled on 2026-09-12: read-only verification against the live database confirmed the claims
+below are accurate (spot-checked IDs 2, 3, 55, 101, 104 against the exact aliases/type/source values
+this report lists; row counts for populated `metadata_source` and non-empty `aliases` both read
+`149`, matching `TOTAL_EXACT_MATCHES`). The migration and pipeline were then committed as `07c62c5`
+and pushed/deployed — see [MANGA_WAVE_V3_T3021_REPORT.md](MANGA_WAVE_V3_T3021_REPORT.md) for the
+paired T-3021 deployment this shared a push with. No further database change was made in this pass;
+this section only closes the gap between git history and already-live production state.
+
+## SECONDARY_METADATA_SOURCE TICKET RECONCILIATION (2026-09-12)
+
+A follow-up ticket ("T3020_SECONDARY_METADATA_SOURCE") requested adding Jikan as a fallback behind
+AniList so T-3020 would not stay blocked on AniList's 403. That objective is already satisfied, by a
+stronger design than literally requested: `MULTI_PROVIDER_METADATA_LAYER` below shows a 4-tier
+ordered failover (MangaDex direct lookup → MangaUpdates → Kitsu → AniList/Jikan) built and dry-run
+against the full catalog on 2026-09-10, and the Jikan adapter (`scripts/metadata/jikan-client.ts`)
+is live in that chain today — dormant only because MangaDex/MangaUpdates/Kitsu already resolve every
+row that needs enrichment, not because Jikan was skipped. Re-running an AniList-then-Jikan-only dry
+run now would reproduce a weaker result than what's already applied to production (0 real matches,
+since both remain down) and would not change any live data. No new work was performed under that
+ticket; this note records why it's considered closed rather than silently ignored.
 
 ## OVERALL_STATUS
 

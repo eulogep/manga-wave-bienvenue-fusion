@@ -116,7 +116,23 @@ All 178 unit tests pass (including 7 new domain & lifecycle tests), 7/7 Playwrig
 
 ---
 
+## DEPLOYMENT (2026-09-12)
+
+This work was fully implemented and locally verified on 2026-09-10 but left uncommitted — `origin/main`
+and production were still serving the pre-T-3021 Header. Committed as `5784e29` (paired with the
+T-3020 metadata pipeline in `07c62c5`), pushed (fast-forward, no `--force`), and confirmed deployed:
+Vercel served `assets/index-BuYMArlA.js`, byte-identical to this commit's local build hash, HTTP 200.
+
+Re-ran the full suite against that live production build:
+- E2E: `t3021-command-search.spec.ts` 7/7 PASS, `t3020-search.spec.ts` 7/7 PASS (2 real-catalog-only
+  cases correctly skip without `T3020_REAL_CATALOG=1`), `reader-p1.spec.ts` 4/4 PASS (Reader route
+  guard confirmed live: the palette does not open on `/read/*`).
+- With `T3020_REAL_CATALOG=1` against production: 7/9 PASS, 2 skipped (synthetic-only cases) —
+  confirms the command palette's instant search surfaces the real enriched Manhwa/Manhua/alias data
+  from the T-3020 metadata pipeline, not just fixtures.
+- Unit: full suite 178/178 PASS.
+
 ## NEXT STEP ON ROADMAP
 
-T-3021 is closed. According to the autonomous roadmap directive:
+T-3021 is closed and deployed. According to the autonomous roadmap directive:
 Next ticket: **T-3022 — Trending (Agrégation de tendances et scoring de popularité)**.
