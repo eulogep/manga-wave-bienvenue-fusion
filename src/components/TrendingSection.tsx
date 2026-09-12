@@ -2,33 +2,17 @@ import { Flame, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MangaCover from '@/components/MangaCover';
 import { useTrendingRanking } from '@/hooks/useTrending';
-import type { TrendingWindow } from '@/domain/trending';
 import { discoveryStatusLabel, discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
 
-const WINDOW_LABELS: Record<TrendingWindow, string> = {
-  '24h': '24 h',
-  '7d': '7 jours',
-  '30d': '30 jours',
-};
-
 export type TrendingSectionProps = {
-  window: TrendingWindow;
-  onWindowChange?: (window: TrendingWindow) => void;
   limit?: number;
-  showWindowTabs?: boolean;
   title?: string;
 };
 
 const EMPTY_COPY = 'Pas encore assez d’activité récente pour établir un classement.';
 
-const TrendingSection = ({
-  window,
-  onWindowChange,
-  limit,
-  showWindowTabs = false,
-  title = 'Tendances',
-}: TrendingSectionProps) => {
-  const { items, confidence, isLoading, isError, refetch, isFetching } = useTrendingRanking(window);
+const TrendingSection = ({ limit, title = 'Tendances' }: TrendingSectionProps) => {
+  const { items, confidence, isLoading, isError, refetch, isFetching } = useTrendingRanking();
   const visible = confidence.confident
     ? (limit ? items.slice(0, limit) : items)
     : [];
@@ -40,24 +24,6 @@ const TrendingSection = ({
           <Flame className="h-5 w-5 text-[var(--mw-accent-coral)]" aria-hidden="true" />
           {title}
         </h2>
-        {showWindowTabs && onWindowChange && (
-          <div role="tablist" aria-label="Période des tendances" className="flex items-center gap-1 p-1 rounded-lg bg-white/[0.05] border border-white/[0.08] self-start">
-            {(Object.keys(WINDOW_LABELS) as TrendingWindow[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="tab"
-                aria-selected={window === option}
-                onClick={() => onWindowChange(option)}
-                className={`min-h-9 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  window === option ? 'bg-manga-purple text-white' : 'text-white/60 hover:text-white'
-                }`}
-              >
-                {WINDOW_LABELS[option]}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {isLoading ? (

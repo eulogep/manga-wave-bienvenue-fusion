@@ -1,13 +1,9 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TrendingSection from '@/components/TrendingSection';
-import type { TrendingWindow } from '@/domain/trending';
 
 const Trending = () => {
-  const [window, setWindow] = useState<TrendingWindow>('7d');
-
   return (
     <div className="min-h-screen flex flex-col bg-[#080c14] text-white">
       <Header />
@@ -20,11 +16,12 @@ const Trending = () => {
             </h1>
             <p className="text-white/50 text-sm md:text-base max-w-2xl">
               Les mangas qui gagnent le plus d’attention en ce moment sur Manga Wave, d’après la
-              lecture, les suivis et les favoris récents des lecteurs — jamais une popularité figée.{' '}
+              lecture, les suivis et les favoris récents des lecteurs — jamais une popularité figée.
+              Classement recalculé chaque heure, pondéré par récence (24 h, 7 j, 30 j).{' '}
               <Link to="/ranking" className="text-manga-cyan underline underline-offset-2 hover:text-white">Voir le classement général</Link>.
             </p>
           </section>
-          <TrendingSection window={window} onWindowChange={setWindow} showWindowTabs title="Classement" />
+          <TrendingSection title="Classement" />
         </div>
       </main>
       <Footer />

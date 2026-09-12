@@ -83,7 +83,7 @@ const HomeCatalogSections = ({ mode }: Props) => {
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-blue)]">Activité récente</p>
               <Link to="/trending" className="text-xs font-semibold text-manga-cyan hover:underline">Voir tout</Link>
             </div>
-            <TrendingSection window="7d" limit={6} />
+            <TrendingSection limit={6} />
           </div>
         </section>
         <MangaRail eyebrow="Catalogue" title="Récemment mis à jour" description="Les dernières fiches synchronisées, toutes séries confondues." mangas={personalized.recentlyUpdated} favorites={favorites} />
@@ -110,7 +110,7 @@ const HomeCatalogSections = ({ mode }: Props) => {
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-blue)]">Activité récente</p>
             <Link to="/trending" className="text-xs font-semibold text-manga-cyan hover:underline">Voir tout</Link>
           </div>
-          <TrendingSection window="7d" limit={6} />
+          <TrendingSection limit={6} />
         </div>
       </section>
       <section className="bg-[#08131d] py-12 section-padding" aria-labelledby="ranking-heading">

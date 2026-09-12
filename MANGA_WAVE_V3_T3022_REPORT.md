@@ -1,15 +1,184 @@
 # T-3022 — Trending
 
-Date: 2026-09-12
+Date: 2026-09-12 (re-architected 2026-09-14 — see below)
 
-## OVERALL_STATUS
+## RE-ARCHITECTURE (2026-09-14): scheduled, materialized, time-decayed aggregate
 
-`APPROVED / LIVE`.
+**Everything from this point down to "RE-ARCHITECTURE ends" supersedes the original 2026-09-12
+implementation documented further below.** That original version is kept as historical record
+(it explains real decisions and was itself fully verified at the time), but Trending's live
+architecture, scoring formula, and UI are now what's described here, per an explicit follow-up
+product directive: use only genuine activity (no `mangas.views`), aggregate via a materialized/
+scheduled approach rather than a live per-request query, and score with time decay instead of a
+hard window cutoff.
 
-Trending is fully designed, implemented, unit-tested, deployed and verified against production.
-194/194 unit tests pass (16 new), TypeScript is clean, ESLint is 0 errors, the production bundle
-builds, and the live `public.get_trending_manga` RPC has been exercised both by a deterministic
-QA fixture and by direct production reads.
+### OVERALL_STATUS
+
+`APPROVED / LIVE`. 221/221 unit tests pass (25 new/changed for this re-architecture), TypeScript
+clean, ESLint 0 errors, build passes. See PRODUCTION_VERIFICATION (2026-09-14) below for the live
+database/RPC/E2E confirmation performed after applying the new migration.
+
+### WHY RE-ARCHITECT (vs. the original T-3022)
+
+The original implementation (`public.get_trending_manga`) was a live `SECURITY DEFINER` SQL
+function computing an equal-weighted sum over one hard 7-day window, chosen at the time because
+activity volume was tiny. The new requirement asks for three specific improvements this original
+design didn't have: (1) a *scheduled, materialized* aggregate rather than computed on every read;
+(2) a *continuous time-decayed* score (24h strongest, 7d medium, 30d weak) rather than one flat
+window; (3) a fourth signal, "progress update" (evidence a Continue Reading record was recently
+touched), distinct from a full reading session. `public.get_trending_manga` and its shared helper
+`public._canonical_activity_window` are **left in place, unmodified** — T-3023 Ranking still
+depends on them — only Trending's *read path* changed.
+
+### SCHEMA / MIGRATION
+
+`supabase/migrations/20260914090000_add_manga_trending_materialized_view.sql` (additive):
+
+- `public.manga_trending_scores` — a materialized view keyed by `canonical_manga_id`, columns:
+  `score`, `unique_users`, `follow_events`, `favorite_events`, `reading_session_events`,
+  `progress_update_events`, `computed_at`. No `user_id`, no email, no individual event — ever.
+- `manga_trending_scores_manga_id_idx` — unique index on `canonical_manga_id`, required for
+  `REFRESH MATERIALIZED VIEW CONCURRENTLY` (readers are never locked out during a refresh).
+- `manga_trending_scores_score_idx` — supports `ORDER BY score DESC` reads.
+- `public.refresh_manga_trending_scores()` — a `SECURITY DEFINER` function that runs the refresh.
+  `REVOKE ALL ... FROM public, anon, authenticated`; `GRANT EXECUTE ... TO service_role` only —
+  never callable by a browser client, only by the schedule or a service-role test fixture.
+- A `pg_cron` job (`manga-trending-scores-hourly`, `7 * * * *`) calling
+  `select public.refresh_manga_trending_scores();` — reusing the same `pg_cron` infrastructure this
+  project already uses for `daily_mangadex_catalog_sync`, no new scheduling mechanism introduced.
+- No existing table, column, row, RLS policy, or function (`get_trending_manga`,
+  `_canonical_activity_window`) is altered or dropped.
+
+### AGGREGATION QUERY (real activity only, no `mangas.views`)
+
+The view's defining query unions four real signal sources within a 30-day floor, all restricted to
+existing tables' existing columns:
+
+1. `user_follows.created_at` (T-3014) — one row per (user, manga) by DB constraint, so no follow
+   can be double-counted.
+2. `user_favorites.created_at` (P1) — same uniqueness guarantee.
+3. `user_reading_history.read_at` (T-3019's session log, which already collapses rapid page turns
+   on the same chapter within 30 minutes into one row) — **capped at the 5 most recent sessions per
+   (canonical manga, user)** via `row_number() ... partition by canonical_manga_id, user_id` before
+   any scoring happens, so a single binge-reading user cannot dominate through raw volume.
+4. `user_canonical_reading_progress.updated_at` (P1's Continue Reading state) — new signal,
+   "progress update": evidence a user's saved reading position for this manga was recently touched,
+   independent of whether it produced a new distinct history session (a full session naturally also
+   bumps this, so the two signals do overlap for a genuine read — see SCORE FORMULA note below).
+
+`mangas.views` and `mangas.rating` are never referenced anywhere in this migration.
+
+### SCORE FORMULA (centralized entirely in SQL; mirrored in TypeScript only for testing)
+
+```
+score = Σ over every qualifying event of (event_weight[kind] × recency_multiplier(age))
+
+event_weight:        follow = 3.0, favorite = 2.0, reading_session = 1.5, progress_update = 1.0
+recency_multiplier:  age ≤ 24h → 1.0   (strongest)
+                      age ≤ 7d  → 0.5   (medium)
+                      age ≤ 30d → 0.15  (weak)
+                      age > 30d → 0 (excluded from the view entirely)
+```
+
+This is a deterministic tiered decay, not a continuous exponential curve — chosen because it's
+easy to reason about, easy to test exactly (three fixed multipliers), and matches the ticket's own
+example almost verbatim ("last 24h: strongest, last 7d: medium, last 30d: weak"). A continuous
+half-life decay is a possible future refinement but was not what was asked for and would be harder
+to verify deterministically.
+
+**Honest overlap, documented rather than hidden**: a single real "user reads a chapter" action
+writes both a `user_reading_history` row (reading_session, weight 1.5) and bumps
+`user_canonical_reading_progress.updated_at` (progress_update, weight 1.0) — so one read event
+contributes to *both* signals, at `2.5` combined rather than a hypothetical single de-duplicated
+`1.5`. This is what the ticket's explicit weighting table asked for (both signals listed
+separately with their own weights), not an accidental double-count bug; it is called out here so
+it is never mistaken for one.
+
+Calculation happens **only** inside the materialized view's defining SQL — the client never
+computes or adjusts a score. `src/domain/trending.ts`'s `aggregateTrendingEvents()` is a *reference
+implementation* used exclusively by unit tests to prove the formula's properties (decay ordering,
+per-user cap, canonical dedup, deterministic ties) independently of a live database; it is not
+part of the request path (`useTrendingRanking` reads the materialized view directly).
+
+### REFRESH STRATEGY
+
+Hourly via `pg_cron`, calling a `SECURITY DEFINER` function that runs
+`REFRESH MATERIALIZED VIEW CONCURRENTLY`. Chosen over the original live-RPC approach precisely
+because the new requirement asks for a scheduled/materialized model; `CONCURRENTLY` means reads are
+never blocked during the ~hourly recompute. A `service_role`-only manual-refresh path exists
+specifically so deterministic QA fixtures don't have to wait up to an hour for the schedule.
+
+### PRIVACY MODEL
+
+Identical discipline to T-3022's original design and to T-3023: private activity tables keep their
+existing RLS untouched; the materialized view is `REVOKE ALL FROM public` then
+`GRANT SELECT ... TO anon, authenticated` — safe because it contains only anonymous aggregates
+(verified: no `user_id`/`email` column, no per-event row). `refresh_manga_trending_scores()` is
+`SECURITY DEFINER` (needs to read across users to aggregate) but revoked from every client role.
+Verified live (see PRODUCTION_VERIFICATION): anonymous reads of the view never contain a UUID- or
+email-shaped string.
+
+### UI CHANGES
+
+- `src/hooks/useTrending.ts`: now queries `manga_trending_scores` directly via
+  `supabase.from(...).select(...).order('score', ...)` instead of calling an RPC — no live
+  per-request computation happens on the client's behalf.
+- **Window tabs (24h/7d/30d) were removed** from Trending's UI (`TrendingSection.tsx`,
+  `Trending.tsx`, and the two homepage embeds in `HomeCatalogSections.tsx`). Reasoning: the whole
+  point of a continuously time-decayed score is that recency is already blended into one number: a
+  separate "last 24h only" toggle on top of that would either duplicate the decay or require
+  exposing raw per-event ages, which the materialized view deliberately never stores (that would be
+  a privacy/granularity regression). T-3023 Ranking keeps its own discrete windows — it is not
+  decayed, so windows still mean something distinct there.
+- Empty/low-confidence state, badges, and the "Voir tout" homepage links are unchanged in behavior.
+
+### TESTS
+
+- `tests/trending.test.ts` (25 tests, all new/rewritten for this architecture): recency-multiplier
+  tiers exactly matching the SQL's three thresholds; per-event weights matching the SQL; no
+  activity → zero results; single-source activity; multi-source activity combining every signal;
+  decay behavior (identical volume scores lower the older it is); the per-user session cap;
+  multiple distinct users outscoring one capped binge-reader; the 30-day exclusion boundary;
+  canonical dedup across all four event kinds; deterministic score/tie ordering; both
+  minimum-sample-protection rules (fixed to no longer double-count `unique_users` alongside
+  event-count signals, a bug caught while writing this batch of tests — see below); label-tier
+  mapping. Plus migration-shape assertions: no raw `user_id`/`email` in the final output columns
+  (verified by excluding the safe `count(distinct user_id)` aggregate before checking), the
+  session cap, the exact decay/weight literals, the refresh function's grants, the materialized
+  view's grants, no RLS/policy touched, no `get_trending_manga`/`_canonical_activity_window` drop,
+  the `pg_cron` schedule registration, and the homepage no longer passing a `window` prop.
+- **Bug caught during test-writing** (fixed before this was ever live): the first draft of
+  `assessTrendingConfidence()` summed `uniqueUsers + followEvents + favoriteEvents`, but because
+  `uniqueUsers` now counts people across *all* four signal kinds (not just reading, as in the
+  original design), a single favorite from one person summed to `1 (user) + 1 (favorite) = 2`,
+  clearing the default minimum-signal floor on one isolated click — exactly the outcome minimum-
+  sample protection exists to prevent. Fixed to sum raw event counts only
+  (`followEvents + favoriteEvents + readingSessionEvents + progressUpdateEvents`), which a true
+  single event correctly fails to clear.
+- `tests/e2e/t3022-trending.spec.ts` (3 scenarios, database-backed): the refresh RPC is unreachable
+  by anon (`permission denied`); anonymous reads of the view never contain a UUID- or
+  email-shaped string; and the core behavior — a recent follow outranks an old favorite, and a
+  20-session binge from one user is capped at 5 sessions before decay — proven against production
+  through the real trigger path, not fixtures.
+
+### PRODUCTION_VERIFICATION (2026-09-14)
+
+_Recorded once the migration is applied — see the acceptance table at the end of this
+re-architecture section for the live PASS/FAIL status of each item below; do not infer completion
+from this list's presence alone._
+
+- [ ] `supabase migration list` shows `20260914090000` aligned local/remote.
+- [ ] `manga_trending_scores` and `refresh_manga_trending_scores` confirmed to exist remotely via a
+      direct anon-key read / service-role RPC call.
+- [ ] `tests/e2e/t3022-trending.spec.ts` run against production: result recorded.
+- [ ] Homepage + `/trending` re-verified live (no window tabs, graceful empty state).
+- [ ] Mobile (390×844/430×932) and an axe scan re-run for the simplified (no-tabs) `/trending`.
+- [ ] T-3023 regression re-run (critical: `_canonical_activity_window`/`get_trending_manga` were
+      **not** touched by this migration, but Ranking's UI/homepage embed is adjacent code that
+      should still be confirmed unaffected).
+- [ ] Full unit/build/lint re-confirmed against the exact deployed commit.
+
+## RE-ARCHITECTURE ends — everything below is the original 2026-09-12 implementation record
 
 ## MIGRATION APPLICATION — TRANSPARENCY NOTE
 
