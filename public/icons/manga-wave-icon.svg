@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Manga Wave">
+  <rect width="512" height="512" fill="#06101a"/>
+  <circle cx="256" cy="256" r="174" fill="none" stroke="#ff4d5a" stroke-width="20"/>
+  <path d="M142 304c52-111 105-111 157-43 27 36 55 37 82-17-18 94-104 137-174 94-28-17-46-27-65-34Z" fill="#ff4d5a"/>
+  <path d="M158 236c62-69 124-60 180 0" fill="none" stroke="#ff818a" stroke-linecap="round" stroke-width="18"/>
+</svg>

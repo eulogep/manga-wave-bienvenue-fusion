@@ -1,0 +1,26 @@
+{
+  "name": "Manga Wave",
+  "short_name": "Manga Wave",
+  "description": "Découvrez, suivez et lisez vos mangas depuis une bibliothèque canonique multi-source.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06101a",
+  "theme_color": "#06101a",
+  "icons": [
+    {
+      "src": "/icons/manga-wave-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/manga-wave-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
