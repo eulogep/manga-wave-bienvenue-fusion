@@ -76,8 +76,15 @@ const MangaCard = ({
     if (externalUrl) window.open(externalUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const cardContent = (
-    <article className="manga-card group h-full">
+  return (
+    <article className="manga-card group relative h-full">
+      {detailUrl && (
+        <Link
+          to={detailUrl}
+          className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mw-accent-coral)]"
+          aria-label={`Ouvrir la fiche de ${title}`}
+        />
+      )}
       <div className="relative aspect-[3/4] overflow-hidden bg-wave-card">
         <MangaCover src={imageUrl} alt={`Couverture de ${title}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#06101a]/85 via-transparent to-black/10" />
@@ -87,13 +94,13 @@ const MangaCard = ({
             {newChapterCount} nouveau{newChapterCount > 1 ? 'x' : ''}
           </span>
         )}
-        <button aria-label={`${isFavorite ? 'Retirer' : 'Ajouter'} ${title} ${isFavorite ? 'des' : 'aux'} favoris`} className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center border border-white/15 bg-black/65 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-[var(--mw-accent-coral)]" onClick={handleFavoriteClick}>
+        <button aria-label={`${isFavorite ? 'Retirer' : 'Ajouter'} ${title} ${isFavorite ? 'des' : 'aux'} favoris`} className="absolute right-2 top-2 z-20 flex h-10 w-10 items-center justify-center border border-white/15 bg-black/65 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-[var(--mw-accent-coral)]" onClick={handleFavoriteClick}>
           <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[var(--mw-accent-coral)] text-[var(--mw-accent-coral)]' : 'text-white/85'}`} />
         </button>
 
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-3">
           {rating != null ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/85"><Star className="h-3 w-3 fill-manga-gold text-manga-gold" />{rating.toFixed(1)}</span> : <span />}
-          <div className="translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+          <div className="relative z-20 translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
             {detailUrl ? (
               <Link to={detailUrl} className="flex h-10 w-10 items-center justify-center bg-[var(--mw-accent-coral)] text-white hover:bg-[#ff6671]" onClick={(event) => event.stopPropagation()} aria-label={`Découvrir ${title}`}><BookOpen className="h-4 w-4" /></Link>
             ) : externalUrl ? (
@@ -119,8 +126,6 @@ const MangaCard = ({
       </div>
     </article>
   );
-
-  return detailUrl ? <Link to={detailUrl} className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mw-accent-coral)]">{cardContent}</Link> : cardContent;
 };
 
 export default MangaCard;
