@@ -6,6 +6,9 @@
 -- 20260828210000_add_source_sync_queue.sql. Purely additive: inserts two
 -- rows into the existing source_sync_queue via the existing
 -- enqueue_source_sync() function, no schema changes.
+-- Deployment order: publish the Vercel extractors, deploy source-sync with
+-- both SOURCE_IDS, then apply this migration. Applying it before source-sync
+-- is deployed would archive the jobs as unknown sources.
 select public.enqueue_source_sync(
   jsonb_build_object('type', 'SYNC_SOURCE', 'source', source_id),
   ((position - 1) * 20)::integer

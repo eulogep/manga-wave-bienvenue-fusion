@@ -52,15 +52,16 @@ Follows the existing `SourceExtractor` / `MangaSource` contract exactly — no n
     still fail in production undetected). Also added `readdetectiveconan.com`, `sushiscan.fr`, and
     `yaoiscan.fr` to `IMAGE_HOST_SUFFIXES` (the production proxy's allowlist).
 
-## What was deliberately NOT done
+## Canonical source sync follow-up
 
-- **Canonical catalog auto-sync**: `supabase/functions/source-sync/index.ts` has its own hardcoded
-  `SOURCE_IDS` set that does not yet include `mangapill`/`sushiscan`. Without it, these two sources
-  are reachable only by direct provider navigation (`?source=mangapill`, `?source=sushiscan`) —
-  they do not yet contribute to canonical Search, Trending, Ranking, or Recommendations. Extending
-  and deploying that Edge Function is a real next step, gated the same way database migrations have
-  been in this project: prepared but not deployed without explicit authorization, since it's a
-  shared-resource deployment outside the normal `git push` → Vercel pipeline.
+- `supabase/functions/source-sync/index.ts` now accepts `mangapill` and `sushiscan`.
+- `20260914100000_seed_new_source_sync_jobs.sql` prepares their two initial queue messages.
+- The migration remains local and unapplied. Required order: deploy the Vercel extractors, deploy
+  the updated `source-sync` Edge Function, then apply the seed migration. This avoids archiving the
+  queued messages as unknown sources.
+- A live production check found and fixed a cross-card Sushi-Scan parser bug before enabling sync:
+  title-only links could consume the next card's image. The parser now closes each anchor before
+  selecting its image, with a regression fixture covering consecutive cards.
 - No legacy per-provider discovery UI was added or reintroduced (`MultiSourceHubSection.tsx`,
   which predates the canonical/source-agnostic architecture, is confirmed unused/dead code and was
   left untouched).
@@ -78,11 +79,10 @@ Follows the existing `SourceExtractor` / `MangaSource` contract exactly — no n
 - Full regression: unit suite 239/239 PASS (6 new), `tsc --noEmit` clean for both the app and the
   `server/` package, `eslint` 0 errors, `npm run build` (app) and `npm run build` (server) both PASS.
 
-## Next steps (not done yet)
+## Next steps
 
-1. Deploy this commit (mechanical — same `git push` → Vercel pipeline as every other change), then
-   re-run `npm run test:e2e:new-sources` against production to confirm the `api/extract.ts` referer
-   fix and allowlist additions work identically live.
-2. If canonical integration (Search/Trending/Ranking/Recommendations awareness) is wanted, extend
-   `source-sync`'s `SOURCE_IDS` and deploy that Edge Function — requires the same explicit
-   authorization already used for database migrations in this project.
+1. Push the parser and source-sync follow-up only after explicit authorization.
+2. Verify MangaPill and Sushi-Scan extraction in production.
+3. Deploy the updated `source-sync` Edge Function with explicit authorization.
+4. Apply only `20260914100000_seed_new_source_sync_jobs.sql` with explicit authorization.
+5. Verify the two sync runs, canonical mappings and queue continuation before closing the change.

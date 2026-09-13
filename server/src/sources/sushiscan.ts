@@ -1,5 +1,6 @@
 import type { Chapter, MangaDetail, SearchResult, SourceExtractor } from '../lib/extractor-types.js';
 import { providerHttp } from '../lib/provider-http.js';
+import { decodeSushiScanHtml, parseSushiScanCards } from '../lib/sushiscan-parser.js';
 
 // Sushi-Scan: a French Madara/WordPress scan site (same underlying CMS as
 // the existing "crunchyscan" extractor, which actually targets LelManga —
@@ -17,19 +18,6 @@ import { providerHttp } from '../lib/provider-http.js';
 // it does not filter.
 const BASE = 'https://sushiscan.fr';
 
-function decodeHtml(value: string): string {
-  return value
-    .replace(/&#0*39;|&apos;|&#8217;/g, "'")
-    .replace(/&quot;|&#34;/g, '"')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 async function getHtml(path: string): Promise<string> {
   return providerHttp.getText(`${BASE}${path}`, {
     headers: {
@@ -40,30 +28,7 @@ async function getHtml(path: string): Promise<string> {
 
 function firstMatch(html: string, pattern: RegExp): string | null {
   const value = html.match(pattern)?.[1];
-  return value ? decodeHtml(value) : null;
-}
-
-function parseCards(html: string, limit = 40): SearchResult[] {
-  const items: SearchResult[] = [];
-  const seen = new Set<string>();
-  const pattern = /<a href="https?:\/\/(?:www\.)?sushiscan\.fr\/catalogue\/([^"/]+)\/"\s+title="([^"]+)">[\s\S]*?<img[^>]+src="([^"]+)"/gi;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(html)) && items.length < limit) {
-    const [, id, rawTitle, rawCover] = match;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    items.push({
-      id,
-      title: decodeHtml(rawTitle) || id.replace(/-/g, ' '),
-      coverUrl: rawCover,
-      status: 'ongoing',
-      rating: null,
-      genres: [],
-      author: null,
-      url: `${BASE}/catalogue/${id}/`,
-    });
-  }
-  return items;
+  return value ? decodeSushiScanHtml(value) : null;
 }
 
 function parseChapters(html: string): Chapter[] {
@@ -79,7 +44,7 @@ function parseChapters(html: string): Chapter[] {
     seen.add(chapterSlug);
     chapters.push({
       id: chapterSlug,
-      chapterNumber: decodeHtml(rawNumber),
+      chapterNumber: decodeSushiScanHtml(rawNumber),
       title: null,
       date: firstMatch(block, /class="chapterdate"[^>]*>([\s\S]*?)<\/(?:span|i)>/i) || '',
       language: 'fr',
@@ -91,7 +56,7 @@ function parseChapters(html: string): Chapter[] {
 
 function parseGenres(html: string): string[] {
   const container = html.match(/class="seriestugenre"[^>]*>([\s\S]*?)<\/div>/i)?.[1] || '';
-  return [...new Set([...container.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)].map((match) => decodeHtml(match[1])).filter(Boolean))];
+  return [...new Set([...container.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)].map((match) => decodeSushiScanHtml(match[1])).filter(Boolean))];
 }
 
 type ReaderPayload = { sources?: Array<{ images?: unknown }> };
@@ -117,11 +82,11 @@ export const sushiScanExtractor: SourceExtractor = {
   name: 'Sushi-Scan (VF)',
 
   async search(query: string): Promise<SearchResult[]> {
-    return parseCards(await getHtml(`/?s=${encodeURIComponent(query)}&post_type=wp-manga`));
+    return parseSushiScanCards(await getHtml(`/?s=${encodeURIComponent(query)}&post_type=wp-manga`));
   },
 
   async getPopular(): Promise<SearchResult[]> {
-    return parseCards(await getHtml('/'), 24);
+    return parseSushiScanCards(await getHtml('/'), 24);
   },
 
   async getDetail(idOrSlug: string): Promise<MangaDetail> {
