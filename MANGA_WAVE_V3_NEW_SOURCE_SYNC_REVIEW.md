@@ -29,13 +29,22 @@ SQL, lockfile or unrelated product change is present.
 - Added static source-sync and additive migration tests.
 - Documented the required deployment order and updated the new-source report.
 
-## VERIFIED DEPLOYMENT ORDER
+## DEPLOYMENT
 
-1. Push the parser/source-sync commits and wait for the Vercel extractor deployment.
-2. Smoke both `/api/extract/popular/...` endpoints and verify representative title/cover pairs.
-3. Deploy the updated Supabase `source-sync` Edge Function.
-4. Apply only `20260914100000_seed_new_source_sync_jobs.sql`.
-5. Verify successful sync runs, canonical mappings, continuing queue jobs and source health.
+The required order was followed:
+
+1. Commits `306b81e` and `fe21a7f` were pushed to `origin/main`.
+2. The Vercel deployment served both new extractors and passed the production E2E smoke (2/2).
+3. Supabase `source-sync` version 4 was deployed with both source identifiers.
+4. Only `20260914100000_seed_new_source_sync_jobs.sql` was applied.
+5. Local and remote migration histories were confirmed aligned.
+6. The initial queue jobs completed on attempt 1: MangaPill synced 10 items and Sushi-Scan synced
+   24 items.
+7. The resulting canonical mappings were read back from Supabase. The sensitive Sushi-Scan pairs
+   remained correct: `La Servante Secrète` / `La-Servante-Secrete-.png`, `Martial Peak` /
+   `martial-peak.png`, and `Just Friends` / `JustFriends.jpg`.
+8. Each successful run scheduled exactly one new job with a 15-minute delay (`7273` for MangaPill,
+   `7274` for Sushi-Scan), both with `read_ct = 0`.
 
 Applying step 4 before step 3 can cause the current Edge Function to archive both messages as
 unknown sources.
@@ -55,9 +64,15 @@ TYPESCRIPT:                    PASS
 SERVER_BUILD:                  PASS
 APP_BUILD:                     PASS
 ESLINT:                        PASS (0 errors)
-REMOTE_MIGRATION_APPLIED:      NO
-SOURCE_SYNC_FUNCTION_DEPLOYED: NO
-NEW_SOURCE_SYNC_FINAL:         READY_FOR_ORDERED_DEPLOYMENT
+LOCAL_REMOTE_ALIGNMENT:        PASS
+SOURCE_SYNC_FUNCTION_DEPLOYED: PASS (version 4, ACTIVE)
+MANGAPILL_REAL_SYNC:           PASS (10 items, attempt 1)
+SUSHISCAN_REAL_SYNC:           PASS (24 items, attempt 1)
+CANONICAL_MAPPINGS:            PASS (34 mappings)
+SOURCE_HEALTH:                 PASS (closed, no consecutive failures)
+QUEUE_CONTINUATION:            PASS (one delayed job per new source)
+REMOTE_MIGRATION_APPLIED:      PASS
+NEW_SOURCE_SYNC_FINAL:         APPROVED
 ```
 
 ## LOCAL PROTOTYPES
