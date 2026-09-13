@@ -69,6 +69,7 @@ export const CommandSearchDialog: React.FC = () => {
       genre: '',
       sort: 'relevance',
       page: 1,
+      browse: false,
     });
     return matched.slice(0, 8);
   }, [hasQuery, catalog.data, trimmedQuery]);

@@ -14,7 +14,12 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/rest/v1/**', route => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/mangas')) {
-      const after = Number(url.searchParams.get('id')?.replace('gt.','') || 0);
+      const idFilter = url.searchParams.get('id') || '';
+      if (idFilter.startsWith('eq.')) {
+        const exactId = Number(idFilter.slice(3));
+        return route.fulfill({json:catalog.filter(work => work.id === exactId)});
+      }
+      const after = Number(idFilter.replace('gt.','') || 0);
       return route.fulfill({json:catalog.filter(work => work.id > after)});
     }
     if (url.pathname.endsWith('/canonical_manga_catalog')) return route.fulfill({json:{...catalog[0],canonical_id:110,cover:null,genres:catalog[0].genre,type:'manhwa',description:'Une aventure fantastique.',source_count:0,sources:[]}});
