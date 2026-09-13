@@ -43,6 +43,7 @@ import {
 import { discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
 import ChapterListV2 from '@/components/ChapterListV2';
 import { firstReadableChapter as findFirstReadableChapter } from '@/domain/chapterList';
+import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -66,6 +67,7 @@ const MangaDetail = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { confirmed: adultConfirmed, confirm: confirmAdult } = useAdultConfirmation();
   const requestedSource = searchParams.get('source') as SourceType | null;
 
   const [language, setLanguage] = useState('fr');
@@ -205,7 +207,7 @@ const MangaDetail = () => {
           themes: [] as string[],
           year: universalData.year || null,
           rating: null,
-          contentRating: null,
+          contentRating: universalData.contentRating || null,
           lastChapter: universalData.lastChapter || null,
           updatedAt: null,
           metadataSource: null,
@@ -375,6 +377,27 @@ const MangaDetail = () => {
               <Button variant="outline" className="border-white/30" asChild>
                 <Link to="/search">Revenir à la recherche</Link>
               </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isAdultContentRating(manga.contentRating) && !adultConfirmed) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 section-padding py-12" data-testid="manga-detail-adult-gate">
+          <div className="container mx-auto max-w-xl rounded-2xl border border-[var(--mw-border)] bg-[var(--mw-surface)] p-8 text-center">
+            <h1 className="text-2xl font-bold mb-3">Contenu réservé aux adultes</h1>
+            <p className="text-muted-foreground mb-6">
+              « {manga.title} » est classé contenu explicite (érotique). Confirmez que vous avez 18 ans ou plus pour afficher sa fiche.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button variant="outline" className="border-white/30" onClick={() => navigate(-1)}>Retour</Button>
+              <Button className="btn-gradient" onClick={confirmAdult}>J’ai 18 ans ou plus</Button>
             </div>
           </div>
         </main>

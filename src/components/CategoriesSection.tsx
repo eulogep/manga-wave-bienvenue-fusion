@@ -1,13 +1,25 @@
-import { ArrowUpRight, Heart, Sparkles, Star, Sword, Users, Zap } from 'lucide-react';
+import { ArrowUpRight, Compass, Frown, Heart, Smile, Sparkles, Star, Sword, Users, Wand2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// Genres chosen from the real, live distribution across the canonical
+// catalogue (verified against production: Action, Comedy, Romance, Fantasy,
+// Drama, Adventure, Slice of Life and Isekai are the best-represented
+// non-format tags — format/language tags like "VF", "EN", "Manhwa" are
+// mixed into the same genre column by some sources but aren't genres, so
+// they're deliberately excluded here). Each link's genre string must match
+// a tag exactly as stored (matching is case/accent-insensitive but not
+// fuzzy — see filterSearchResults in canonicalSearch.ts), so a category
+// added here with a genre nobody uses would silently show zero results.
 const CATEGORIES = [
   { name: 'Action', icon: Sword, description: 'Combats, rivalités et quêtes épiques', link: '/search?genre=Action', tone: '#ff4d5a' },
+  { name: 'Comédie', icon: Smile, description: 'Situations loufoques et répliques qui détendent', link: '/search?genre=Comedy', tone: '#e8b93a' },
   { name: 'Romance', icon: Heart, description: 'Rencontres, drames et liens intimes', link: '/search?genre=Romance', tone: '#d66b75' },
   { name: 'Fantasy', icon: Sparkles, description: 'Mondes inconnus et légendes anciennes', link: '/search?genre=Fantasy', tone: '#1ea7ff' },
-  { name: 'Surnaturel', icon: Zap, description: 'Pouvoirs occultes et mystères', link: '/search?genre=Supernatural', tone: '#6b8fb0' },
+  { name: 'Drame', icon: Frown, description: 'Histoires fortes, tensions et émotions brutes', link: '/search?genre=Drama', tone: '#6b8fb0' },
+  { name: 'Aventure', icon: Compass, description: 'Voyages, expéditions et terres inconnues', link: '/search?genre=Adventure', tone: '#3ac17a' },
   { name: 'Tranche de vie', icon: Users, description: 'Récits sensibles du quotidien', link: '/search?genre=Slice+of+Life', tone: '#a78664' },
-  { name: 'Les incontournables', icon: Star, description: 'Les œuvres plébiscitées par les lecteurs', link: '/search', tone: '#c69b42' },
+  { name: 'Isekai', icon: Wand2, description: 'Transportés dans un autre monde', link: '/search?genre=Isekai', tone: '#9b6bff' },
+  { name: 'Les incontournables', icon: Star, description: 'Les œuvres plébiscitées par les lecteurs', link: '/search?browse=1&sort=popularity', tone: '#c69b42' },
 ];
 
 const CategoriesSection = () => (
@@ -37,6 +49,10 @@ const CategoriesSection = () => (
             </Link>
           );
         })}
+      </div>
+
+      <div className="mt-6 text-right">
+        <Link to="/search" className="text-xs font-semibold uppercase tracking-wider text-manga-cyan hover:underline">Toutes les catégories →</Link>
       </div>
     </div>
   </section>

@@ -38,7 +38,13 @@ test('Comick degradation cannot trigger requests or retries from canonical searc
 test('URL state round trips filters sort pagination and sanitizes malformed input', () => {
   const state = parseSearchState(new URLSearchParams('q=Solo+Leveling&type=manhwa&status=ongoing&genre=Action&sort=rating&page=2'));
   assert.deepEqual(parseSearchState(serializeSearchState(state)), state);
-  assert.deepEqual(parseSearchState(new URLSearchParams('type=unknown&status=bad&sort=bad&page=NaN')), { q:'',type:'',status:'',genre:'',sort:'relevance',page:1 });
+  assert.deepEqual(parseSearchState(new URLSearchParams('type=unknown&status=bad&sort=bad&page=NaN')), { q:'',type:'',status:'',genre:'',sort:'relevance',page:1,browse:false });
+});
+test('browse flag round trips and is omitted from the URL when off', () => {
+  const browsing = parseSearchState(new URLSearchParams('browse=1&sort=recent'));
+  assert.equal(browsing.browse, true);
+  assert.deepEqual(parseSearchState(serializeSearchState(browsing)), browsing);
+  assert.equal(serializeSearchState({ q:'',type:'',status:'',genre:'',sort:'relevance',page:1,browse:false }).has('browse'), false);
 });
 test('explicit sort uses metadata and retains deterministic tie breaks', () => {
   const list = [work(1, 'A', { views: 1, rating: 3 }), work(2, 'B', { views: 10, rating: 9 })];

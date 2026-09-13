@@ -10,6 +10,7 @@ export type SearchWork = {
   rating: number | null;
   views: number;
   created_at: string;
+  content_rating: string | null;
 };
 export const searchTypes = ['manga', 'manhwa', 'manhua'] as const;
 export const searchStatuses = ['ongoing', 'completed', 'hiatus', 'cancelled'] as const;
@@ -21,6 +22,10 @@ export type SearchState = {
   genre: string;
   sort: typeof searchSorts[number];
   page: number;
+  // True when the visitor asked to browse the full catalogue directly (e.g.
+  // a "Voir tout" link) rather than search or filter it. Kept distinct from
+  // the filters below so clearing filters doesn't also leave the page blank.
+  browse: boolean;
 };
 export const SEARCH_PAGE_SIZE = 24;
 export const normalizeQuery = (value: string) => value.normalize('NFKD')
@@ -38,6 +43,7 @@ export function parseSearchState(params: URLSearchParams): SearchState {
     genre: (params.get('genre') || '').trim().slice(0, 80),
     sort: allowed(params.get('sort'), searchSorts, 'relevance'),
     page: Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1,
+    browse: params.get('browse') === '1',
   };
 }
 export function serializeSearchState(state: SearchState) {
@@ -45,6 +51,7 @@ export function serializeSearchState(state: SearchState) {
   for (const key of ['q', 'type', 'status', 'genre'] as const) if (state[key]) params.set(key, state[key]);
   if (state.sort !== 'relevance') params.set('sort', state.sort);
   if (state.page > 1) params.set('page', String(state.page));
+  if (state.browse) params.set('browse', '1');
   return params;
 }
 

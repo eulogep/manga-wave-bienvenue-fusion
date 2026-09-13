@@ -62,7 +62,7 @@ const MultiSourceHubSection = () => {
           })),
           isLoading: comickQuery.isLoading,
           isError: comickQuery.isError,
-          searchUrl: '/search?source=comick',
+          searchUrl: '/search?browse=1&sort=recent',
         };
       case 'originmanga':
         return {
@@ -80,7 +80,7 @@ const MultiSourceHubSection = () => {
           })),
           isLoading: originQuery.isLoading,
           isError: originQuery.isError,
-          searchUrl: '/search?source=originmanga',
+          searchUrl: '/search?browse=1&sort=recent',
         };
       case 'crunchyscan':
         return {
@@ -98,7 +98,7 @@ const MultiSourceHubSection = () => {
           })),
           isLoading: crunchyQuery.isLoading,
           isError: crunchyQuery.isError,
-          searchUrl: '/search?source=crunchyscan',
+          searchUrl: '/search?browse=1&sort=recent',
         };
       case 'mangadex':
         return {
@@ -116,7 +116,7 @@ const MultiSourceHubSection = () => {
           })),
           isLoading: mangaDexQuery.isLoading,
           isError: mangaDexQuery.isError,
-          searchUrl: '/search?source=mangadex',
+          searchUrl: '/search?browse=1&sort=recent',
         };
       case 'mangafire':
         return {
@@ -134,7 +134,7 @@ const MultiSourceHubSection = () => {
           })),
           isLoading: mangaFireQuery.isLoading,
           isError: mangaFireQuery.isError,
-          searchUrl: '/search?source=mangafire',
+          searchUrl: '/search?browse=1&sort=recent',
         };
       case 'asurascans':
         return {
@@ -152,7 +152,7 @@ const MultiSourceHubSection = () => {
           })),
           isLoading: asuraQuery.isLoading,
           isError: asuraQuery.isError,
-          searchUrl: '/search?source=asurascans',
+          searchUrl: '/search?browse=1&sort=recent',
         };
     }
   };
@@ -183,7 +183,7 @@ const MultiSourceHubSection = () => {
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" className="min-h-11 border-[var(--mw-border)] bg-transparent text-xs uppercase tracking-wider text-white hover:border-[var(--mw-accent-blue)]" asChild>
               <Link to={activeData.searchUrl}>
-                Tout voir sur cette source <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                Explorer tout le catalogue <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
               </Link>
             </Button>
           </div>

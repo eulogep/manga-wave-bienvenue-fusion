@@ -1,10 +1,12 @@
-import { BellRing, BookOpen, Heart, Star } from 'lucide-react';
+import { BellRing, BookOpen, Heart, Lock, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MangaCover from '@/components/MangaCover';
+import AdultGatedLink from '@/components/AdultGatedLink';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useManga';
 import { useToast } from '@/hooks/use-toast';
+import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 
 interface MangaCardProps {
   id: string | number;
@@ -22,6 +24,7 @@ interface MangaCardProps {
   detailUrl?: string;
   newChapterCount?: number;
   isFollowing?: boolean;
+  contentRating?: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -45,12 +48,15 @@ const MangaCard = ({
   detailUrl,
   newChapterCount = 0,
   isFollowing = false,
+  contentRating = null,
 }: MangaCardProps) => {
   const { user } = useAuth();
   const { toggleFavorite } = useFavorites();
   const { toast } = useToast();
+  const { confirmed: adultConfirmed } = useAdultConfirmation();
   const persistedFavoriteId = favoriteId ?? (typeof id === 'number' ? id : undefined);
   const statusConfig = STATUS_CONFIG[status] ?? STATUS_CONFIG.ongoing;
+  const isGated = isAdultContentRating(contentRating) && !adultConfirmed;
 
   const handleFavoriteClick = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -79,15 +85,22 @@ const MangaCard = ({
   return (
     <article className="manga-card group relative h-full">
       {detailUrl && (
-        <Link
+        <AdultGatedLink
           to={detailUrl}
+          contentRating={contentRating}
           className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mw-accent-coral)]"
           aria-label={`Ouvrir la fiche de ${title}`}
         />
       )}
       <div className="relative aspect-[3/4] overflow-hidden bg-wave-card">
-        <MangaCover src={imageUrl} alt={`Couverture de ${title}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
+        <MangaCover src={imageUrl} alt={isGated ? 'Couverture masquée : contenu réservé aux adultes' : `Couverture de ${title}`} className={`h-full w-full object-cover transition-transform duration-500 ${isGated ? 'scale-110 blur-2xl' : 'group-hover:scale-[1.035]'}`} />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#06101a]/85 via-transparent to-black/10" />
+        {isGated && (
+          <div className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-1.5 bg-black/60 text-center">
+            <Lock className="h-5 w-5 text-white" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-white">Contenu 18+</span>
+          </div>
+        )}
         <span className={`absolute left-2 top-2 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${statusConfig.cls}`}>{statusConfig.label}</span>
         {newChapterCount > 0 && (
           <span className="absolute left-2 top-10 bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
@@ -102,7 +115,7 @@ const MangaCard = ({
           {rating != null ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/85"><Star className="h-3 w-3 fill-manga-gold text-manga-gold" />{rating.toFixed(1)}</span> : <span />}
           <div className="relative z-20 translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
             {detailUrl ? (
-              <Link to={detailUrl} className="flex h-10 w-10 items-center justify-center bg-[var(--mw-accent-coral)] text-white hover:bg-[#ff6671]" onClick={(event) => event.stopPropagation()} aria-label={`Découvrir ${title}`}><BookOpen className="h-4 w-4" /></Link>
+              <AdultGatedLink to={detailUrl} contentRating={contentRating} className="flex h-10 w-10 items-center justify-center bg-[var(--mw-accent-coral)] text-white hover:bg-[#ff6671]" onClick={(event) => event.stopPropagation()} aria-label={`Découvrir ${title}`}><BookOpen className="h-4 w-4" /></AdultGatedLink>
             ) : externalUrl ? (
               <Button size="sm" className="h-10 w-10 bg-[var(--mw-accent-coral)] p-0 text-white" onClick={handleReadClick} aria-label={`Lire ${title}`}><BookOpen className="h-4 w-4" /></Button>
             ) : null}

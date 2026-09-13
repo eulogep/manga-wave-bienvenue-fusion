@@ -15,7 +15,7 @@ const OriginMangaSection = () => {
             <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-coral)]"><Flame className="h-3.5 w-3.5" /> Classement éditorial</p>
             <h2 id="trending-title" className="font-editorial text-3xl uppercase text-[var(--mw-text-primary)] md:text-4xl">Tendances du moment</h2>
           </div>
-          <Link to="/search?source=originmanga" className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--mw-text-secondary)] transition-colors hover:text-white sm:flex">Voir tout <ArrowRight className="h-4 w-4" /></Link>
+          <Link to="/search?browse=1&sort=recent" className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--mw-text-secondary)] transition-colors hover:text-white sm:flex">Voir tout <ArrowRight className="h-4 w-4" /></Link>
         </div>
 
         <div className="flex snap-x gap-3 overflow-x-auto pb-3 hide-scrollbar lg:grid lg:grid-cols-5 lg:overflow-visible">

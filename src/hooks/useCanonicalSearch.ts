@@ -16,7 +16,7 @@ export function useCanonicalSearch(enabled: boolean) {
       let after = 0;
       while (true) {
         const { data, error } = await supabase.from('mangas')
-          .select('id,title,aliases,author,genre,manga_type,status,cover_image,rating,views,created_at')
+          .select('id,title,aliases,author,genre,manga_type,status,cover_image,rating,views,created_at,content_rating')
           .gt('id', after).order('id', { ascending: true }).limit(500).abortSignal(signal);
         if (error) throw error;
         if (!data?.length) break;

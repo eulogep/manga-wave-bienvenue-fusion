@@ -1,14 +1,18 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MangaCover from '@/components/MangaCover';
+import AdultGatedLink from '@/components/AdultGatedLink';
+import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 import { useCanonicalSearch } from '@/hooks/useCanonicalSearch';
 import { normalizeQuery, parseSearchState, searchCanonicalWorks, serializeSearchState, SEARCH_PAGE_SIZE, type SearchState } from '@/domain/canonicalSearch';
 
 const control = 'min-h-11 w-full min-w-0 rounded-md border border-slate-500 bg-[#101e2c] px-3 py-2 text-base text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300';
 const statusLabels: Record<string, string> = { ongoing: 'En cours', completed: 'Terminé', hiatus: 'En pause', cancelled: 'Annulé' };
 const Search = () => {
+  const { confirmed: adultConfirmed } = useAdultConfirmation();
   const [params, setParams] = useSearchParams();
   const urlState = params.toString();
   const state = useMemo(() => parseSearchState(new URLSearchParams(urlState)), [urlState]);
@@ -19,15 +23,25 @@ const Search = () => {
     const timer = setTimeout(() => setParams(serializeSearchState({ ...state, q: draft.trim(), page: 1 }), { replace: true }), 250);
     return () => clearTimeout(timer);
   }, [draft, state, setParams]);
-  const active = Boolean(normalizeQuery(state.q) || state.type || state.status || state.genre);
-  const catalog = useCanonicalSearch(active);
+  const active = Boolean(normalizeQuery(state.q) || state.type || state.status || state.genre || state.browse);
+  // The catalogue is public metadata (no per-user data), so loading it
+  // eagerly lets genre categories render for browsing immediately, without
+  // waiting for a first search or filter.
+  const catalog = useCanonicalSearch(true);
   const results = useMemo(() => active ? searchCanonicalWorks(catalog.data || [], state) : [], [catalog.data, state, active]);
-  const genres = useMemo(() => [...new Set((catalog.data || []).flatMap(work => work.genre || []))].sort((a, b) => a.localeCompare(b, 'fr')), [catalog.data]);
+  const genreCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const work of catalog.data || []) for (const genre of work.genre || []) counts.set(genre, (counts.get(genre) || 0) + 1);
+    return counts;
+  }, [catalog.data]);
+  const topGenres = useMemo(() => [...genreCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr')).slice(0, 18).map(([genre]) => genre), [genreCounts]);
+  const genres = useMemo(() => [...genreCounts.keys()].sort((a, b) => a.localeCompare(b, 'fr')), [genreCounts]);
   const pages = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
   const page = Math.min(state.page, pages);
   const change = (patch: Partial<SearchState>) => setParams(serializeSearchState({ ...state, q: draft.trim(), page: 1, ...patch }));
   const submit = (event: FormEvent) => { event.preventDefault(); change({ q: draft.trim() }); };
   const hasFilters = Boolean(state.type || state.status || state.genre);
+  const browseAll = () => change({ browse: true, sort: 'recent' });
   return <div className="min-h-screen bg-[#080c14] text-white flex flex-col">
     <Header />
     <main className="flex-1 section-padding py-10" data-testid="search-v2">
@@ -60,18 +74,44 @@ const Search = () => {
             <button type="button" onClick={() => change({ type: '', status: '', genre: '' })} className="min-h-11 rounded-md border border-slate-500 px-4">Effacer les filtres</button>
           </div>}
         </form>
+        {topGenres.length > 0 && (
+          <section aria-labelledby="genre-categories-title" className="mb-8">
+            <h2 id="genre-categories-title" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-300">Parcourir par catégorie</h2>
+            <div className="flex flex-wrap gap-2">
+              {topGenres.map(genre => (
+                <button
+                  key={genre}
+                  type="button"
+                  aria-pressed={state.genre === genre}
+                  onClick={() => change({ genre: state.genre === genre ? '' : genre })}
+                  className={`min-h-11 rounded-full border px-4 py-1 text-xs font-semibold uppercase tracking-wide transition-colors ${state.genre === genre ? 'border-sky-300 bg-sky-300 text-slate-950' : 'border-slate-600 bg-[#101e2c] text-slate-200 hover:border-sky-300'}`}
+                >
+                  {genre} <span className="text-[10px] opacity-70">({genreCounts.get(genre)})</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         <section aria-labelledby="canonical-results-title" aria-busy={active && catalog.isFetching}>
           <h2 id="canonical-results-title" className="font-editorial text-2xl">Résultats Manga Wave</h2>
-          {!active ? <p className="py-10 text-slate-300">Saisissez un titre, un auteur ou un genre, ou choisissez un filtre pour découvrir des œuvres.</p>
+          {!active ? <div className="py-10 text-slate-300">
+              <p>Saisissez un titre, un auteur ou un genre, choisissez une catégorie ci-dessus, ou parcourez tout le catalogue.</p>
+              <button type="button" onClick={browseAll} className="mt-4 min-h-11 rounded-md border border-sky-300 px-5 font-semibold text-sky-200 hover:bg-sky-300/10">Explorer tout le catalogue</button>
+            </div>
             : catalog.isPending ? <p role="status" className="py-10">Chargement du catalogue…</p>
             : catalog.isError ? <div role="alert" className="py-10"><p>La recherche est indisponible pour le moment.</p><button className={`${control} mt-4 sm:w-auto`} onClick={() => void catalog.refetch()}>Réessayer</button></div>
             : <>
               <p role="status" className="my-4 text-slate-300">{results.length} résultat{results.length > 1 ? 's' : ''}{state.q && ` pour « ${state.q} »`}</p>
               {results.length === 0 ? <p className="py-8 text-slate-300">Aucune œuvre ne correspond. Essayez un autre titre ou retirez un filtre.</p> :
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                  {results.slice((page - 1) * SEARCH_PAGE_SIZE, page * SEARCH_PAGE_SIZE).map(work => <article key={work.id} data-type={work.manga_type} className="min-w-0 overflow-hidden rounded-md border border-slate-600 bg-[#101e2c]">
-                    <Link to={`/manga/${work.id}`} aria-label={`Découvrir ${work.title}`} className="block h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
-                      <MangaCover src={work.cover_image} alt="" className="aspect-[3/4] w-full object-cover" />
+                  {results.slice((page - 1) * SEARCH_PAGE_SIZE, page * SEARCH_PAGE_SIZE).map(work => {
+                    const gated = isAdultContentRating(work.content_rating) && !adultConfirmed;
+                    return <article key={work.id} data-type={work.manga_type} className="min-w-0 overflow-hidden rounded-md border border-slate-600 bg-[#101e2c]">
+                    <AdultGatedLink to={`/manga/${work.id}`} contentRating={work.content_rating} aria-label={`Découvrir ${work.title}`} className="block h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
+                      <div className="relative">
+                        <MangaCover src={work.cover_image} alt={gated ? 'Couverture masquée : contenu réservé aux adultes' : ''} className={`aspect-[3/4] w-full object-cover ${gated ? 'scale-110 blur-2xl' : ''}`} />
+                        {gated && <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/60 text-center"><Lock className="h-5 w-5 text-white" /><span className="text-[9px] font-bold uppercase tracking-wider text-white">Contenu 18+</span></div>}
+                      </div>
                       <div className="space-y-2 p-3"><h3 className="break-words font-semibold">{work.title}</h3>
                         <p className="text-sm text-slate-300 break-words">{work.author || 'Auteur non renseigné'}</p>
                         <p className="text-sm text-sky-200">{[work.manga_type, statusLabels[work.status]].filter(Boolean).join(' · ')}</p>
@@ -79,8 +119,9 @@ const Search = () => {
                         {work.rating != null && <p className="text-sm text-slate-200">Note : {work.rating}/10</p>}
                         {work.aliases?.length > 0 && <p className="text-xs text-slate-300 break-words">Autres titres : {work.aliases.slice(0, 2).join(' · ')}</p>}
                       </div>
-                    </Link>
-                  </article>)}
+                    </AdultGatedLink>
+                  </article>;
+                  })}
                 </div>}
               {pages > 1 && <nav aria-label="Pages de résultats" className="mt-8 flex flex-wrap items-center justify-center gap-4">
                 <button className="min-h-11 rounded-md border border-slate-500 px-4 disabled:opacity-50" disabled={page <= 1} onClick={() => change({ page: page - 1 })}>Précédent</button><span>Page {page} / {pages}</span>

@@ -62,10 +62,10 @@ const HeroSection = () => {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to={active ? `/manga/${active.id}?source=originmanga` : '/search?source=originmanga'} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--mw-accent-coral)] px-6 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#ff6671]">
+              <Link to={active ? `/manga/${active.id}?source=originmanga` : '/search?browse=1&sort=recent'} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--mw-accent-coral)] px-6 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#ff6671]">
                 <BookOpen className="h-4 w-4" /> Découvrir ce manga
               </Link>
-              <Link to="/search" className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--mw-border)] bg-[#0c1722]/80 px-6 text-sm font-semibold text-[var(--mw-text-primary)] transition-colors hover:border-[var(--mw-accent-blue)]">
+              <Link to="/search?browse=1&sort=recent" className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--mw-border)] bg-[#0c1722]/80 px-6 text-sm font-semibold text-[var(--mw-text-primary)] transition-colors hover:border-[var(--mw-accent-blue)]">
                 Explorer le catalogue <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
