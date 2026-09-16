@@ -6,6 +6,8 @@ export type SourceType =
   | 'asurascans'
   | 'mangapill'
   | 'sushiscan'
+  | 'weebcentral'
+  | 'mangakatana'
   | 'comick'
   | 'shikimori'
   | 'kitsu'

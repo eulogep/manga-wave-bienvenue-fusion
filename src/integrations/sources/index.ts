@@ -6,6 +6,8 @@ import { mangaFireSource } from './mangafire';
 import { asuraScansSource } from './asurascans';
 import { mangaPillSource } from './mangapill';
 import { sushiScanSource } from './sushiscan';
+import { weebCentralSource } from './weebcentral';
+import { mangaKatanaSource } from './mangakatana';
 import type { MangaSource, SourceSearchResult, SourceType } from './types';
 
 export * from './types';
@@ -17,6 +19,8 @@ export { mangaFireSource } from './mangafire';
 export { asuraScansSource } from './asurascans';
 export { mangaPillSource } from './mangapill';
 export { sushiScanSource } from './sushiscan';
+export { weebCentralSource } from './weebcentral';
+export { mangaKatanaSource } from './mangakatana';
 
 export const sources: Record<string, MangaSource> = {
   mangadex: mangaDexSource,
@@ -27,6 +31,8 @@ export const sources: Record<string, MangaSource> = {
   asurascans: asuraScansSource,
   mangapill: mangaPillSource,
   sushiscan: sushiScanSource,
+  weebcentral: weebCentralSource,
+  mangakatana: mangaKatanaSource,
 };
 
 export const sourceList: MangaSource[] = [
@@ -38,6 +44,8 @@ export const sourceList: MangaSource[] = [
   asuraScansSource,
   mangaPillSource,
   sushiScanSource,
+  weebCentralSource,
+  mangaKatanaSource,
 ];
 
 export function getSource(sourceId: SourceType | string): MangaSource | undefined {

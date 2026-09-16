@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const APP_URL = "https://manga-wave-bienvenue-fusion.vercel.app";
-const SOURCE_IDS = new Set(["mangadex", "comick", "originmanga", "crunchyscan", "mangafire", "asurascans", "mangapill", "sushiscan"]);
+const SOURCE_IDS = new Set(["mangadex", "comick", "originmanga", "crunchyscan", "mangafire", "asurascans", "mangapill", "sushiscan", "weebcentral", "mangakatana"]);
 
 type QueueMessage = {
   msg_id: number;

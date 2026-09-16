@@ -3,9 +3,11 @@ import { comickExtractor } from './comick.js';
 import { crunchyScanExtractor } from './crunchyscan.js';
 import { mangaDexExtractor } from './mangadex.js';
 import { mangaFireExtractor } from './mangafire.js';
+import { mangaKatanaExtractor } from './mangakatana.js';
 import { mangaPillExtractor } from './mangapill.js';
 import { originMangaExtractor } from './originmanga.js';
 import { sushiScanExtractor } from './sushiscan.js';
+import { weebCentralExtractor } from './weebcentral.js';
 import type { SourceExtractor } from '../lib/extractor-types.js';
 
 export const extractors: Record<string, SourceExtractor> = {
@@ -17,6 +19,8 @@ export const extractors: Record<string, SourceExtractor> = {
   asurascans: asuraScansExtractor,
   mangapill: mangaPillExtractor,
   sushiscan: sushiScanExtractor,
+  weebcentral: weebCentralExtractor,
+  mangakatana: mangaKatanaExtractor,
 };
 
 export function getExtractor(sourceId: string): SourceExtractor | null {
