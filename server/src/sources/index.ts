@@ -7,7 +7,6 @@ import { mangaKatanaExtractor } from './mangakatana.js';
 import { mangaPillExtractor } from './mangapill.js';
 import { originMangaExtractor } from './originmanga.js';
 import { sushiScanExtractor } from './sushiscan.js';
-import { weebCentralExtractor } from './weebcentral.js';
 import type { SourceExtractor } from '../lib/extractor-types.js';
 
 export const extractors: Record<string, SourceExtractor> = {
@@ -19,7 +18,6 @@ export const extractors: Record<string, SourceExtractor> = {
   asurascans: asuraScansExtractor,
   mangapill: mangaPillExtractor,
   sushiscan: sushiScanExtractor,
-  weebcentral: weebCentralExtractor,
   mangakatana: mangaKatanaExtractor,
 };
 
