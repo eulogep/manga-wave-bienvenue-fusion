@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+const usesRealCatalog = Boolean(process.env.T3020_REAL_CATALOG);
 const catalog = [
   { id:110,title:'Solo Leveling',aliases:['Only I Level Up','나 혼자만 레벨업'],author:'Chugong',genre:['Action','Fantasy'],manga_type:'manhwa',status:'completed',rating:9,views:100,created_at:'2026-01-01',cover_image:null },
   { id:111,title:'Solo Leveling Ragnarok',aliases:[],author:null,genre:['Action'],manga_type:'manhwa',status:'ongoing',rating:8,views:50,created_at:'2026-01-02',cover_image:null },
@@ -10,7 +11,7 @@ let providerRequests = 0;
 test.beforeEach(async ({ page }) => {
   providerRequests = 0;
   await page.route('**/api/extract/**', route => { providerRequests++; return route.fulfill({status:503,json:{error:'Provider unavailable'}}); });
-  if (process.env.T3020_REAL_CATALOG) return;
+  if (usesRealCatalog) return;
   await page.route('**/rest/v1/**', route => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/mangas')) {
@@ -45,21 +46,52 @@ test('B typo finds Solo Leveling without a provider request', async ({page}) => 
   expect(providerRequests).toBe(0);
 });
 test('C/D filters combine and survive reload, Back and Forward', async ({page}) => {
-  await page.goto('/search?q=solo');
-  await page.getByRole('combobox',{name:'Type',exact:true}).selectOption('manhwa');
+  const query = usesRealCatalog ? 'Sono Bisque Doll wa Koi o Suru' : 'solo';
+  const type = usesRealCatalog ? 'manga' : 'manhwa';
+  const genre = usesRealCatalog ? 'Romance' : 'Action';
+  await page.goto(`/search?q=${encodeURIComponent(query)}`);
+  await page.getByRole('combobox',{name:'Type',exact:true}).selectOption(type);
   await page.getByRole('combobox',{name:'Statut',exact:true}).selectOption('completed');
-  await page.getByRole('combobox',{name:'Genre',exact:true}).selectOption('Action');
+  await page.getByRole('combobox',{name:'Genre',exact:true}).selectOption(genre);
   const results = page.getByRole('region',{name:'Résultats Manga Wave'});
   await expect(results.locator('article')).toHaveCount(1);
-  await expect(results.locator('article')).toHaveAttribute('data-type','manhwa');
+  await expect(results.locator('article')).toHaveAttribute('data-type',type);
   await page.reload();
-  await expect(page.getByRole('combobox',{name:'Type',exact:true})).toHaveValue('manhwa');
+  await expect(page.getByRole('combobox',{name:'Type',exact:true})).toHaveValue(type);
   await expect(page.getByRole('combobox',{name:'Statut',exact:true})).toHaveValue('completed');
-  await expect(page.getByRole('combobox',{name:'Genre',exact:true})).toHaveValue('Action');
+  await expect(page.getByRole('combobox',{name:'Genre',exact:true})).toHaveValue(genre);
   await page.getByRole('button',{name:'Effacer les filtres'}).click();
-  await expect(results.locator('article')).toHaveCount(2);
-  await page.goBack(); await expect(page.getByRole('combobox',{name:'Genre',exact:true})).toHaveValue('Action');
+  await expect(results.locator('article')).toHaveCount(usesRealCatalog ? 1 : 2);
+  await page.goBack(); await expect(page.getByRole('combobox',{name:'Genre',exact:true})).toHaveValue(genre);
   await page.goForward(); await expect(page.getByRole('combobox',{name:'Genre',exact:true})).toHaveValue('');
+});
+test('real catalog author and genre queries return canonical works', async ({page}) => {
+  test.skip(!usesRealCatalog, 'Production catalog metadata only');
+  await page.goto('/search?q=Fukuda+Shinichi');
+  await expect(page.getByRole('heading',{name:'Sono Bisque Doll wa Koi o Suru',exact:true})).toBeVisible();
+  await page.getByLabel('Rechercher un manga').fill('Romance');
+  await page.getByLabel('Rechercher un manga').press('Enter');
+  const results = page.getByRole('region',{name:'Résultats Manga Wave'});
+  await expect(results).toContainText(/\d+ résultats pour « Romance »/);
+  await expect(results.locator('article').first()).toBeVisible();
+});
+test('real catalog exposes enriched Manhwa, Manhua and alias search', async ({page}) => {
+  test.skip(!usesRealCatalog, 'Production catalog metadata only');
+  // 1. Manhwa filter returns enriched manhwa
+  await page.goto('/search?type=manhwa');
+  await expect(page.getByRole('combobox',{name:'Type',exact:true})).toHaveValue('manhwa');
+  const manhwaResults = page.getByRole('region',{name:'Résultats Manga Wave'});
+  await expect(manhwaResults.locator('article').first()).toBeVisible();
+
+  // 2. Manhua filter returns enriched manhua works
+  await page.goto('/search?type=manhua');
+  await expect(page.getByRole('combobox',{name:'Type',exact:true})).toHaveValue('manhua');
+  const manhuaResults = page.getByRole('region',{name:'Résultats Manga Wave'});
+  await expect(manhuaResults.getByRole('heading',{name:'Tales of Demons and Gods',exact:true})).toBeVisible();
+
+  // 3. Alias query resolves to canonical work
+  await page.goto('/search?q=My+Dress-Up+Darling');
+  await expect(page.getByRole('heading',{name:'Sono Bisque Doll wa Koi o Suru',exact:true})).toBeVisible();
 });
 test('E provider degradation leaves canonical search usable and rejects garbage', async ({page}) => {
   await page.goto('/search?q=Solo+Leveling');
@@ -91,7 +123,7 @@ test('mobile controls, keyboard submission, empty state and optional axe', async
   await expect(main.getByText(/Aucune œuvre ne correspond/)).toBeVisible();
 });
 test('canonical database failure offers retry and recovers', async ({page}) => {
-  test.skip(Boolean(process.env.T3020_REAL_CATALOG), 'Synthetic database error only');
+  test.skip(usesRealCatalog, 'Synthetic database error only');
   let fail = true;
   await page.route('**/rest/v1/mangas?**',route => fail ? route.fulfill({status:503,json:{message:'Offline'}}) : route.fulfill({json: new URL(route.request().url()).searchParams.get('id') === 'gt.0' ? catalog : []}));
   await page.goto('/search?q=solo');
@@ -101,7 +133,7 @@ test('canonical database failure offers retry and recovers', async ({page}) => {
 });
 
 test('metadata pagination loads beyond the API batch and query edits reuse the cache', async ({page}) => {
-  test.skip(Boolean(process.env.T3020_REAL_CATALOG), 'Synthetic pagination catalog only');
+  test.skip(usesRealCatalog, 'Synthetic pagination catalog only');
   const many = Array.from({length:501},(_,i)=>({...catalog[0],id:i+1,title:i===500?'Last Canonical Work':`Work ${String(i+1).padStart(3,'0')}`,aliases:[]}));
   let requests=0;
   await page.route('**/rest/v1/mangas?**',route => {

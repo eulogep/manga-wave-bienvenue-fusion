@@ -1,5 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  canonicalTypeFromCountry,
+  countryFromMangaDexLanguage,
+} from "../_shared/canonical-metadata.ts";
 
 type LocalizedText = Record<string, string>;
 
@@ -18,6 +22,7 @@ type MangaDexManga = {
   attributes: {
     title: LocalizedText;
     description: LocalizedText;
+    originalLanguage?: string;
     status: "ongoing" | "completed" | "hiatus" | "cancelled";
     contentRating?: string;
     updatedAt?: string;
@@ -135,7 +140,7 @@ export default {
           const relationships = manga.relationships || [];
           const title = text(manga.attributes.title);
           if (!manga.id || !title) return null;
-          const formats = tagsForGroup(manga.attributes.tags, "format");
+          const country = countryFromMangaDexLanguage(manga.attributes.originalLanguage);
           return {
             mangadex_id: manga.id,
             title,
@@ -145,7 +150,7 @@ export default {
             cover_image: coverUrl(manga.id, relationships),
             status: manga.attributes.status || "ongoing",
             genre: tagsForGroup(manga.attributes.tags, "genre"),
-            manga_type: formats[0] || "manga",
+            manga_type: canonicalTypeFromCountry(country),
             content_rating: manga.attributes.contentRating || null,
             source_updated_at: manga.attributes.updatedAt || null,
             last_synced_at: syncedAt,
@@ -158,8 +163,19 @@ export default {
       const supabase = createClient(supabaseUrl, serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       });
-      const { error } = await supabase.from("mangas").upsert(rows, { onConflict: "mangadex_id" });
-      if (error) return response(500, { error: "Écriture du catalogue impossible", detail: error.message });
+      // Existing enrichment belongs to the reviewed metadata pipeline. Sync never
+      // overwrites aliases/type/provenance for existing canonical identities.
+      const { data: existing, error: readError } = await supabase.from("mangas")
+        .select("mangadex_id").in("mangadex_id", rows.map((row) => row.mangadex_id));
+      if (readError) return response(500, { error: "Lecture du catalogue impossible" });
+      const knownIds = new Set((existing || []).map((row) => row.mangadex_id));
+      for (const row of rows) {
+        const { manga_type, ...refresh } = row;
+        const result = knownIds.has(row.mangadex_id)
+          ? await supabase.from("mangas").update(refresh).eq("mangadex_id", row.mangadex_id)
+          : await supabase.from("mangas").upsert({ ...refresh, manga_type }, { onConflict: "mangadex_id", ignoreDuplicates: true });
+        if (result.error) return response(500, { error: "Écriture du catalogue impossible", detail: result.error.message });
+      }
 
       return response(200, { synced: rows.length, synced_at: syncedAt });
     } catch {

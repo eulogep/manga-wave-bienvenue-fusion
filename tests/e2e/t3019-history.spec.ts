@@ -104,7 +104,8 @@ test('Reader writes canonical retention loop across favorite, follow, notificati
   });
   await installDetailFixture(page);
   const svg='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200"><rect width="800" height="1200" fill="#345"/></svg>');
-  await page.route('**/api/extract/pages/**',route=>route.fulfill({json:{images:Array.from({length:6},()=>svg)}}));
+  const installPageFixture=async(target:typeof page)=>target.route('**/api/extract/pages/**',route=>route.fulfill({json:{images:Array.from({length:6},()=>svg)}}));
+  await installPageFixture(page);
   await page.goto('/auth'); await page.getByLabel('Email').fill(owner.email); await page.getByLabel('Mot de passe').fill(owner.password); await page.getByRole('button',{name:'Se connecter',exact:true}).click(); await expect(page).toHaveURL(/\/$/);
   const rows=async()=>checked(await owner.client.from('user_reading_history').select('*').order('read_at',{ascending:false}));
   const read=async(m:typeof a,n:string,p:number)=>{
@@ -144,7 +145,7 @@ test('Reader writes canonical retention loop across favorite, follow, notificati
   expect(await checked(await owner.client.from('user_favorites').select('*'))).toHaveLength(1);
   expect(await checked(await owner.client.from('user_follows').select('*'))).toHaveLength(1);
 
-  const freshContext=await browser.newContext(); const fresh=await freshContext.newPage(); await installDetailFixture(fresh);
+  const freshContext=await browser.newContext(); const fresh=await freshContext.newPage(); await installDetailFixture(fresh); await installPageFixture(fresh);
   await fresh.goto('/auth'); await fresh.getByLabel('Email').fill(owner.email); await fresh.getByLabel('Mot de passe').fill(owner.password); await fresh.getByRole('button',{name:'Se connecter',exact:true}).click(); await expect(fresh).toHaveURL(/\/$/);
   await fresh.reload({waitUntil:'domcontentloaded'}); await fresh.waitForTimeout(2_000);
   const freshHomepageProgress=fresh.getByRole('article').filter({hasText:'Chronicles of the Demon Faction'});
