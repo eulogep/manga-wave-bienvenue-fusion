@@ -531,7 +531,7 @@ test('real catalog-sync handler preserves existing enrichment and inserts only n
     ] })),
   });
   const serviceRolePayload = Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url');
-  const response = await exports.default!.fetch(new Request('https://example.invalid/functions/v1/catalog-sync', {
+  const response = await exports.default!.fetch(new Request('https://example.invalid/catalog-sync', {
     method: 'POST',
     headers: { Authorization: `Bearer test.${serviceRolePayload}.signature` },
   }));

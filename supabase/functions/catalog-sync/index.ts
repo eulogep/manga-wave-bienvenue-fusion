@@ -110,9 +110,11 @@ function hasServiceRole(request: Request): boolean {
 }
 
 function functionPath(url: URL): string | null {
-  const marker = `/functions/v1/${FUNCTION_NAME}`;
-  const index = url.pathname.indexOf(marker);
-  return index === -1 ? null : url.pathname.slice(index + marker.length) || "/";
+  for (const marker of [`/functions/v1/${FUNCTION_NAME}`, `/${FUNCTION_NAME}`]) {
+    const index = url.pathname.indexOf(marker);
+    if (index !== -1) return url.pathname.slice(index + marker.length) || "/";
+  }
+  return url.pathname === "/" ? "/" : null;
 }
 
 export default {
