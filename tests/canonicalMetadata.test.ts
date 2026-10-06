@@ -165,6 +165,13 @@ test('catalog sync cannot use MangaDex format tags as canonical manga_type', () 
   assert.doesNotMatch(source, /formats\[0\]/);
   assert.match(source, /canonicalTypeFromCountry\(country\)/);
   assert.match(source, /originalLanguage/);
+
+  const config = readFileSync(new URL('../supabase/config.toml', import.meta.url), 'utf8');
+  assert.match(config, /\[functions\.catalog-sync\]\s+verify_jwt = true/);
+  const schedule = readFileSync(new URL('../supabase/schedules/daily_mangadex_catalog_sync.sql', import.meta.url), 'utf8');
+  assert.match(schedule, /'Authorization',\s*'Bearer '/);
+  assert.match(schedule, /source_sync_service_role_key/);
+  assert.doesNotMatch(schedule, /catalog_sync_(project_url|secret_key)/);
 });
 
 test('metadata migration is additive and CLI has no database write path', () => {
@@ -517,13 +524,17 @@ test('real catalog-sync handler preserves existing enrichment and inserts only n
   runInNewContext(compiled, {
     exports, require: (name: string) => name.startsWith('jsr:') ? {} : name.startsWith('npm:') ? sdk : { canonicalTypeFromCountry, countryFromMangaDexLanguage },
     Deno: { env: { get: (name: string) => name === 'SUPABASE_SERVICE_ROLE_KEY' ? 'test-key' : name === 'SUPABASE_URL' ? 'https://example.invalid' : undefined } },
-    Request, Response, URL, URLSearchParams,
+    Request, Response, URL, URLSearchParams, atob,
     fetch: async () => new Response(JSON.stringify({ data: [
       { id: 'existing', attributes: { title: { en: 'Existing' }, originalLanguage: 'ja', status: 'ongoing' } },
       { id: 'new', attributes: { title: { en: 'New' }, originalLanguage: 'ko', status: 'ongoing', tags: [{ attributes: { group: 'format', name: { en: 'Adaptation' } } }] } },
     ] })),
   });
-  const response = await exports.default!.fetch(new Request('https://example.invalid/functions/v1/catalog-sync', { method: 'POST', headers: { apikey: 'test-key' } }));
+  const serviceRolePayload = Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url');
+  const response = await exports.default!.fetch(new Request('https://example.invalid/functions/v1/catalog-sync', {
+    method: 'POST',
+    headers: { Authorization: `Bearer test.${serviceRolePayload}.signature` },
+  }));
   assert.equal(response.status, 200);
   assert.equal(writes.length, 2);
   for (const key of ['manga_type', 'aliases', 'country_of_origin', 'metadata_source', 'metadata_confidence']) assert.equal(key in writes[0].patch, false);

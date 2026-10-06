@@ -96,6 +96,19 @@ function defaultSecretKey(): string | null {
   }
 }
 
+function hasServiceRole(request: Request): boolean {
+  const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  const encodedPayload = token?.split(".")[1];
+  if (!encodedPayload) return false;
+  try {
+    const normalized = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+    return payload.role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
 function functionPath(url: URL): string | null {
   const marker = `/functions/v1/${FUNCTION_NAME}`;
   const index = url.pathname.indexOf(marker);
@@ -109,7 +122,7 @@ export default {
     const serviceRoleKey = defaultSecretKey();
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     if (!serviceRoleKey || !supabaseUrl) return response(503, { error: "Client administratif indisponible" });
-    if (request.headers.get("apikey") !== serviceRoleKey) {
+    if (!hasServiceRole(request)) {
       return response(401, { error: "Accès interne requis" });
     }
 

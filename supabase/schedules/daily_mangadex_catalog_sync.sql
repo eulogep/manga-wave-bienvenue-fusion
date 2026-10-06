@@ -1,8 +1,6 @@
 -- Prérequis : déployer d'abord la fonction catalog-sync.
--- Dans Supabase Vault, créer les deux secrets suivants avec les valeurs réelles :
---   catalog_sync_project_url : https://ilmsomiaqthhfyvgqnsp.supabase.co
---   catalog_sync_secret_key  : une clé Supabase de type Secret du projet
--- Les valeurs de secret ne doivent jamais être ajoutées à ce fichier ou au dépôt.
+-- Réutilise le JWT service_role déjà stocké pour le worker source-sync.
+-- Sa valeur ne doit jamais être ajoutée à ce fichier ou au dépôt.
 
 -- Supprime une éventuelle planification précédente du même nom.
 do $$
@@ -25,12 +23,18 @@ select cron.schedule(
   '17 3 * * *',
   $$
   select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets where name = 'catalog_sync_project_url') || '/functions/v1/catalog-sync',
+    url := 'https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/catalog-sync',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'catalog_sync_secret_key')
+      'Authorization', 'Bearer ' || (
+        select decrypted_secret
+        from vault.decrypted_secrets
+        where name = 'source_sync_service_role_key'
+        limit 1
+      )
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 120000
   );
   $$
 );

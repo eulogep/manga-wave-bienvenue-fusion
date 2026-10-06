@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.catalog-sync]
-verify_jwt = false
+verify_jwt = true
 
 [functions.reading-progress]
 verify_jwt = true
