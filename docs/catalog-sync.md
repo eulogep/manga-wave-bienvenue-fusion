@@ -185,7 +185,9 @@ datées, pas un statut de disponibilité actuel.
 
 ## Validation production du 6 octobre 2026
 
-- `origin/main` et le déploiement Vercel du commit `189e436` : **PASS**, déploiement `READY`.
+- `origin/main` : `b58a0c3`; le frontend reste le déploiement Vercel `READY` de `189e436`, les commits suivants ne modifiant que Supabase, les tests et la documentation.
+- Smoke HTTP public : **PASS**, bundle `assets/index-BvbBpX-4.js` et extracteur MangaKatana à 20 résultats.
+- Smoke Playwright T-3020 sur le catalogue réel : **PASS**, 7 scénarios réussis et 2 scénarios synthétiques ignorés comme prévu.
 - Migration `20260916090000_seed_mangakatana_sync_job` : **DÉJÀ APPLIQUÉE**, aucun rejeu.
 - Extracteur MangaKatana : **PASS**, 20 résultats ; dernier run observé : 20 éléments synchronisés.
 - Edge Function `catalog-sync` : **PASS**, version 7 active avec `verify_jwt = true`.
