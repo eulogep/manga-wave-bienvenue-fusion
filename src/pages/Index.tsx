@@ -22,6 +22,7 @@ const Index = () => {
         ) : user ? (
           <>
             <ContinueReadingSection />
+            <HeroSection />
             <HomeCatalogSections mode="personalized" />
           </>
         ) : (

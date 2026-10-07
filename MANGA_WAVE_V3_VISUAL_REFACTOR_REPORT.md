@@ -49,7 +49,7 @@ This moves the page from a stack of interchangeable modules to a curated progres
 - Coral identifies actions, ranking and priority; blue is limited to secondary discovery metadata.
 - Cards and sections use sharper edges, subtle borders and dark elevation instead of glassmorphism and purple glow.
 - Ranking numbers, denser horizontal rows and stronger section separators reproduce the mockup’s editorial seriousness without copying its layout pixel for pixel.
-- The page contains less dead space and exposes meaningful manga content immediately.
+- The page contains less dead space and exposess  meaningful manga content immediately.
 
 ## P0 functionality protected
 
