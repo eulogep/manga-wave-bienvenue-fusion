@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 128" role="img" aria-labelledby="title">
-  <title id="title">Manga Wave</title>
-  <defs>
-    <linearGradient id="mw-dark" x1="18" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#ff4d5a"/>
-      <stop offset="1" stop-color="#ff818a"/>
-    </linearGradient>
-  </defs>
-  <rect width="560" height="128" rx="20" fill="#061622"/>
-  <path d="M20 101C32 37 55 37 76 68c12 18 24 16 34-34" fill="none" stroke="url(#mw-dark)" stroke-width="11" stroke-linecap="round"/>
-  <rect x="36" y="29" width="56" height="76" rx="7" fill="none" stroke="url(#mw-dark)" stroke-width="7"/>
-  <path d="M50 53h28M50 69h20" fill="none" stroke="url(#mw-dark)" stroke-width="6" stroke-linecap="round"/>
-  <text x="132" y="80" fill="#edeff2" font-family="Outfit, Inter, Arial, sans-serif" font-size="48" font-weight="800" letter-spacing="3">MANGA <tspan fill="#ff4d5a">WAVE</tspan></text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" aria-labelledby="title" role="img" viewBox="0 0 560 128"><title id="title">Manga Wave</title><defs><linearGradient id="mw-dark" x1="18" x2="110" y1="18" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#ff4d5a"/><stop offset="1" stop-color="#ff818a"/></linearGradient></defs><rect width="560" height="128" fill="#061622" rx="20"/><path fill="none" stroke="url(#mw-dark)" stroke-linecap="round" stroke-width="11" d="M20 101C32 37 55 37 76 68c12 18 24 16 34-34"/><rect width="56" height="76" x="36" y="29" fill="none" stroke="url(#mw-dark)" stroke-width="7" rx="7"/><path fill="none" stroke="url(#mw-dark)" stroke-linecap="round" stroke-width="6" d="M50 53h28M50 69h20"/><text x="132" y="80" fill="#edeff2" font-family="Outfit, Inter, Arial, sans-serif" font-size="48" font-weight="800" letter-spacing="3">MANGA <tspan fill="#ff4d5a">WAVE</tspan></text></svg>
