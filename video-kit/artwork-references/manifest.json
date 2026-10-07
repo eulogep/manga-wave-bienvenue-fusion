@@ -1,0 +1,168 @@
+[
+  {
+    "canonicalId": 7,
+    "title": "One Punch-Man",
+    "route": "/manga/7",
+    "file": "7-one-punch-man.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/d8a959f7-648e-4c8d-8f23-f1f3f8e129f3/511fc404-e6b4-4204-bb10-e4a28f7b5271.jpg.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Sci-Fi",
+      "Action",
+      "Comedy",
+      "Superhero"
+    ],
+    "status": "ongoing",
+    "rating": 4.8,
+    "providers": [
+      "crunchyscan",
+      "mangapill"
+    ],
+    "reason": "Couverture très lisible, repère manga grand public et fiche canonique riche."
+  },
+  {
+    "canonicalId": 51,
+    "title": "Dandadan",
+    "route": "/manga/51",
+    "file": "51-dandadan.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/68112dc1-2b80-4f20-beb8-2f2a8716a430/971f79d4-ae64-4e9f-a874-2d2995eafafa.jpg.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Thriller",
+      "Sci-Fi",
+      "Action",
+      "Romance",
+      "Comedy"
+    ],
+    "status": "ongoing",
+    "rating": 4.8,
+    "providers": [
+      "crunchyscan"
+    ],
+    "reason": "Palette rouge énergique, excellente présence dans une grille et dans les classements."
+  },
+  {
+    "canonicalId": 100,
+    "title": "Kaiju No. 8",
+    "route": "/manga/100",
+    "file": "100-kaiju-no-8.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/237d527f-adb5-420e-8e6e-b7dd006fbe47/f48790fc-547c-4a10-8bef-56a373ddbb1c.jpg.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Sci-Fi",
+      "Action",
+      "Comedy",
+      "Drama"
+    ],
+    "status": "completed",
+    "rating": 4.8,
+    "providers": [
+      "crunchyscan"
+    ],
+    "reason": "Silhouette immédiatement reconnaissable et contraste fort pour les formats verticaux."
+  },
+  {
+    "canonicalId": 57,
+    "title": "Blue Lock",
+    "route": "/manga/57",
+    "file": "57-blue-lock.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/4141c5dc-c525-4df5-afd7-cc7d192a832f/7ee723d4-b926-4a81-acd9-53adb3fbe461.jpg.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Thriller",
+      "Psychological",
+      "Sports",
+      "Drama"
+    ],
+    "status": "ongoing",
+    "rating": 4.8,
+    "providers": [
+      "crunchyscan"
+    ],
+    "reason": "Univers sportif distinct, utile pour varier le rythme visuel."
+  },
+  {
+    "canonicalId": 5,
+    "title": "Chainsaw Man",
+    "route": "/manga/5",
+    "file": "5-chainsaw-man.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/a77742b1-befd-49a4-bff5-1ad4e6b0ef7b/6e518bd1-5f60-446b-8832-bfe6bf74834b.jpg.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Action",
+      "Comedy",
+      "Horror"
+    ],
+    "status": "completed",
+    "rating": 4.8,
+    "providers": [
+      "crunchyscan",
+      "mangapill"
+    ],
+    "reason": "Couverture forte et source multiple, adaptée aux transitions de catalogue."
+  },
+  {
+    "canonicalId": 20,
+    "title": "Jujutsu Kaisen",
+    "route": "/manga/20",
+    "file": "20-jujutsu-kaisen.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/c52b2ce3-7f95-469c-96b0-479524fb7a1a/6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg.256.jpg",
+    "type": null,
+    "genres": [
+      "Action",
+      "Adventure",
+      "Horror"
+    ],
+    "status": "completed",
+    "rating": 4.3,
+    "providers": [
+      "comick",
+      "crunchyscan"
+    ],
+    "reason": "Titre reconnu, composition graphique très contrastée."
+  },
+  {
+    "canonicalId": 6,
+    "title": "Sousou no Frieren",
+    "route": "/manga/6",
+    "file": "6-sousou-no-frieren.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/b0b721ff-c388-4486-aa0f-c2b0bb321512/b9a049b0-186b-4714-a83e-bb965458914a.jpg.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Fantasy",
+      "Slice of Life"
+    ],
+    "status": "hiatus",
+    "rating": null,
+    "providers": [
+      "mangadex"
+    ],
+    "reason": "Palette claire et contemplative qui équilibre les scènes d’action."
+  },
+  {
+    "canonicalId": 22,
+    "title": "One Piece",
+    "route": "/manga/22",
+    "file": "22-one-piece.jpg",
+    "coverSource": "https://ilmsomiaqthhfyvgqnsp.supabase.co/functions/v1/mangadex-proxy/cover/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.256.jpg",
+    "type": "manga",
+    "genres": [
+      "Sci-Fi",
+      "Action",
+      "Comedy",
+      "Adventure",
+      "Drama",
+      "Fantasy"
+    ],
+    "status": "ongoing",
+    "rating": 4.8,
+    "providers": [
+      "originmanga",
+      "crunchyscan",
+      "mangapill"
+    ],
+    "reason": "Icône populaire et source multiple, utile pour expliquer la résolution canonique."
+  }
+]
