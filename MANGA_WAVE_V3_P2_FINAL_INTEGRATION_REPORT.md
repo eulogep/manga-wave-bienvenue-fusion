@@ -2,13 +2,13 @@
 
 Date: 2026-09-09
 Production: `https://manga-wave-bienvenue-fusion.vercel.app/`
-Reviewed commit: `c9c1e7f19fa8716a42e2fd98e7a320b4dd95a808`
-Production asset: `assets/index-eyQJ5YgK.js`
-Hotfix: deployed
+Reviewed commit: `e5447103ceb52577d74b8582bd60d7a69ba44218`
+Production asset: `assets/index-Bgz9jF22.js`
+Hotfix candidate: local, not deployed
 
 ## OVERALL_STATUS
 
-**PASS.** The Continue Reading hydration defect is fixed and verified in production. A fresh authenticated browser context with empty local storage rehydrates canonical Supabase progress and resumes Solo Leveling at chapter 5, page 2. A second account receives no progress from the first account.
+**VALIDATION_BLOCKED.** The confirmed Continue Reading hydration defect is fixed locally and all non-network validation passes. The real Supabase multi-session E2E and production smoke remain pending because the Mac currently has no DNS configuration and cannot resolve either Supabase or GitHub. P2 remains open until those gates pass.
 
 The product change is limited to the Continue Reading hydration contract. P3 was not started.
 
@@ -42,7 +42,9 @@ The product change is limited to the Continue Reading hydration contract. P3 was
 
 ## PROGRESS_COHERENCE
 
-**PASS.** Reader, canonical progress, Homepage Continue Reading, Library Resume and History agree on chapter/page in both the current session and a completely fresh browser context. The production smoke persisted and restored chapter 5, page index 1 (displayed page 2).
+**FAIL across sessions; PASS within one session.** Reader, canonical progress, current-session Homepage Continue Reading, Library Resume and History agree on chapter/page. After login in a fresh browser context, the canonical progress row still exists and Library/History show it, but Homepage Continue Reading shows no card.
+
+Root cause is localized to `useContinueReading`: an empty localStorage array is supplied as React Query `initialData` with `staleTime: 10_000`. In a fresh browser, that empty array is considered fresh and suppresses the initial Supabase fetch. A reload constructs another fresh empty query state, so the remote progress remains hidden. A focused fix should make empty local seed data stale immediately (for example through `initialDataUpdatedAt`) or use placeholder semantics while the authenticated remote query runs. This review did not implement the fix.
 
 ## UPDATE_ACK
 
@@ -74,11 +76,11 @@ The product change is limited to the Continue Reading hydration contract. P3 was
 
 ## MULTI_SESSION
 
-**PASS.** Context A persisted Solo Leveling chapter 5, page 2. Context B started without the Manga Wave local progress key, logged into the same account, displayed the correct Continue Reading card and reopened the exact Reader state. Context C used another account and displayed no inherited progress.
+**FAIL.** In one fresh browser context using the same account, Library and History persisted correctly, while Homepage Continue Reading returned zero items despite two canonical progress rows being present. The final integration assertion reproduced this deterministically.
 
 ## DIRECT_REFRESH
 
-**PASS.** Reader, Library, History and Homepage survive direct navigation/refresh, including fresh-session Homepage hydration.
+**PASS with the multi-session exception above.** Reader, Library, History and current-session Homepage survived direct navigation/refresh. Fresh-session Homepage remote hydration is the blocker described under MULTI_SESSION.
 
 ## MOBILE
 
@@ -95,11 +97,11 @@ The product change is limited to the Continue Reading hydration contract. P3 was
 ## REGRESSION EVIDENCE
 
 - Production deterministic E2E baseline: **11/11 PASS** in one run (Reader 4, T3013 1, T3014 1, T3015 1, T3017 1, T3019 3).
-- Strengthened same-account P2 retention loop: **PASS 3/3 locally** after installing the existing deterministic Reader page fixture in the fresh context; production fresh-session Resume is also PASS.
+- Strengthened same-account P2 retention loop: **FAIL only on the final fresh-session Homepage assertion**; all preceding Favorite/Follow/Notification/Reader/Library/History/delete/clear/unfollow assertions passed.
 - Canonical Search: **PASS**.
 - Mobile and axe inventory: **PASS**, findings classified above.
 - Real six-table RLS integration: **PASS**.
-- Unit regression suites: **131/131 PASS**.
+- Unit regression suites: **109/109 PASS**.
 - TypeScript application check: **PASS**.
 - Server TypeScript build: **PASS**.
 - ESLint: **0 errors, 57 known warnings**.
@@ -109,7 +111,9 @@ The product change is limited to the Continue Reading hydration contract. P3 was
 
 **CRITICAL: 0**
 
-**HIGH: 0**
+**HIGH: 1**
+
+- Authenticated Homepage Continue Reading does not hydrate canonical Supabase progress in a fresh browser/session when localStorage starts empty. Cross-device/cross-session Resume discovery is therefore missing from the Homepage, although Library and History remain correct.
 
 **MEDIUM: 1 pre-existing**
 
@@ -136,7 +140,7 @@ NOTIFICATION_PIPELINE:           PASS
 NOTIFICATION_IDEMPOTENCY:        PASS
 NOTIFICATION_TO_READER:          PASS
 READER_REGRESSION:               PASS
-PROGRESS_COHERENCE:              PASS
+PROGRESS_COHERENCE:              FAIL
 UPDATE_ACK:                      PASS
 LIBRARY_COHERENCE:               PASS
 HISTORY_COHERENCE:               PASS
@@ -144,13 +148,13 @@ HISTORY_PROGRESS_SEPARATION:     PASS
 SOURCE_ABSTRACTION:              PASS
 SEARCH_REGRESSION:               PASS
 RLS:                             PASS
-MULTI_SESSION:                   PASS
-DIRECT_REFRESH:                  PASS
+MULTI_SESSION:                   FAIL
+DIRECT_REFRESH:                  PASS (same session; fresh Homepage exception)
 MOBILE:                          PASS
 ACCESSIBILITY:                   PRE_EXISTING_ONLY
 QA_CLEANUP:                      PASS
 CRITICAL:                        0
-HIGH:                            0
+HIGH:                            1
 ```
 
 ## CONTINUE_READING_ROOT_CAUSE
@@ -159,7 +163,7 @@ HIGH:                            0
 
 ## REACT_QUERY_FIX
 
-**PRODUCTION PASS.** The hook waits only while authentication is unresolved, keys authenticated queries by `user.id`, and no longer installs local data as authenticated `initialData`. Anonymous sessions may use local progress as `placeholderData`; authenticated sessions always execute the canonical Supabase query.
+**LOCAL PASS.** The hook now waits only while authentication is unresolved, keys authenticated queries by `user.id`, and no longer installs local data as authenticated `initialData`. Anonymous sessions may use local progress as `placeholderData`; authenticated sessions always execute the canonical Supabase query.
 
 ## LOCAL_REMOTE_POLICY
 
@@ -171,56 +175,56 @@ HIGH:                            0
 
 ## ACCOUNT_ISOLATION
 
-**PASS.** Query keys differ by authenticated `user.id`, and authenticated queries receive no unscoped local placeholder. The production browser scenario logged a second empty account into a clean context and confirmed that User A's Solo Leveling progress was absent.
+**UNIT PASS; REAL E2E PENDING NETWORK.** Query keys differ by authenticated `user.id`, and authenticated queries receive no unscoped local placeholder. The new real-browser scenario logs a second empty account into a clean context and asserts that User A's Solo Leveling progress is absent.
 
 ## MULTI_SESSION_E2E
 
-**PASS locally and in production.** Context A reads Solo Leveling chapter 5 page 2 and waits for the canonical row. Context B proves the local progress key is absent, logs into the same account, asserts the visible Continue Reading card, and clicks Resume. Context C verifies account isolation. The strengthened T-3019 retention loop also passes 3/3 locally.
+**IMPLEMENTED; EXECUTION BLOCKED BY DNS.** Context A reads Solo Leveling chapter 5 page 2 and waits for the canonical row. Context B proves the local progress key is absent, logs into the same account, asserts the visible Continue Reading card, and clicks Resume. Context C verifies account isolation. A second assertion strengthens the existing T-3019 retention loop in the same way.
+
+The attempted real run stopped in `beforeAll` because `ilmsomiaqthhfyvgqnsp.supabase.co` could not resolve. A control request to `github.com` failed identically, and `scutil --dns` reported `No DNS configuration available`. No product assertion failed in that run.
 
 ## FRESH_CONTEXT_RESUME
 
-**PASS.** The production Homepage visibly restored Solo Leveling, chapter 5, page 2, and its Resume link opened the Reader at the same chapter and page.
+**PENDING NETWORK.** The required visible Homepage and exact Reader assertions are present for chapter 5, page 2, but cannot be marked PASS until the real Supabase run completes.
 
 ## REGRESSIONS
 
-- Unit suites: **131/131 PASS** (including 6 hydration-policy tests).
+- Unit suites: **115/115 PASS** (109 baseline + 6 hydration-policy tests).
 - TypeScript application: **PASS**.
 - TypeScript server build: **PASS**.
 - ESLint: **0 errors, 57 historical warnings**.
 - Production build: **PASS**; candidate asset `assets/index-eyQJ5YgK.js`.
-- P2 production-equivalent suites: T-3013, T-3014, T-3015 and T-3017 **PASS**; one transient T-3017 cache delay passed on isolated rerun.
-- Local T-3019: **3/3 PASS**.
-- Production Reader: **4/4 PASS**.
-- Production Continue Reading multi-session/account isolation smoke: **PASS**.
+- E2E files compile/list: **6/6 scenarios discovered** across the strengthened P2 review and T-3019 files.
+- Real Reader/P1/P2 ticket E2E reruns: **PENDING NETWORK**.
 
 ## PRODUCTION_SMOKE
 
-**PASS.** The reviewed hotfix is `c9c1e7f19fa8716a42e2fd98e7a320b4dd95a808`; its production asset was `assets/index-eyQJ5YgK.js`, and the fresh-session Resume/account-isolation smoke passed. `origin/main` subsequently advanced to the independently validated T-3020 commit `2aa549c3ac39c430beda9d5945d6f5535a3f41eb`.
+**PENDING DEPLOYMENT AND NETWORK.** The hotfix has not been pushed or deployed. Existing production remains `e544710` / `assets/index-Bgz9jF22.js`.
 
 ## FINAL_STATUS
 
 ```text
 LOCAL_EMPTY_REMOTE_PROGRESS:    PASS (unit)
-REMOTE_REHYDRATION:             PASS
+REMOTE_REHYDRATION:             PENDING REAL E2E
 REMOTE_NEWER_THAN_LOCAL:        PASS (unit)
 REMOTE_EMPTY_AUTHORITATIVE:     PASS (unit)
-ACCOUNT_ISOLATION:              PASS
-CONTINUE_READING_FRESH_SESSION: PASS
-RESUME_FRESH_SESSION:           PASS
-PROGRESS_COHERENCE:             PASS
-MULTI_SESSION:                  PASS
-LIBRARY_REGRESSION:             PASS
-HISTORY_REGRESSION:             PASS
-P1_REGRESSION:                  PASS
-P2_REGRESSION:                  PASS
+ACCOUNT_ISOLATION:              PASS (unit) / PENDING REAL E2E
+CONTINUE_READING_FRESH_SESSION: PENDING REAL E2E
+RESUME_FRESH_SESSION:           PENDING REAL E2E
+PROGRESS_COHERENCE:             PENDING REAL E2E
+MULTI_SESSION:                  PENDING REAL E2E
+LIBRARY_REGRESSION:             PENDING RERUN
+HISTORY_REGRESSION:             PENDING RERUN
+P1_REGRESSION:                  PASS (unit) / PENDING E2E
+P2_REGRESSION:                  PASS (unit) / PENDING E2E
 TYPESCRIPT:                     PASS
 ESLINT:                         0 ERRORS
 BUILD:                          PASS
-PRODUCTION_SMOKE:               PASS
-CRITICAL:                       0
-HIGH:                           0
+PRODUCTION_SMOKE:               PENDING
+CRITICAL:                       0 CONFIRMED
+HIGH:                           0 IN LOCAL CODE / 1 AWAITING REAL RETEST
 ```
 
 ## FINAL_RECOMMENDATION
 
-**CLOSE_P2.** All P2 closure gates now pass locally and in production. P3 may be considered open, but no P3 or T-3021 work was started during this validation.
+**KEEP_P2_OPEN_PENDING_NETWORK_RETEST.** Restore DNS, run the real local multi-session acceptance and regression suites, deploy only after explicit push authorization, then run production smoke. P3 remains blocked.
