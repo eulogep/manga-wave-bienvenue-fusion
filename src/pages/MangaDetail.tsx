@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -334,6 +334,17 @@ const MangaDetail = () => {
       ? universalChaptersList
       : mangaDexChaptersList;
   const firstReadableChapter = findFirstReadableChapter(readableChapters);
+  // Homepage sends an intent; P1 resolution and the adult gate remain authoritative.
+  const requestedRead = searchParams.get('read') === '1' && !requestedSource;
+  const firstChapterId = firstReadableChapter?.id;
+  const firstChapterLanguage = firstReadableChapter?.language || language;
+  const readingAllowed = Boolean(manga && (!isAdultContentRating(manga.contentRating) || adultConfirmed));
+  useEffect(() => {
+    if (!requestedRead || !readingAllowed || !canonicalResolution || !firstChapterId) return;
+    const params = new URLSearchParams({ lang: firstChapterLanguage, page: '0', title: canonicalResolution.manga.title });
+    if (canonicalResolution.manga.author) params.set('author', canonicalResolution.manga.author);
+    navigate(`/read/${encodeURIComponent(canonicalResolution.source)}/${encodeURIComponent(canonicalResolution.mangaId)}/${encodeURIComponent(firstChapterId)}?${params}`, { replace: true });
+  }, [requestedRead, readingAllowed, canonicalResolution, firstChapterId, firstChapterLanguage, navigate]);
   const sourceOptionsQuery = useChapterSourceAlternatives(
     manga?.title,
     firstReadableChapter?.chapterNumber || manga?.lastChapter || undefined,

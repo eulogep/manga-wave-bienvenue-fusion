@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-10-07T11:30:38.594Z",
+  "baseURL": "http://127.0.0.1:8080",
+  "results": [
+    {
+      "route": "/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": null,
+      "h1Count": 1
+    },
+    {
+      "route": "/search?browse=1",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": null,
+      "h1Count": 1
+    },
+    {
+      "route": "/search?q=Solo%20Leveling",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": null,
+      "h1Count": 1
+    },
+    {
+      "route": "/manga/7",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": null,
+      "h1Count": 1
+    },
+    {
+      "route": "/auth",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 1,
+      "smallTouchTargets": null,
+      "h1Count": 1
+    },
+    {
+      "route": "/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 67,
+      "h1Count": 1
+    },
+    {
+      "route": "/search?browse=1",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 13,
+      "h1Count": 1
+    },
+    {
+      "route": "/search?q=Solo%20Leveling",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 13,
+      "h1Count": 1
+    },
+    {
+      "route": "/manga/7",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 18,
+      "h1Count": 1
+    },
+    {
+      "route": "/auth",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 1,
+      "smallTouchTargets": 5,
+      "h1Count": 1
+    },
+    {
+      "route": "/",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 430,
+      "viewportWidth": 430,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 67,
+      "h1Count": 1
+    },
+    {
+      "route": "/search?browse=1",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 430,
+      "viewportWidth": 430,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 13,
+      "h1Count": 1
+    },
+    {
+      "route": "/search?q=Solo%20Leveling",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 430,
+      "viewportWidth": 430,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 13,
+      "h1Count": 1
+    },
+    {
+      "route": "/manga/7",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 430,
+      "viewportWidth": 430,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 0,
+      "smallTouchTargets": 18,
+      "h1Count": 1
+    },
+    {
+      "route": "/auth",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "status": 200,
+      "horizontalOverflow": false,
+      "documentWidth": 430,
+      "viewportWidth": 430,
+      "imagesWithoutAlt": 0,
+      "unlabeledInteractive": 1,
+      "smallTouchTargets": 5,
+      "h1Count": 1
+    }
+  ]
+}
