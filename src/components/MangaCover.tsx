@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   isMangaDexProxyCover,
   MANGADEX_PROXY_PUBLISHABLE_KEY,
@@ -11,15 +11,29 @@ type MangaCoverProps = {
   src: string | null;
   alt: string;
   className?: string;
+  loading?: 'eager' | 'lazy';
+  deferProxy?: boolean;
 };
 
-const MangaCover = ({ src, alt, className }: MangaCoverProps) => {
+const MangaCover = ({ src, alt, className, loading = 'lazy', deferProxy = false }: MangaCoverProps) => {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [visible, setVisible] = useState(false);
+  const shouldLoad = !deferProxy || loading === 'eager' || visible;
+  useEffect(() => {
+    if (shouldLoad || !imageRef.current) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
+    });
+    observer.observe(imageRef.current);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
   const requiresProxyHeader = isMangaDexProxyCover(src);
   const [resolvedSource, setResolvedSource] = useState<string | null>(
     requiresProxyHeader ? null : src,
   );
 
   useEffect(() => {
+    if (!shouldLoad) return undefined;
     if (!src || !isMangaDexProxyCover(src)) {
       setResolvedSource(src);
       return undefined;
@@ -50,13 +64,14 @@ const MangaCover = ({ src, alt, className }: MangaCoverProps) => {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [src]);
+  }, [src, shouldLoad]);
 
   return (
     <img
+      ref={imageRef}
       src={resolvedSource || FALLBACK_COVER}
       alt={alt}
-      loading="lazy"
+      loading={loading}
       className={className}
       onError={() => setResolvedSource(null)}
     />

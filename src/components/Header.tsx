@@ -96,7 +96,7 @@ const Header = () => {
             </button>
 
             {/* ── Desktop Nav ── */}
-            <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
+            <nav className="hidden xl:flex items-center gap-1" aria-label="Navigation principale">
               {navLinks.map(({ label, to, icon: Icon }) => (
                 <Link
                   key={to}
@@ -202,7 +202,7 @@ const Header = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"
+                className="xl:hidden h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label="Ouvrir le menu"
               >
@@ -215,7 +215,7 @@ const Header = () => {
 
       {/* ── Mobile Drawer ── */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] md:hidden">
+        <div className="fixed inset-0 z-[60] xl:hidden">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
