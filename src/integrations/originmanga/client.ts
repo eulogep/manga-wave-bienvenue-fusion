@@ -59,7 +59,7 @@ export async function getPopularOriginManga(): Promise<OriginMangaSearchResult[]
     return data.results || [];
   } catch (err) {
     console.warn('[OriginManga] popular error:', err);
-    return searchOriginManga('a', 1);
+    return [];
   }
 }
 

@@ -75,6 +75,7 @@ const Random = () => {
               <select
                 value={filters.type}
                 onChange={(event) => changeFilter('type', event.target.value)}
+                disabled={catalog.isPending}
                 className="min-h-11 rounded-lg border border-white/10 bg-[#101925] px-3 text-sm normal-case tracking-normal text-white focus:outline-none focus:ring-2 focus:ring-[var(--mw-accent-coral)]"
                 aria-label="Filtrer le tirage par format"
               >
@@ -86,6 +87,7 @@ const Random = () => {
               <select
                 value={filters.status}
                 onChange={(event) => changeFilter('status', event.target.value)}
+                disabled={catalog.isPending}
                 className="min-h-11 rounded-lg border border-white/10 bg-[#101925] px-3 text-sm normal-case tracking-normal text-white focus:outline-none focus:ring-2 focus:ring-[var(--mw-accent-coral)]"
                 aria-label="Filtrer le tirage par statut"
               >

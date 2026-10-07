@@ -124,6 +124,7 @@ test('canonical search returns one primary Solo Leveling result', async ({ page 
   await page.goto('/search?q=Solo%20Leveling');
   const canonical = page.getByRole('region', { name: 'Résultats Manga Wave' });
   await expect(canonical).toBeVisible({ timeout: 90_000 });
+  await expect(canonical.getByRole('heading', { name: 'Solo Leveling', exact: true })).toHaveCount(1, { timeout: 90_000 });
   const titles = await canonical.locator('article h3').allTextContents();
   console.log(`P2_FINAL_SEARCH_TITLES=${JSON.stringify(titles)}`);
   expect(titles.filter(title => title.trim().toLowerCase() === 'solo leveling')).toHaveLength(1);
