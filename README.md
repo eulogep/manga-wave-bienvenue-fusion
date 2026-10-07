@@ -210,9 +210,9 @@ Le dépôt contient un kit de production complet :
 
 ### Regarder la démonstration
 
-[![Regarder la vidéo de présentation Manga Wave](./video-kit/screenshots/desktop/01-home-discovery.png)](https://github.com/eulogep/manga-wave-bienvenue-fusion/raw/refs/heads/main/video-kit/video/manga-wave-master-16x9-roughcut.mp4)
+[![Regarder la vidéo de présentation Manga Wave](./video-kit/screenshots/desktop/01-home-discovery.png)](https://manga-wave-bienvenue-fusion.vercel.app/media/manga-wave-presentation-16x9.mp4)
 
-▶ **[Regarder la vidéo en plein écran](https://github.com/eulogep/manga-wave-bienvenue-fusion/raw/refs/heads/main/video-kit/video/manga-wave-master-16x9-roughcut.mp4)**
+▶ **[Regarder la vidéo en plein écran](https://manga-wave-bienvenue-fusion.vercel.app/media/manga-wave-presentation-16x9.mp4)**
 
 La vidéo dure 40,4 secondes et peut aussi être téléchargée depuis le lecteur du navigateur.
 
