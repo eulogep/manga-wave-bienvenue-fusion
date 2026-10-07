@@ -9,9 +9,9 @@ visuelles et les documents nécessaires au montage de la vidéo Manga Wave.
 
 ## 🎬 Rough-cut disponible
 
-[![Aperçu du rough-cut Manga Wave](./screenshots/desktop/01-home-discovery.png)](./video%20ge%CC%81nere/manga-wave-master-16x9-roughcut.mp4)
+[![Aperçu du rough-cut Manga Wave](./screenshots/desktop/01-home-discovery.png)](./video/manga-wave-master-16x9-roughcut.mp4)
 
-### [▶ Ouvrir ou télécharger le rough-cut 16:9](./video%20ge%CC%81nere/manga-wave-master-16x9-roughcut.mp4)
+### [▶ Ouvrir ou télécharger le rough-cut 16:9](./video/manga-wave-master-16x9-roughcut.mp4)
 
 | Fichier | Définition | Durée | Cadence | Taille | Audio |
 | --- | ---: | ---: | ---: | ---: | --- |
@@ -25,7 +25,7 @@ séquences et sert de base au montage final.
 
 | Dossier ou fichier | Contenu |
 | --- | --- |
-| `video génere/` | Master MP4 actuellement généré |
+| `video/` | Master MP4 actuellement généré |
 | `screenshots/desktop/` | Captures du candidat local sur desktop |
 | `screenshots/mobile/` | Captures du candidat local sur mobile |
 | `screenshots/audit-production/` | Captures du bundle réellement servi pendant l’audit |

@@ -208,9 +208,15 @@ Le dépôt contient un kit de production complet :
 - storyboards 16:9, 9:16 et master ;
 - scripts de voix, motion guide, sound design et matrice de capture.
 
-[![Aperçu du kit vidéo](./video-kit/screenshots/desktop/06-manga-detail.png)](./video-kit/README.md)
+### Regarder la démonstration
 
-[Ouvrir le kit vidéo et le rough-cut](./video-kit/README.md)
+[![Regarder la vidéo de présentation Manga Wave](./video-kit/screenshots/desktop/01-home-discovery.png)](https://github.com/eulogep/manga-wave-bienvenue-fusion/raw/refs/heads/main/video-kit/video/manga-wave-master-16x9-roughcut.mp4)
+
+▶ **[Regarder la vidéo en plein écran](https://github.com/eulogep/manga-wave-bienvenue-fusion/raw/refs/heads/main/video-kit/video/manga-wave-master-16x9-roughcut.mp4)**
+
+La vidéo dure 40,4 secondes et peut aussi être téléchargée depuis le lecteur du navigateur.
+
+[Ouvrir le kit vidéo complet](./video-kit/README.md)
 
 ## Confidentialité et sécurité
 
