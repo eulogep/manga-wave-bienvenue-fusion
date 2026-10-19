@@ -47,6 +47,9 @@ import { firstReadableChapter as findFirstReadableChapter } from '@/domain/chapt
 import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
 import { buildCanonicalMangaUrl, formatDocumentTitle } from '@/domain/documentMetadata';
+import { useContinueReading } from '@/hooks/useReadingProgress';
+import { buildReaderLocation } from '@/domain/readerNavigation';
+import { findMangaResumeProgress } from '@/domain/mangaResume';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -70,6 +73,7 @@ const MangaDetail = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const continueReading = useContinueReading();
   const { confirmed: adultConfirmed, confirm: confirmAdult } = useAdultConfirmation();
   const requestedSource = searchParams.get('source') as SourceType | null;
 
@@ -337,6 +341,19 @@ const MangaDetail = () => {
       ? universalChaptersList
       : mangaDexChaptersList;
   const firstReadableChapter = findFirstReadableChapter(readableChapters);
+  const resumeProgress = manga ? findMangaResumeProgress(continueReading.data || [], {
+    canonicalMangaId: canonicalFollowIdentity.data || canonicalEntry.numericId,
+    title: manga.title,
+  }) : null;
+  const resumeUrl = resumeProgress ? buildReaderLocation({
+    source: resumeProgress.source,
+    mangaId: resumeProgress.mangaId,
+    chapterId: resumeProgress.chapterId,
+    language: resumeProgress.language || language,
+    pageIndex: resumeProgress.pageIndex,
+    mangaTitle: resumeProgress.mangaTitle,
+    mangaAuthor: resumeProgress.mangaAuthor,
+  }) : null;
   // Homepage sends an intent; P1 resolution and the adult gate remain authoritative.
   const requestedRead = searchParams.get('read') === '1' && !requestedSource;
   const firstChapterId = firstReadableChapter?.id;
@@ -607,9 +624,35 @@ const MangaDetail = () => {
                 </p>
               )}
 
+              {resumeProgress && resumeUrl && (
+                <div className="mb-6 max-w-2xl border border-[var(--mw-accent-blue)]/35 bg-[var(--mw-accent-blue)]/10 p-4" data-testid="manga-resume-state">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--mw-accent-blue)]">Lecture en cours</p>
+                      <p className="mt-1 font-semibold text-white">
+                        Chapitre {resumeProgress.chapterNumber} · page {resumeProgress.pageIndex + 1}/{resumeProgress.totalPages}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold text-white">{resumeProgress.progressPercent}%</span>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden bg-white/10" aria-hidden="true">
+                    <div
+                      className="h-full bg-[var(--mw-accent-coral)]"
+                      style={{ width: `${Math.min(100, Math.max(0, resumeProgress.progressPercent))}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-3">
-                {/* First chapter fast start button */}
-                {firstReadableChapter ? (
+                {resumeProgress && resumeUrl ? (
+                  <Button className="btn-gradient" asChild>
+                    <Link to={resumeUrl} aria-label={`Reprendre ${manga.title}, chapitre ${resumeProgress.chapterNumber}, page ${resumeProgress.pageIndex + 1}`}>
+                      <Play className="h-4 w-4 mr-2" />
+                      Reprendre la lecture
+                    </Link>
+                  </Button>
+                ) : firstReadableChapter ? (
                   <Button
                     className="btn-gradient"
                     onClick={() => {
@@ -623,6 +666,19 @@ const MangaDetail = () => {
                     Commencer la lecture
                   </Button>
                 ) : null}
+
+                {resumeProgress && firstReadableChapter && (
+                  <Button
+                    variant="outline"
+                    className="border-white/20"
+                    onClick={() => handleStartReadingChapter({
+                      id: firstReadableChapter.id,
+                      language: firstReadableChapter.language,
+                    })}
+                  >
+                    Depuis le début
+                  </Button>
+                )}
 
                 {canonicalFollowIdentity.data && (
                   <Button

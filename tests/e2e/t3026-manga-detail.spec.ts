@@ -96,6 +96,38 @@ test('canonical metadata remains complete when every reading provider is unavail
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test('saved canonical progress can be resumed from the manga detail', async ({ page }) => {
+  test.skip(REAL_CATALOG, 'Controlled progress fixture');
+  await page.addInitScript(() => {
+    localStorage.setItem('manga_wave_reading_history_v1', JSON.stringify([{
+      canonicalKey: 'title:solo leveling',
+      canonicalMangaId: 42,
+      source: 'originmanga',
+      mangaId: 'fixture-solo-leveling',
+      mangaTitle: 'Solo Leveling',
+      mangaAuthor: 'Chugong',
+      chapterId: 'chapter-12',
+      chapterNumber: '12',
+      pageIndex: 7,
+      totalPages: 20,
+      readAt: '2026-10-19T08:00:00Z',
+      progressPercent: 40,
+      language: 'fr',
+    }]));
+  });
+  await page.goto('/manga/42');
+  const resumeState = page.getByTestId('manga-resume-state');
+  await expect(resumeState).toContainText('Chapitre 12 · page 8/20');
+  await expect(resumeState).toContainText('40%');
+  await expect(page.getByRole('link', { name: 'Reprendre Solo Leveling, chapitre 12, page 8' })).toHaveAttribute(
+    'href',
+    /\/read\/originmanga\/fixture-solo-leveling\/chapter-12\?.*page=7/,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(resumeState).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test('an unknown canonical id has an honest recovery state', async ({ page }) => {
   test.skip(REAL_CATALOG, 'Controlled not-found fixture');
   await page.goto('/manga/999999');

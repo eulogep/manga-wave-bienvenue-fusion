@@ -88,7 +88,7 @@ Le catalogue combine découverte visuelle et recherche structurée :
 | 🏆 **Classement** | Engagement durable borné par utilisateur et par fenêtre temporelle, distinct du moteur de tendances. |
 | 🧠 **Recommandations** | Similarité déterministe par genres, auteur et format ; aucune recommandation fabriquée sans signal commun. |
 | 🎲 **Surprends-moi** | Tirage aléatoire dans le catalogue canonique, filtrable par type et statut, sans trafic fournisseur. |
-| 📖 **Reader universel** | Navigation par pages, contrôles auto-masqués, reprise exacte, changement manuel ou automatique de source. |
+| 📖 **Reader universel** | Navigation par pages, contrôles auto-masqués, reprise exacte depuis la fiche manga, changement manuel ou automatique de source. |
 | 📱 **PWA et responsive** | Shell installable, routes secondaires chargées à la demande, cache hors ligne limité aux ressources publiques sûres. |
 
 ## Fournisseurs et résilience
