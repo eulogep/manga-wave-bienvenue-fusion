@@ -26,7 +26,7 @@ test('secondary routes load their own production chunks and remain navigable', a
 
   const routes = [
     { path: '/auth', heading: 'Bienvenue', chunk: 'Auth-' },
-    { path: '/search', heading: 'Trouvez votre prochaine lecture', chunk: 'Search-' },
+    { path: '/search', heading: 'Trouvez votre prochaine obsession', chunk: 'Search-' },
     { path: '/trending', heading: 'Tendances', chunk: 'Trending-' },
     { path: '/ranking', heading: 'Classement', chunk: 'Ranking-' },
     { path: '/random', heading: 'Surprends-moi', chunk: 'Random-' },
