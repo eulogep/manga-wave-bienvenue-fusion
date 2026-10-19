@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   BellRing,
   Bookmark,
@@ -8,6 +8,7 @@ import {
   Filter,
   Heart,
   LibraryBig,
+  ListChecks,
   MoreVertical,
   Play,
   Search,
@@ -42,6 +43,8 @@ import {
 } from '@/domain/libraryItem';
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
 import { formatDocumentTitle } from '@/domain/documentMetadata';
+import { AddToListMenu, CreateListAndAddDialog } from '@/components/lists/AddToListMenu';
+import { UserListsPanel } from '@/components/lists/UserListsPanel';
 
 const SECTIONS: { id: LibrarySectionId; label: string; icon: typeof LibraryBig }[] = [
   { id: 'all', label: 'Tous', icon: LibraryBig },
@@ -63,6 +66,7 @@ const LibraryCard = ({ item }: { item: LibraryItem }) => {
   const { setFollowing, isUpdating: isFollowUpdating } = useCanonicalFollow(item.canonicalMangaId ?? undefined);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [createListOpen, setCreateListOpen] = useState(false);
 
   const resumeUrl = item.resume
     ? buildReaderLocation({
@@ -156,6 +160,14 @@ const LibraryCard = ({ item }: { item: LibraryItem }) => {
             <DropdownMenuItem onSelect={handleFollow} disabled={item.canonicalMangaId === null || isFollowUpdating}>
               <BellRing className="h-3.5 w-3.5 mr-2" /> {item.following ? 'Ne plus suivre' : 'Suivre'}
             </DropdownMenuItem>
+            {item.canonicalMangaId !== null && (
+              <AddToListMenu
+                canonicalMangaId={item.canonicalMangaId}
+                title={item.title}
+                variant="submenu"
+                onCreateRequest={() => setCreateListOpen(true)}
+              />
+            )}
             {detailUrl && (
               <DropdownMenuItem asChild>
                 <Link to={detailUrl}><BookOpen className="h-3.5 w-3.5 mr-2" /> Voir la fiche</Link>
@@ -163,6 +175,14 @@ const LibraryCard = ({ item }: { item: LibraryItem }) => {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        {item.canonicalMangaId !== null && (
+          <CreateListAndAddDialog
+            canonicalMangaId={item.canonicalMangaId}
+            title={item.title}
+            open={createListOpen}
+            onOpenChange={setCreateListOpen}
+          />
+        )}
 
         {item.hasProgress && item.progressPercent !== null && (
           <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
@@ -213,6 +233,16 @@ const Library = () => {
   const [section, setSection] = useState<LibrarySectionId>('all');
   const [sort, setSort] = useState<LibrarySortOption>('activity');
   const [query, setQuery] = useState('');
+  const [params, setParams] = useSearchParams();
+  const view = params.get('view') === 'lists' ? 'lists' : 'collection';
+  const selectedListId = Number.parseInt(params.get('list') || '', 10) || null;
+
+  const showView = (nextView: 'collection' | 'lists') => {
+    setParams(nextView === 'lists' ? { view: 'lists' } : {}, { replace: true });
+  };
+  const selectList = (listId: number) => {
+    setParams({ view: 'lists', list: String(listId) }, { replace: true });
+  };
 
   useEffect(() => {
     // Switching sections should not preserve a stale search across very different sets.
@@ -287,6 +317,29 @@ const Library = () => {
             </section>
           ) : (
             <>
+              <div className="mb-6 inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1" role="group" aria-label="Affichage de la bibliothèque">
+                {([
+                  { id: 'collection', label: 'Collection', icon: LibraryBig },
+                  { id: 'lists', label: 'Mes listes', icon: ListChecks },
+                ] as const).map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={view === id}
+                    onClick={() => showView(id)}
+                    className={`flex min-h-11 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-all ${
+                      view === id ? 'bg-white text-[#080c14]' : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" /> {label}
+                  </button>
+                ))}
+              </div>
+
+              {view === 'lists' ? (
+                <UserListsPanel selectedListId={selectedListId} onSelectList={selectList} />
+              ) : (
+              <>
               <div role="tablist" aria-label="Sections de la bibliothèque" className="mb-6 flex flex-wrap gap-2 overflow-x-auto pb-1">
                 {SECTIONS.map(({ id, label, icon: Icon }) => (
                   <button
@@ -363,6 +416,8 @@ const Library = () => {
                     {visible.map((item) => <LibraryCard key={item.canonicalKey} item={item} />)}
                   </div>
                 </>
+              )}
+              </>
               )}
             </>
           )}

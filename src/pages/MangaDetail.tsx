@@ -46,6 +46,7 @@ import ChapterListV2 from '@/components/ChapterListV2';
 import { firstReadableChapter as findFirstReadableChapter } from '@/domain/chapterList';
 import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { AddToListMenu } from '@/components/lists/AddToListMenu';
 import { buildCanonicalMangaUrl, formatDocumentTitle } from '@/domain/documentMetadata';
 import { useContinueReading } from '@/hooks/useReadingProgress';
 import { buildReaderLocation } from '@/domain/readerNavigation';
@@ -696,6 +697,10 @@ const MangaDetail = () => {
                     <BellRing className="mr-2 h-4 w-4" />
                     {follow.isFollowing ? 'Suivi' : 'Suivre'}
                   </Button>
+                )}
+
+                {canonicalFollowIdentity.data && (
+                  <AddToListMenu canonicalMangaId={canonicalFollowIdentity.data} title={manga.title} />
                 )}
 
                 <Button

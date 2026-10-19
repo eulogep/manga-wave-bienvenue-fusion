@@ -507,6 +507,84 @@ export type Database = {
           },
         ]
       }
+      user_list_items: {
+        Row: {
+          canonical_manga_id: number
+          created_at: string
+          id: number
+          list_id: number
+          note: string | null
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canonical_manga_id: number
+          created_at?: string
+          id?: number
+          list_id: number
+          note?: string | null
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canonical_manga_id?: number
+          created_at?: string
+          id?: number
+          list_id?: number
+          note?: string | null
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_list_items_canonical_manga_id_fkey"
+            columns: ["canonical_manga_id"]
+            isOneToOne: false
+            referencedRelation: "mangas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_list_items_list_id_user_id_fkey"
+            columns: ["list_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "user_lists"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      user_lists: {
+        Row: {
+          created_at: string
+          id: number
+          kind: string
+          name: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          kind?: string
+          name: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          kind?: string
+          name?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notifications: {
         Row: {
           body: string
@@ -853,6 +931,18 @@ export type Database = {
           visible_at: string
         }[]
       }
+      ensure_default_user_lists: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: number
+          kind: string
+          name: string
+          position: number
+          updated_at: string
+          user_id: string
+        }[]
+      }
       enqueue_source_sync: {
         Args: { delay_seconds?: number; job: Json }
         Returns: number
@@ -899,6 +989,10 @@ export type Database = {
           source_score: number
           source_url: string
         }[]
+      }
+      reorder_user_list_items: {
+        Args: { p_item_ids: number[]; p_list_id: number }
+        Returns: undefined
       }
       upsert_source_catalog: {
         Args: { items: Json; requested_source_id: string }
