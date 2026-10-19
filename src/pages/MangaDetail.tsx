@@ -44,6 +44,8 @@ import { discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
 import ChapterListV2 from '@/components/ChapterListV2';
 import { firstReadableChapter as findFirstReadableChapter } from '@/domain/chapterList';
 import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -353,6 +355,14 @@ const MangaDetail = () => {
     sourcesOpen && Boolean(manga?.title && source),
   );
 
+  const isAdultGated = Boolean(manga && isAdultContentRating(manga.contentRating) && !adultConfirmed);
+  useDocumentMetadata(
+    isLoading ? null : formatDocumentTitle(
+      isError || !manga ? 'Fiche manga indisponible' : isAdultGated ? 'Contenu réservé aux adultes' : manga.title,
+    ),
+    manga && !isAdultGated ? manga.description : null,
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -396,7 +406,7 @@ const MangaDetail = () => {
     );
   }
 
-  if (isAdultContentRating(manga.contentRating) && !adultConfirmed) {
+  if (isAdultGated) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />

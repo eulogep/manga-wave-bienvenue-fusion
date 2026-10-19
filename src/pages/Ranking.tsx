@@ -4,8 +4,11 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RankingSection from '@/components/RankingSection';
 import type { RankingWindow } from '@/domain/ranking';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const Ranking = () => {
+  useDocumentMetadata(formatDocumentTitle('Classement'));
   const [window, setWindow] = useState<RankingWindow>('30d');
 
   return (

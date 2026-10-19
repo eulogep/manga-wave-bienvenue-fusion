@@ -16,6 +16,8 @@ import {
   type RandomFilters,
 } from '@/domain/randomDiscovery';
 import { useCanonicalSearch } from '@/hooks/useCanonicalSearch';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const TYPE_LABELS: Record<string, string> = { manga: 'Manga', manhwa: 'Manhwa', manhua: 'Manhua' };
 const STATUS_LABELS: Record<string, string> = {
@@ -23,6 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const Random = () => {
+  useDocumentMetadata(formatDocumentTitle('Manga surprise'));
   const [params, setParams] = useSearchParams();
   const catalog = useCanonicalSearch(true);
   const filters = useMemo(() => parseRandomFilters(params), [params]);

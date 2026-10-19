@@ -1,7 +1,10 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const NotFound = () => {
+  useDocumentMetadata(formatDocumentTitle('Page introuvable'));
   const location = useLocation();
 
   useEffect(() => {

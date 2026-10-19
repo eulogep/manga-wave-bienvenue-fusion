@@ -40,6 +40,8 @@ import {
   type LibrarySectionId,
   type LibrarySortOption,
 } from '@/domain/libraryItem';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const SECTIONS: { id: LibrarySectionId; label: string; icon: typeof LibraryBig }[] = [
   { id: 'all', label: 'Tous', icon: LibraryBig },
@@ -204,6 +206,7 @@ const LibraryCard = ({ item }: { item: LibraryItem }) => {
 };
 
 const Library = () => {
+  useDocumentMetadata(formatDocumentTitle('Ma bibliothèque'));
   const { user, loading } = useAuth();
   const { data: items = [], isLoading, isError, error, refetch, isFetching } = useLibraryItems();
 

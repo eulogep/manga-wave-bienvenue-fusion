@@ -11,6 +11,8 @@ import '@/components/Catalogue.css';
 import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 import { useCanonicalSearch } from '@/hooks/useCanonicalSearch';
 import { normalizeQuery, parseSearchState, searchCanonicalWorks, serializeSearchState, SEARCH_PAGE_SIZE, type SearchState } from '@/domain/canonicalSearch';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const control = 'min-h-11 w-full min-w-0 rounded-md border border-slate-500 bg-[#101e2c] px-3 py-2 text-base text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300';
 const statusLabels: Record<string, string> = { ongoing: 'En cours', completed: 'Terminé', hiatus: 'En pause', cancelled: 'Annulé' };
@@ -19,6 +21,7 @@ const Search = () => {
   const [params, setParams] = useSearchParams();
   const urlState = params.toString();
   const state = useMemo(() => parseSearchState(new URLSearchParams(urlState)), [urlState]);
+  useDocumentMetadata(formatDocumentTitle(state.q ? `Recherche « ${state.q} »` : 'Catalogue'));
   const [draft, setDraft] = useState(state.q);
   useEffect(() => { setDraft(state.q); }, [state.q]);
   useEffect(() => {

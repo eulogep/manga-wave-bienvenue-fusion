@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TrendingSection from '@/components/TrendingSection';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const Trending = () => {
+  useDocumentMetadata(formatDocumentTitle('Tendances'));
   return (
     <div className="min-h-screen flex flex-col bg-[#080c14] text-white">
       <Header />

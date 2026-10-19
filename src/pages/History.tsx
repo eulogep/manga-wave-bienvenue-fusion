@@ -10,6 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from '@/hooks/useAuth';
 import { useReadingTimeline } from '@/hooks/useReadingTimeline';
 import type { HistoryPeriod } from '@/domain/readingHistory';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatDocumentTitle } from '@/domain/documentMetadata';
 
 const periods: { value: HistoryPeriod; label: string }[] = [
   { value: 'all', label: 'Tous' }, { value: 'today', label: "Aujourd’hui" },
@@ -17,6 +19,7 @@ const periods: { value: HistoryPeriod; label: string }[] = [
 ];
 
 export default function History() {
+  useDocumentMetadata(formatDocumentTitle('Historique de lecture'));
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');

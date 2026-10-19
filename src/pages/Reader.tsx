@@ -9,6 +9,8 @@ import {
 import { getSource, type SourceType } from '@/integrations/sources';
 import { appendTriedSource, buildFallbackNotice, parseTriedSources } from '@/domain/automaticFallback';
 import { buildReaderLocation, withReaderPage } from '@/domain/readerNavigation';
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
+import { formatChapterLabel, formatDocumentTitle } from '@/domain/documentMetadata';
 
 const Reader = () => {
   const params = useParams<{ source: string; mangaId: string; chapterId: string }>();
@@ -32,6 +34,8 @@ const Reader = () => {
   });
   const readerMangaTitle = manga?.title || searchParams.get('title') || undefined;
   const readerMangaAuthor = manga?.author || searchParams.get('author') || undefined;
+  const currentChapter = chapters.find((chapter) => chapter.id === chapterId);
+  useDocumentMetadata(formatDocumentTitle(readerMangaTitle, formatChapterLabel(currentChapter?.chapterNumber)));
 
   const handleSelectChapter = (nextChapterId: string) => {
     navigate(
