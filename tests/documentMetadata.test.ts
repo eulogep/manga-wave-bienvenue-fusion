@@ -5,9 +5,11 @@ import {
   DEFAULT_DOCUMENT_DESCRIPTION,
   DEFAULT_DOCUMENT_TITLE,
   MAX_DESCRIPTION_LENGTH,
+  buildCanonicalMangaUrl,
   formatChapterLabel,
   formatDocumentDescription,
   formatDocumentTitle,
+  toPublicHttpUrl,
 } from '../src/domain/documentMetadata.ts';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -39,6 +41,22 @@ test('chapter labels are omitted when the chapter number is unknown', () => {
   assert.equal(formatChapterLabel(undefined), null);
 });
 
+test('canonical manga URLs exclude provider parameters and encode the identity', () => {
+  assert.equal(
+    buildCanonicalMangaUrl('https://manga-wave.example/search?source=test', '42'),
+    'https://manga-wave.example/manga/42',
+  );
+  assert.equal(buildCanonicalMangaUrl('https://manga-wave.example', 'a b'), 'https://manga-wave.example/manga/a%20b');
+  assert.equal(buildCanonicalMangaUrl('https://manga-wave.example', '  '), null);
+});
+
+test('social metadata accepts public URLs and rejects executable schemes', () => {
+  assert.equal(toPublicHttpUrl('/cover.jpg', 'https://manga-wave.example'), 'https://manga-wave.example/cover.jpg');
+  assert.equal(toPublicHttpUrl('https://cdn.example/cover.jpg', 'https://manga-wave.example'), 'https://cdn.example/cover.jpg');
+  assert.equal(toPublicHttpUrl('javascript:alert(1)', 'https://manga-wave.example'), null);
+  assert.equal(toPublicHttpUrl('data:text/html,unsafe', 'https://manga-wave.example'), null);
+});
+
 test('every routed page sets its own document title', () => {
   for (const page of ['Auth', 'History', 'Library', 'MangaDetail', 'NotFound', 'Random', 'Ranking', 'Reader', 'Search', 'Trending']) {
     assert.match(read(`src/pages/${page}.tsx`), /useDocumentMetadata\(/, `${page} should call useDocumentMetadata`);
@@ -49,4 +67,5 @@ test('an adult-gated manga detail does not leak its title or synopsis into the t
   const source = read('src/pages/MangaDetail.tsx');
   assert.match(source, /isAdultGated \? 'Contenu réservé aux adultes' : manga\.title/);
   assert.match(source, /manga && !isAdultGated \? manga\.description : null/);
+  assert.match(source, /manga && !isAdultGated \? manga\.coverImageUrl : null/);
 });

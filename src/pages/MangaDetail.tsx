@@ -11,6 +11,7 @@ import {
   LoaderCircle,
   Star,
   Play,
+  Share2,
   Shuffle,
 } from 'lucide-react';
 import Header from '@/components/Header';
@@ -45,7 +46,7 @@ import ChapterListV2 from '@/components/ChapterListV2';
 import { firstReadableChapter as findFirstReadableChapter } from '@/domain/chapterList';
 import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
-import { formatDocumentTitle } from '@/domain/documentMetadata';
+import { buildCanonicalMangaUrl, formatDocumentTitle } from '@/domain/documentMetadata';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -356,12 +357,66 @@ const MangaDetail = () => {
   );
 
   const isAdultGated = Boolean(manga && isAdultContentRating(manga.contentRating) && !adultConfirmed);
+  const shareCanonicalId = canonicalFollowIdentity.data || canonicalEntry.numericId;
+  const canonicalShareUrl = buildCanonicalMangaUrl(
+    window.location.origin,
+    shareCanonicalId || routeId,
+  ) || window.location.href;
   useDocumentMetadata(
     isLoading ? null : formatDocumentTitle(
       isError || !manga ? 'Fiche manga indisponible' : isAdultGated ? 'Contenu réservé aux adultes' : manga.title,
     ),
     manga && !isAdultGated ? manga.description : null,
+    {
+      canonicalUrl: canonicalShareUrl,
+      imageUrl: manga && !isAdultGated ? manga.coverImageUrl : null,
+      type: manga && !isAdultGated ? 'article' : 'website',
+    },
   );
+
+  const copyShareLink = async () => {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(canonicalShareUrl);
+        return;
+      } catch {
+        // Older browsers and denied clipboard permissions use the local fallback below.
+      }
+    }
+    const input = document.createElement('textarea');
+    input.value = canonicalShareUrl;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.append(input);
+    input.select();
+    const copied = document.execCommand('copy');
+    input.remove();
+    if (!copied) throw new Error('copy failed');
+  };
+
+  const handleShare = async () => {
+    if (!manga || isAdultGated) return;
+    const shareData = {
+      title: manga.title,
+      text: `Découvrez ${manga.title} sur Manga Wave.`,
+      url: canonicalShareUrl,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      }
+    }
+    try {
+      await copyShareLink();
+      toast({ title: 'Lien copié', description: `La fiche de ${manga.title} est prête à être partagée.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Partage indisponible', description: 'Impossible de copier le lien pour le moment.' });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -585,6 +640,17 @@ const MangaDetail = () => {
                     {follow.isFollowing ? 'Suivi' : 'Suivre'}
                   </Button>
                 )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/20"
+                  onClick={() => void handleShare()}
+                  aria-label={`Partager ${manga.title}`}
+                >
+                  <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Partager
+                </Button>
 
                 {manga.externalUrl && (
                   <Button variant="outline" className="border-white/20" asChild>

@@ -66,6 +66,15 @@ test.beforeEach(async ({ page }) => {
 
 test('canonical metadata remains complete when every reading provider is unavailable', async ({ page }) => {
   test.skip(REAL_CATALOG, 'Controlled provider-outage fixture');
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (value: string) => window.localStorage.setItem('mw-e2e-shared-url', value),
+      },
+    });
+  });
   await page.goto('/manga/42');
   const detail = page.getByTestId('manga-detail-v2');
   await expect(detail.getByRole('heading', { name: 'Solo Leveling', exact: true })).toBeVisible();
@@ -76,6 +85,11 @@ test('canonical metadata remains complete when every reading provider is unavail
   await expect(detail.getByTestId('canonical-source-count')).toHaveText('1');
   await expect(detail.getByTestId('canonical-provenance')).toContainText('MyAnimeList / Jikan · confiance EXACT');
   await expect(detail.getByText(/aucun chapitre ne peut être chargé/i)).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/manga\/42$/);
+  await expect(page.locator('meta[property="og:type"]')).toHaveAttribute('content', 'article');
+  await detail.getByRole('button', { name: 'Partager Solo Leveling' }).click();
+  await expect(page.getByText('Lien copié', { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('mw-e2e-shared-url'))).toMatch(/\/manga\/42$/);
   expect(providerRequests).toBeGreaterThan(0);
 
   await page.setViewportSize({ width: 390, height: 844 });
