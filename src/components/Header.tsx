@@ -102,26 +102,26 @@ const Header = () => {
                 <Link
                   key={to}
                   to={to}
-                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
+                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-2.5 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors 2xl:px-4 ${
                     isActive(to)
-                      ? 'text-white after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
+                      ? 'text-white after:absolute after:inset-x-2.5 2xl:after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
                       : 'text-[var(--mw-text-secondary)] hover:text-white'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5 opacity-70" />
+                  <Icon className="hidden h-3.5 w-3.5 opacity-70 2xl:block" aria-hidden="true" />
                   {label}
                 </Link>
               ))}
               {user && (
                 <Link
                   to="/library"
-                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
+                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-2.5 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors 2xl:px-4 ${
                     isActive('/library')
-                      ? 'text-white after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
+                      ? 'text-white after:absolute after:inset-x-2.5 2xl:after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
                       : 'text-[var(--mw-text-secondary)] hover:text-white'
                   }`}
                 >
-                  <Library className="h-3.5 w-3.5 opacity-70" />
+                  <Library className="hidden h-3.5 w-3.5 opacity-70 2xl:block" aria-hidden="true" />
                   Bibliothèque
                 </Link>
               )}
