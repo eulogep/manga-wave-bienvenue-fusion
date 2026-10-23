@@ -7,6 +7,7 @@ import { buildAnonymousHomeCatalog, buildPersonalizedHomeCatalog } from '@/domai
 import FollowedUpdatesSection from '@/components/FollowedUpdatesSection';
 import TrendingSection from '@/components/TrendingSection';
 import RankingSection from '@/components/RankingSection';
+import { genreLabel } from '@/domain/genres';
 
 type Props = {
   mode: 'anonymous' | 'personalized';
@@ -99,7 +100,7 @@ const HomeCatalogSections = ({ mode }: Props) => {
             <div className="container mx-auto border-y border-[var(--mw-border)] py-7">
               <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--mw-accent-coral)]">Votre univers</p>
               <h2 id="favorite-genres-title" className="font-editorial text-3xl uppercase text-white">Genres favoris</h2>
-              <div className="mt-5 flex flex-wrap gap-2">{personalized.favoriteGenres.map((genre) => <span key={genre} className="border border-[var(--mw-border)] bg-[var(--mw-surface)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">{genre}</span>)}</div>
+              <div className="mt-5 flex flex-wrap gap-2">{personalized.favoriteGenres.map((genre) => <span key={genre} className="border border-[var(--mw-border)] bg-[var(--mw-surface)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">{genreLabel(genre)}</span>)}</div>
             </div>
           </section>
         )}

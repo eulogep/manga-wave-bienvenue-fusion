@@ -3,6 +3,7 @@ import MangaCover from '@/components/MangaCover';
 import AdultGatedLink from '@/components/AdultGatedLink';
 import type { SearchWork } from '@/domain/canonicalSearch';
 import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
+import { genreLabel } from '@/domain/genres';
 
 export default function EditorialMangaCard({ work, gated, priority }: { work: SearchWork; gated: boolean; priority: boolean }) {
   return <article data-type={work.manga_type} className="catalogue-card">
@@ -13,7 +14,7 @@ export default function EditorialMangaCard({ work, gated, priority }: { work: Se
       </div>
       <div className="catalogue-card-copy">
         <p className="catalogue-card-type">{work.manga_type}</p><h3>{work.title}</h3>
-        <p className="catalogue-card-genres">{work.genre?.slice(0, 2).join(' · ')}</p>
+        <p className="catalogue-card-genres">{work.genre?.slice(0, 2).map(genreLabel).join(' · ')}</p>
         <p className="catalogue-card-footer"><span>{discoveryStatusLabel(work.status)}</span>
           {work.rating != null && work.rating > 0 && <span className="catalogue-rating"><Star size={13} aria-hidden="true" /> {work.rating.toFixed(1)}</span>}</p>
         <p className="catalogue-list-extra">{work.author || 'Auteur non renseigné'}{work.aliases?.length ? ` · ${work.aliases.slice(0, 2).join(' · ')}` : ''}</p>

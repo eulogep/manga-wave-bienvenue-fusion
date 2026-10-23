@@ -42,6 +42,7 @@ import {
 import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
 import { matchRecentSearches } from '@/domain/recentSearches';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { genreLabel } from '@/domain/genres';
 
 export const CommandSearchDialog: React.FC = () => {
   const { isOpen, setIsOpen, initialQuery, shortcutLabel } = useCommandSearch();
@@ -268,7 +269,7 @@ export const CommandSearchDialog: React.FC = () => {
                                   </span>
                                 ) : null}
                                 <span>{work.author || 'Auteur non renseigné'}</span>
-                                {work.genre?.length ? ` · ${work.genre.slice(0, 2).join(', ')}` : ''}
+                                {work.genre?.length ? ` · ${work.genre.slice(0, 2).map(genreLabel).join(', ')}` : ''}
                               </p>
                             </div>
                             <CornerDownLeft className="h-3.5 w-3.5 text-white/30 shrink-0 hidden sm:block" />

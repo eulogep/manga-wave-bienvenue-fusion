@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useManga';
 import { useToast } from '@/hooks/use-toast';
 import { isAdultContentRating, useAdultConfirmation } from '@/hooks/useAdultConfirmation';
+import { genreLabel } from '@/domain/genres';
 
 interface MangaCardProps {
   id: string | number;
@@ -133,7 +134,7 @@ const MangaCard = ({
         )}
         {genre.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1">
-            {genre.slice(0, 2).map((item) => <span key={item} className="text-[9px] font-semibold uppercase tracking-wider text-[var(--mw-text-secondary)]">{item}</span>)}
+            {genre.slice(0, 2).map((item) => <span key={item} className="text-[9px] font-semibold uppercase tracking-wider text-[var(--mw-text-secondary)]">{genreLabel(item)}</span>)}
           </div>
         )}
       </div>

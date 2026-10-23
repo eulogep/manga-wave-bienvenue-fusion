@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { normalizeWorkMetadata } from '@/domain/genres';
 
 export interface Manga {
   id: number;
@@ -33,7 +34,7 @@ export const useManga = () => {
         .order('source_updated_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
-      return data as Manga[];
+      return (data as Manga[]).map(normalizeWorkMetadata);
     },
   });
 

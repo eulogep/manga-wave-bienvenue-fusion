@@ -18,6 +18,7 @@ import {
 import { useCanonicalSearch } from '@/hooks/useCanonicalSearch';
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
 import { formatDocumentTitle } from '@/domain/documentMetadata';
+import { genreLabel } from '@/domain/genres';
 
 const TYPE_LABELS: Record<string, string> = { manga: 'Manga', manhwa: 'Manhwa', manhua: 'Manhua' };
 const STATUS_LABELS: Record<string, string> = {
@@ -131,7 +132,7 @@ const Random = () => {
                 </div>
                 <h2 className="font-japanese text-3xl font-bold leading-tight md:text-5xl">{selected.title}</h2>
                 <p className="mt-3 text-sm text-white/50">{selected.author || 'Auteur non renseigné'}</p>
-                {selected.genre?.length ? <p className="mt-5 text-sm leading-7 text-white/65">{selected.genre.slice(0, 6).join(' · ')}</p> : null}
+                {selected.genre?.length ? <p className="mt-5 text-sm leading-7 text-white/65">{selected.genre.slice(0, 6).map(genreLabel).join(' · ')}</p> : null}
                 <p className="mt-8 text-xs uppercase tracking-widest text-white/35">1 œuvre parmi {eligible.length}</p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <Button asChild className="min-h-11 bg-white text-[#08111b] hover:bg-white/90">

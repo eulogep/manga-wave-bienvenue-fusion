@@ -14,6 +14,7 @@ import { normalizeQuery, parseSearchState, searchCanonicalWorks, serializeSearch
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
 import { formatDocumentTitle } from '@/domain/documentMetadata';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { genreLabel } from '@/domain/genres';
 
 const control = 'min-h-11 w-full min-w-0 rounded-md border border-slate-500 bg-[#101e2c] px-3 py-2 text-base text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300';
 const statusLabels: Record<string, string> = { ongoing: 'En cours', completed: 'Terminé', hiatus: 'En pause', cancelled: 'Annulé' };
@@ -86,7 +87,7 @@ const Search = () => {
               <option value="">Tous les statuts</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select></label>
             <label><span className="sr-only">Genre</span><select id="catalogue-genre" value={state.genre} onChange={event => change({ genre: event.target.value })}>
-              <option value="">Tous les genres</option>{[...new Set([...genres, ...(state.genre ? [state.genre] : [])])].sort().map(genre => <option key={genre} value={genre}>{genre}</option>)}
+              <option value="">Tous les genres</option>{[...new Set([...genres, ...(state.genre ? [state.genre] : [])])].sort((a, b) => genreLabel(a).localeCompare(genreLabel(b), 'fr')).map(genre => <option key={genre} value={genre}>{genreLabel(genre)}</option>)}
             </select></label>
             <label><span className="sr-only">Trier par</span><select value={state.sort} onChange={event => change({ sort: event.target.value as SearchState['sort'] })}>
               <option value="relevance">Pertinence</option><option value="popularity">Popularité</option><option value="rating">Note</option><option value="recent">Ajouts récents</option><option value="az">A–Z</option>
@@ -105,7 +106,7 @@ const Search = () => {
                   {hasFilters && <div className="catalogue-active-filters" aria-label="Filtres actifs">
                     {state.type && <button onClick={() => change({ type: '' })} aria-label={`Retirer le type ${state.type}`}>{state.type}<X size={14} /></button>}
                     {state.status && <button onClick={() => change({ status: '' })} aria-label={`Retirer le statut ${statusLabels[state.status]}`}>{statusLabels[state.status]}<X size={14} /></button>}
-                    {state.genre && <button onClick={() => change({ genre: '' })} aria-label={`Retirer le genre ${state.genre}`}>{state.genre}<X size={14} /></button>}
+                    {state.genre && <button onClick={() => change({ genre: '' })} aria-label={`Retirer le genre ${genreLabel(state.genre)}`}>{genreLabel(state.genre)}<X size={14} /></button>}
                     <button aria-label="Effacer les filtres" onClick={() => change({ type: '', status: '', genre: '' })}>Effacer tout</button>
                   </div>}
                   <div className="catalogue-view-switch" aria-label="Présentation des résultats">

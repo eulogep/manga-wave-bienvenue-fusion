@@ -50,6 +50,7 @@ import { buildCanonicalMangaUrl, formatDocumentTitle } from '@/domain/documentMe
 import { useContinueReading } from '@/hooks/useReadingProgress';
 import { buildReaderLocation } from '@/domain/readerNavigation';
 import { findMangaResumeProgress } from '@/domain/mangaResume';
+import { genreLabel, normalizeGenres } from '@/domain/genres';
 
 const languageOptions = [
   { code: 'fr', label: 'Français' },
@@ -568,9 +569,9 @@ const MangaDetail = () => {
               )}
 
               <div className="flex flex-wrap gap-2 mb-7">
-                {manga.genres.map((genre) => (
+                {normalizeGenres(manga.genres).map((genre) => (
                   <Badge key={genre} variant="secondary" className="bg-white/10 text-white/90 border-0">
-                    {genre}
+                    {genreLabel(genre)}
                   </Badge>
                 ))}
                 {manga.themes?.map((theme) => (

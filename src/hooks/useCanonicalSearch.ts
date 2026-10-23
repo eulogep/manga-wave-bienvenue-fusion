@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { SearchWork } from '@/domain/canonicalSearch';
+import { normalizeWorkMetadata } from '@/domain/genres';
 
 // One cached canonical metadata snapshot, independent of keystrokes and filters.
 // Keyset pagination avoids Supabase's default row limit silently hiding works.
@@ -20,7 +21,7 @@ export function useCanonicalSearch(enabled: boolean) {
           .gt('id', after).order('id', { ascending: true }).limit(500).abortSignal(signal);
         if (error) throw error;
         if (!data?.length) break;
-        works.push(...data);
+        works.push(...data.map(normalizeWorkMetadata));
         after = data[data.length - 1].id;
       }
       return works;

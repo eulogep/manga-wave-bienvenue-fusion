@@ -3,6 +3,7 @@ import { ArrowRight, Compass, Sparkles } from 'lucide-react';
 import MangaCover from '@/components/MangaCover';
 import type { FeaturedWork } from '@/domain/featuredManga';
 import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
+import { genreLabel } from '@/domain/genres';
 
 export function CatalogueHero({ featured }: { featured?: FeaturedWork }) {
   return <section className="catalogue-hero" aria-labelledby="catalogue-title">
@@ -28,7 +29,7 @@ export function MoodRail({ genres, selected, onChange }: { genres: string[]; sel
   return <aside className="catalogue-moods" aria-label="Explorer par ambiance">
     <p className="catalogue-eyebrow">Explorer<br /> par ambiance</p>
     <div className="catalogue-mood-buttons">{moods.map(({ label, value }) => <button key={value} aria-pressed={selected === value}
-      title={`Genre : ${value}`} onClick={() => onChange(selected === value ? '' : value)}>
+      title={`Genre : ${genreLabel(value)}`} onClick={() => onChange(selected === value ? '' : value)}>
       <Compass size={18} aria-hidden="true" /><span>{label}</span><ArrowRight size={14} aria-hidden="true" />
     </button>)}
     <button onClick={() => { onChange(''); document.getElementById('catalogue-genre')?.focus(); }}><span>Tous les genres</span><ArrowRight size={14} /></button></div>
@@ -49,7 +50,7 @@ export function CatalogueDiscovery({ items, loading }: { items: FeaturedWork[]; 
       <div className="catalogue-featured-art" aria-hidden="true"><MangaCover src={featured.cover_image} alt="" loading="eager" /></div>
       <div className="catalogue-featured-copy">
         <span className="catalogue-honour"><Sparkles size={14} /> Série à l’honneur</span>
-        <p className="catalogue-tags">{[featured.manga_type, ...(featured.genre || []).slice(0, 2)].filter(Boolean).map(tag => <span key={tag}>{tag}</span>)}</p>
+        <p className="catalogue-tags">{[featured.manga_type, ...(featured.genre || []).slice(0, 2).map(genreLabel)].filter(Boolean).map(tag => <span key={tag}>{tag}</span>)}</p>
         <p className="catalogue-featured-title">{featured.title}</p>
         <p className="catalogue-featured-status">{discoveryStatusLabel(featured.status)}{featured.author ? ` · ${featured.author}` : ''}</p>
         <Link className="catalogue-primary" to={`/manga/${featured.id}`}>Découvrir la série <ArrowRight size={18} /></Link>
@@ -59,7 +60,7 @@ export function CatalogueDiscovery({ items, loading }: { items: FeaturedWork[]; 
       <h2 id="daily-selection-title"><Sparkles size={18} /> Sélection du jour</h2>
       {daily.map(({ work }) => <Link key={work.id} to={`/manga/${work.id}`} className="catalogue-daily-row" aria-label={`Sélection du jour : ${work.title}`}>
         <MangaCover src={work.cover_image} alt="" deferProxy />
-        <div><p className="catalogue-daily-title">{work.title}</p><p>{[work.manga_type, work.genre?.[0]].filter(Boolean).join(' · ')}</p><span>{discoveryStatusLabel(work.status)}</span></div>
+        <div><p className="catalogue-daily-title">{work.title}</p><p>{[work.manga_type, work.genre?.[0] && genreLabel(work.genre[0])].filter(Boolean).join(' · ')}</p><span>{discoveryStatusLabel(work.status)}</span></div>
       </Link>)}
     </section>}
   </div>;

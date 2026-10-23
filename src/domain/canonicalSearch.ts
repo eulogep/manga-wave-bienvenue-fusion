@@ -1,3 +1,4 @@
+import { canonicalGenre, genreLabel } from './genres.ts';
 export type SearchWork = {
   id: number;
   title: string;
@@ -93,13 +94,13 @@ export function scoreSearchResult(work: SearchWork, rawQuery: string): number {
   const fuzzy = Math.max(fuzzyScore(title, query), ...aliases.map(alias => fuzzyScore(alias, query)));
   if (fuzzy) return fuzzy;
   if (normalizeQuery(work.author || '').includes(query)) return 100;
-  if ((work.genre || []).some(genre => normalizeQuery(genre) === query)) return 90;
+  if ((work.genre || []).some(genre => normalizeQuery(genre) === query || normalizeQuery(genreLabel(genre)) === query)) return 90;
   return 0;
 }
 export function filterSearchResults(works: SearchWork[], state: SearchState) {
   return works.filter(work => (!state.type || normalizeQuery(work.manga_type || '') === state.type)
     && (!state.status || work.status === state.status)
-    && (!state.genre || (work.genre || []).some(genre => normalizeQuery(genre) === normalizeQuery(state.genre))));
+    && (!state.genre || (work.genre || []).some(genre => canonicalGenre(genre) === canonicalGenre(state.genre))));
 }
 export function sortSearchResults(results: Array<{ work: SearchWork; score: number }>, sort: SearchState['sort']) {
   return [...results].sort((a, b) => {

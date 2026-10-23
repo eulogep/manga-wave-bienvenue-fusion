@@ -5,6 +5,7 @@ import MangaCover from '@/components/MangaCover';
 import { slideOffset, type FeaturedWork } from '@/domain/featuredManga';
 import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
 import './FeaturedMangaCarousel.css';
+import { genreLabel } from '@/domain/genres';
 
 type Props = { items: FeaturedWork[]; loading?: boolean; failed?: boolean; onRetry?: () => void };
 export default function FeaturedMangaCarousel({ items, loading, failed, onRetry }: Props) {
@@ -69,7 +70,7 @@ export default function FeaturedMangaCarousel({ items, loading, failed, onRetry 
         <div className="mw-spotlight-details">
           <div className="mw-spotlight-description" aria-live="polite" aria-atomic="true">
             <h2>{active.work.title}</h2>
-            <p className="mw-spotlight-meta">{[active.work.manga_type, ...active.work.genre.slice(0, 2), discoveryStatusLabel(active.work.status)].filter(Boolean).join(' · ')}
+            <p className="mw-spotlight-meta">{[active.work.manga_type, ...active.work.genre.slice(0, 2).map(genreLabel), discoveryStatusLabel(active.work.status)].filter(Boolean).join(' · ')}
               {active.work.rating !== null && active.work.rating > 0 && <span className="mw-spotlight-rating"><Star size={16} aria-hidden="true" /> <span aria-label={`Note : ${active.work.rating}`}>{active.work.rating.toFixed(1)}</span></span>}
             </p>
           </div>
