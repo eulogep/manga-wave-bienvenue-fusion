@@ -6,6 +6,7 @@ import FeaturedSection from '@/components/FeaturedSection';
 import CategoriesSection from '@/components/CategoriesSection';
 import Footer from '@/components/Footer';
 import HomeCatalogSections from '@/components/HomeCatalogSections';
+import HomeCollectionsSection from '@/components/HomeCollectionsSection';
 import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
@@ -24,6 +25,7 @@ const Index = () => {
             <ContinueReadingSection />
             <HeroSection />
             <HomeCatalogSections mode="personalized" />
+            <HomeCollectionsSection />
           </>
         ) : (
           <>
@@ -31,6 +33,7 @@ const Index = () => {
             <OriginMangaSection />
             <HomeCatalogSections mode="anonymous" />
             <FeaturedSection />
+            <HomeCollectionsSection />
             <CategoriesSection />
           </>
         )}
