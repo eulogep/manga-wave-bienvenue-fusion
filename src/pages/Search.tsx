@@ -1,6 +1,6 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, type MouseEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, LayoutGrid, List, Search as SearchIcon, X } from 'lucide-react';
+import { ArrowRight, History, LayoutGrid, List, Search as SearchIcon, X } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { CatalogueHero, CatalogueDiscovery, MoodRail } from '@/components/CatalogueDiscovery';
@@ -13,6 +13,7 @@ import { useCanonicalSearch } from '@/hooks/useCanonicalSearch';
 import { normalizeQuery, parseSearchState, searchCanonicalWorks, serializeSearchState, SEARCH_PAGE_SIZE, type SearchState } from '@/domain/canonicalSearch';
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
 import { formatDocumentTitle } from '@/domain/documentMetadata';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 
 const control = 'min-h-11 w-full min-w-0 rounded-md border border-slate-500 bg-[#101e2c] px-3 py-2 text-base text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300';
 const statusLabels: Record<string, string> = { ongoing: 'En cours', completed: 'Terminé', hiatus: 'En pause', cancelled: 'Annulé' };
@@ -23,6 +24,7 @@ const Search = () => {
   const state = useMemo(() => parseSearchState(new URLSearchParams(urlState)), [urlState]);
   useDocumentMetadata(formatDocumentTitle(state.q ? `Recherche « ${state.q} »` : 'Catalogue'));
   const [draft, setDraft] = useState(state.q);
+  const { recentSearches, recordSearch, removeSearch, clearSearches } = useRecentSearches();
   useEffect(() => { setDraft(state.q); }, [state.q]);
   useEffect(() => {
     if (draft.trim() === state.q) return;
@@ -47,7 +49,12 @@ const Search = () => {
   const pages = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
   const page = Math.min(state.page, pages);
   const change = (patch: Partial<SearchState>) => setParams(serializeSearchState({ ...state, q: draft.trim(), page: 1, ...patch }));
-  const submit = (event: FormEvent) => { event.preventDefault(); change({ q: draft.trim() }); };
+  const submit = (event: FormEvent) => { event.preventDefault(); recordSearch(draft); change({ q: draft.trim() }); };
+  const applyRecent = (query: string) => { setDraft(query); recordSearch(query); change({ q: query }); };
+  // Opening a result commits the current query to the local history.
+  const recordOnResultClick = (event: MouseEvent) => {
+    if (state.q && (event.target as HTMLElement).closest('a')) recordSearch(state.q);
+  };
   const hasFilters = Boolean(state.type || state.status || state.genre);
   const browseAll = () => change({ browse: true, sort: 'recent' });
   return <div className="catalogue-page">
@@ -63,6 +70,14 @@ const Search = () => {
             </label>
             <button type="submit" className="catalogue-primary">Rechercher <ArrowRight size={18} /></button>
           </div>
+          {!draft.trim() && recentSearches.length > 0 && <div className="catalogue-recent" role="group" aria-label="Recherches récentes">
+            <span className="catalogue-recent-label"><History size={14} aria-hidden="true" /> Récentes</span>
+            {recentSearches.map(query => <span key={query} className="catalogue-recent-chip">
+              <button type="button" onClick={() => applyRecent(query)}>{query}</button>
+              <button type="button" aria-label={`Retirer « ${query} » des recherches récentes`} onClick={() => removeSearch(query)}><X size={12} /></button>
+            </span>)}
+            <button type="button" className="catalogue-recent-clear" onClick={clearSearches}>Tout effacer</button>
+          </div>}
           <div className="catalogue-filter-row">
             <label><span className="sr-only">Type</span><select value={state.type} onChange={event => change({ type: event.target.value as SearchState['type'] })}>
               <option value="">Tous les types</option><option value="manga">Manga</option><option value="manhwa">Manhwa</option><option value="manhua">Manhua</option>
@@ -82,7 +97,7 @@ const Search = () => {
           <MoodRail genres={genres} selected={state.genre} onChange={genre => change({ genre })} />
           <div className="catalogue-body">
             {!state.q && <CatalogueDiscovery items={discoveries} loading={catalog.isPending} />}
-            <section aria-labelledby="canonical-results-title" aria-busy={catalog.isFetching} className="catalogue-results">
+            <section aria-labelledby="canonical-results-title" aria-busy={catalog.isFetching} className="catalogue-results" onClickCapture={recordOnResultClick}>
               <div className="catalogue-results-header">
                 <div><p role="status">{catalog.isPending ? 'Chargement du catalogue…' : `${results.length} résultat${results.length > 1 ? 's' : ''}${state.q ? ` pour « ${state.q} »` : ''}`}</p>
                   <h2 id="canonical-results-title">Résultats Manga Wave</h2></div>

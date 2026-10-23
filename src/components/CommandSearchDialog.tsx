@@ -14,6 +14,8 @@ import {
   CornerDownLeft,
   BookMarked,
   Dices,
+  Clock,
+  Trash2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -24,7 +26,6 @@ import {
 import {
   Command,
   CommandList,
-  CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandSeparator,
@@ -39,6 +40,8 @@ import {
   type SearchWork,
 } from '@/domain/canonicalSearch';
 import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
+import { matchRecentSearches } from '@/domain/recentSearches';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 
 export const CommandSearchDialog: React.FC = () => {
   const { isOpen, setIsOpen, initialQuery, shortcutLabel } = useCommandSearch();
@@ -55,6 +58,7 @@ export const CommandSearchDialog: React.FC = () => {
   // Lazy-load canonical catalog snapshot when dialog opens
   const catalog = useCanonicalSearch(isOpen);
   const { data: readingProgress } = useContinueReading();
+  const { recentSearches, recordSearch, clearSearches } = useRecentSearches();
 
   const trimmedQuery = query.trim();
   const hasQuery = Boolean(normalizeQuery(trimmedQuery));
@@ -74,6 +78,11 @@ export const CommandSearchDialog: React.FC = () => {
     return matched.slice(0, 8);
   }, [hasQuery, catalog.data, trimmedQuery]);
 
+  const recentSuggestions = useMemo(
+    () => matchRecentSearches(recentSearches, trimmedQuery, hasQuery ? 3 : 5),
+    [recentSearches, trimmedQuery, hasQuery],
+  );
+
   // Last read items for resume action
   const resumeItems = useMemo(() => {
     return (readingProgress || []).slice(0, 2);
@@ -89,16 +98,18 @@ export const CommandSearchDialog: React.FC = () => {
 
   const navigateToManga = useCallback(
     (mangaId: number) => {
+      if (hasQuery) recordSearch(trimmedQuery);
       handleSelect(() => navigate(`/manga/${mangaId}`));
     },
-    [handleSelect, navigate]
+    [handleSelect, navigate, hasQuery, recordSearch, trimmedQuery]
   );
 
   const navigateToSearchWithQuery = useCallback(
     (q: string) => {
+      recordSearch(q);
       handleSelect(() => navigate(`/search?q=${encodeURIComponent(q)}`));
     },
-    [handleSelect, navigate]
+    [handleSelect, navigate, recordSearch]
   );
 
   return (
@@ -163,12 +174,33 @@ export const CommandSearchDialog: React.FC = () => {
             {/* When typing a query */}
             {hasQuery ? (
               <>
+                {recentSuggestions.length > 0 ? (
+                  <>
+                    <CommandGroup heading="Recherches récentes" className="text-white/40">
+                      {recentSuggestions.map((recent) => (
+                        <CommandItem
+                          key={recent}
+                          value={`recent-${recent}`}
+                          onSelect={() => navigateToSearchWithQuery(recent)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                          data-testid="command-recent-search"
+                        >
+                          <Clock className="h-4 w-4 text-white/50 shrink-0" />
+                          <span className="text-sm font-medium truncate">{recent}</span>
+                          <CornerDownLeft className="h-3.5 w-3.5 ml-auto text-white/30 shrink-0 hidden sm:block" />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    <CommandSeparator className="bg-white/[0.06] my-1" />
+                  </>
+                ) : null}
                 {catalog.isPending ? (
                   <div className="py-8 text-center text-sm text-white/50" role="status">
                     Recherche dans le catalogue…
                   </div>
                 ) : topResults.length === 0 ? (
-                  <CommandEmpty className="py-10 text-center">
+                  // Not CommandEmpty: cmdk hides it whenever recent-search items are listed.
+                  <div className="py-10 text-center" role="status">
                     <p className="text-white/70 text-sm mb-3">
                       Aucune œuvre trouvée pour « <span className="text-white font-medium">{trimmedQuery}</span> »
                     </p>
@@ -180,7 +212,7 @@ export const CommandSearchDialog: React.FC = () => {
                       <Search className="h-3.5 w-3.5" />
                       Lancer une recherche avancée sur « {trimmedQuery} »
                     </button>
-                  </CommandEmpty>
+                  </div>
                 ) : (
                   <>
                     <CommandGroup heading="Œuvres correspondantes" className="text-white/40">
@@ -267,6 +299,36 @@ export const CommandSearchDialog: React.FC = () => {
             ) : (
               /* When query is empty */
               <>
+                {recentSuggestions.length > 0 ? (
+                  <>
+                    <CommandGroup heading="Recherches récentes" className="text-white/40">
+                      {recentSuggestions.map((recent) => (
+                        <CommandItem
+                          key={recent}
+                          value={`recent-${recent}`}
+                          onSelect={() => navigateToSearchWithQuery(recent)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                          data-testid="command-recent-search"
+                        >
+                          <Clock className="h-4 w-4 text-white/50 shrink-0" />
+                          <span className="text-sm font-medium truncate">{recent}</span>
+                          <CornerDownLeft className="h-3.5 w-3.5 ml-auto text-white/30 shrink-0 hidden sm:block" />
+                        </CommandItem>
+                      ))}
+                      <CommandItem
+                        value="recent-clear"
+                        onSelect={clearSearches}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/50 data-[selected=true]:bg-white/[0.08] data-[selected=true]:text-white"
+                        data-testid="command-recent-clear"
+                      >
+                        <Trash2 className="h-4 w-4 shrink-0" />
+                        <span className="text-sm">Effacer les recherches récentes</span>
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandSeparator className="bg-white/[0.06] my-1" />
+                  </>
+                ) : null}
+
                 {/* Reprendre la lecture */}
                 {resumeItems.length > 0 ? (
                   <>
