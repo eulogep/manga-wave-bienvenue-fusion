@@ -17,6 +17,8 @@ const Library = lazy(() => import("./pages/Library"));
 const Trending = lazy(() => import("./pages/Trending"));
 const Ranking = lazy(() => import("./pages/Ranking"));
 const Random = lazy(() => import("./pages/Random"));
+const Collections = lazy(() => import("./pages/Collections"));
+const Collection = lazy(() => import("./pages/Collection"));
 const Reader = lazy(() => import("./pages/Reader"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -55,6 +57,8 @@ const App = () => (
                 <Route path="/trending" element={<Trending />} />
                 <Route path="/ranking" element={<Ranking />} />
                 <Route path="/random" element={<Random />} />
+                <Route path="/collections" element={<Collections />} />
+                <Route path="/collections/:slug" element={<Collection />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -15,6 +15,7 @@ import {
   BookMarked,
   Dices,
   Clock,
+  Layers,
   Trash2,
 } from 'lucide-react';
 import {
@@ -391,6 +392,16 @@ export const CommandSearchDialog: React.FC = () => {
                   >
                     <Compass className="h-4 w-4 text-white/60 shrink-0" />
                     <span className="text-sm font-medium">Explorer le catalogue complet</span>
+                  </CommandItem>
+
+                  <CommandItem
+                    value="nav-collections"
+                    onSelect={() => handleSelect(() => navigate('/collections'))}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                    data-testid="command-nav-collections"
+                  >
+                    <Layers className="h-4 w-4 text-white/60 shrink-0" />
+                    <span className="text-sm font-medium">Collections thématiques</span>
                   </CommandItem>
 
                   <CommandItem

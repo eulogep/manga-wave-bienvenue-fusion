@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, BookMarked, LogOut, X, Compass, Dices, Home, Library, TrendingUp } from 'lucide-react';
+import { Search, Menu, User, BookMarked, LogOut, X, Compass, Dices, Home, Layers, Library, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useCommandSearch } from '@/hooks/useCommandSearch';
@@ -31,6 +31,7 @@ const MangaWaveLogo = () => (
 const navLinks = [
   { label: 'Accueil', to: '/', icon: Home },
   { label: 'Mangas', to: '/search', icon: Compass },
+  { label: 'Collections', to: '/collections', icon: Layers },
   { label: 'Surprise', to: '/random', icon: Dices },
   { label: 'Tendances', to: '/trending', icon: TrendingUp },
 ];
