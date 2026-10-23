@@ -255,7 +255,10 @@ const Library = () => {
       <main className="flex-1 section-padding py-10 md:py-14">
         <div className="container mx-auto">
           <section className="mb-8">
-            <Link to="/history" className="inline-flex min-h-11 items-center text-cyan-300">Historique de lecture</Link>
+            <div className="flex flex-wrap gap-x-5">
+              <Link to="/history" className="inline-flex min-h-11 items-center text-cyan-300">Historique de lecture</Link>
+              <Link to="/stats" className="inline-flex min-h-11 items-center text-cyan-300">Mes statistiques</Link>
+            </div>
             <p className="text-manga-cyan font-semibold tracking-widest text-xs mb-2">ESPACE PERSONNEL</p>
             <h1 className="text-4xl md:text-5xl font-bold font-japanese mb-2">
               Ma <span className="glow-text">Bibliothèque</span>

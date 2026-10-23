@@ -42,7 +42,10 @@ export default function History() {
     <Header />
     <main className="flex-1 w-full min-w-0 px-4 py-10 sm:px-8" data-testid="history-page">
       <div className="mx-auto max-w-3xl min-w-0">
-        <Link to="/library" className="inline-flex min-h-11 items-center text-cyan-300">Ma bibliothèque</Link>
+        <div className="flex flex-wrap gap-x-5">
+          <Link to="/library" className="inline-flex min-h-11 items-center text-cyan-300">Ma bibliothèque</Link>
+          <Link to="/stats" className="inline-flex min-h-11 items-center text-cyan-300">Mes statistiques</Link>
+        </div>
         <h1 className="text-3xl font-bold flex items-center gap-3"><Clock aria-hidden="true" /> Historique de lecture</h1>
         <p className="mt-3 text-slate-300">Retrouvez vos lectures et rouvrez le chapitre à la page enregistrée.</p>
         {loading ? <p role="status" className="py-10">Chargement…</p> : !user ? <section className="py-10">

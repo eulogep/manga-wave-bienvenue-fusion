@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, BookMarked, LogOut, X, Compass, Dices, Home, Layers, Library, TrendingUp } from 'lucide-react';
+import { Search, Menu, User, BookMarked, BarChart3, LogOut, X, Compass, Dices, Home, Layers, Library, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useCommandSearch } from '@/hooks/useCommandSearch';
@@ -176,6 +176,13 @@ const Header = () => {
                     >
                       <BookMarked className="h-4 w-4" />
                       Ma bibliothèque
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate('/stats')}
+                      className="flex items-center gap-2 text-white/80 hover:text-white hover:bg-white/[0.06] rounded-lg px-3 py-2 cursor-pointer transition-colors"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      Mes statistiques
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-white/[0.06]" />
                     <DropdownMenuItem
