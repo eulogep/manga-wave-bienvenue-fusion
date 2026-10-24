@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Search,
   BookOpen,
@@ -16,6 +16,8 @@ import {
   Dices,
   Clock,
   Layers,
+  ListChecks,
+  BarChart3,
   Trash2,
 } from 'lucide-react';
 import {
@@ -43,12 +45,19 @@ import {
 import { discoveryStatusLabel } from '@/domain/discoveryPresentation';
 import { matchRecentSearches } from '@/domain/recentSearches';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { useAuth } from '@/hooks/useAuth';
+import { canonicalMangaIdFromLocation } from '@/domain/commandSearch';
+import { matchCollections } from '@/domain/collections';
+import { CommandMangaActions } from '@/components/CommandMangaActions';
 import { genreLabel } from '@/domain/genres';
 
 export const CommandSearchDialog: React.FC = () => {
   const { isOpen, setIsOpen, initialQuery, shortcutLabel } = useCommandSearch();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const contextMangaId = canonicalMangaIdFromLocation(location.pathname, location.search);
 
   // Hydrate query when opened with initialQuery
   useEffect(() => {
@@ -84,6 +93,9 @@ export const CommandSearchDialog: React.FC = () => {
     () => matchRecentSearches(recentSearches, trimmedQuery, hasQuery ? 3 : 5),
     [recentSearches, trimmedQuery, hasQuery],
   );
+
+  const contextMangaTitle = contextMangaId ? catalog.data?.find((work) => work.id === contextMangaId)?.title : undefined;
+  const matchingCollections = useMemo(() => (hasQuery ? matchCollections(trimmedQuery) : []), [hasQuery, trimmedQuery]);
 
   // Last read items for resume action
   const resumeItems = useMemo(() => {
@@ -281,6 +293,29 @@ export const CommandSearchDialog: React.FC = () => {
 
                     <CommandSeparator className="bg-white/[0.06] my-2" />
 
+                    {matchingCollections.length > 0 ? (
+                      <>
+                        <CommandGroup heading="Collections" className="text-white/40">
+                          {matchingCollections.map((collection) => (
+                            <CommandItem
+                              key={collection.slug}
+                              value={`collection-${collection.slug}`}
+                              onSelect={() => handleSelect(() => navigate(`/collections/${collection.slug}`))}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer text-white data-[selected=true]:bg-white/[0.08]"
+                              data-testid={`command-collection-${collection.slug}`}
+                            >
+                              <Layers className="h-4 w-4 text-manga-cyan shrink-0" />
+                              <div className="min-w-0">
+                                <span className="block truncate text-sm font-semibold">{collection.title}</span>
+                                <span className="block truncate text-xs text-white/50">{collection.tagline}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        <CommandSeparator className="bg-white/[0.06] my-2" />
+                      </>
+                    ) : null}
+
                     <CommandGroup heading="Action globale">
                       <CommandItem
                         value={`global-search-${trimmedQuery}`}
@@ -301,6 +336,10 @@ export const CommandSearchDialog: React.FC = () => {
             ) : (
               /* When query is empty */
               <>
+                {contextMangaId && contextMangaTitle ? (
+                  <CommandMangaActions mangaId={contextMangaId} title={contextMangaTitle} onDone={() => setIsOpen(false)} />
+                ) : null}
+
                 {recentSuggestions.length > 0 ? (
                   <>
                     <CommandGroup heading="Recherches récentes" className="text-white/40">
@@ -423,6 +462,29 @@ export const CommandSearchDialog: React.FC = () => {
                     <Dices className="h-4 w-4 text-manga-cyan shrink-0" />
                     <span className="text-sm font-medium">Surprends-moi</span>
                   </CommandItem>
+
+                  {user ? (
+                    <>
+                      <CommandItem
+                        value="nav-lists"
+                        onSelect={() => handleSelect(() => navigate('/library?view=lists'))}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                        data-testid="command-nav-lists"
+                      >
+                        <ListChecks className="h-4 w-4 text-white/60 shrink-0" />
+                        <span className="text-sm font-medium">Mes listes</span>
+                      </CommandItem>
+                      <CommandItem
+                        value="nav-stats"
+                        onSelect={() => handleSelect(() => navigate('/stats'))}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                        data-testid="command-nav-stats"
+                      >
+                        <BarChart3 className="h-4 w-4 text-white/60 shrink-0" />
+                        <span className="text-sm font-medium">Mes statistiques</span>
+                      </CommandItem>
+                    </>
+                  ) : null}
 
                   <CommandItem
                     value="nav-history"

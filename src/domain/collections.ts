@@ -124,3 +124,12 @@ export function distinctTileCovers(collections: PublishedCollection[], perTile =
 export function findCollection(slug: string | undefined): EditorialCollection | null {
   return EDITORIAL_COLLECTIONS.find((collection) => collection.slug === slug) || null;
 }
+
+/** Collections whose title, tagline or slug contain the query (palette search). */
+export function matchCollections(query: string, limit = 3): EditorialCollection[] {
+  const key = normalizeQuery(query);
+  if (key.length < 2) return [];
+  return EDITORIAL_COLLECTIONS.filter((collection) => (
+    [collection.title, collection.tagline, collection.slug.replace(/-/g, ' ')].some((text) => normalizeQuery(text).includes(key))
+  )).slice(0, limit);
+}
