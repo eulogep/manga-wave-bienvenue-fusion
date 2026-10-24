@@ -18,21 +18,48 @@ Un fichier versionné ne prouve pas que le job est actif à distance.
 
 ## MangaDex : rafraîchissement sans remplacement
 
-`catalog-sync` effectue un appel groupé pour au plus 100 mangas, triés par nombre
-de suivis, disposant d’une traduction française et classés `safe` ou `suggestive`.
-Il ne parcourt pas tout le catalogue et ne supprime pas les titres absents de la réponse.
-Les couvertures enregistrées passent par `mangadex-proxy`.
+`catalog-sync` lit les mangas les plus suivis de MangaDex, classés `safe` ou
+`suggestive`, en plusieurs passes : d’abord les titres disponibles en français,
+puis en anglais. Chaque passe lit au plus `pages` pages de 100 titres, avec une
+pause de 400 ms entre deux appels (MangaDex tolère environ 5 requêtes/seconde),
+et s’arrête dès qu’une page est incomplète. Un titre présent dans les deux passes
+garde la version de la passe française. Le job ne supprime jamais les titres absents
+de la réponse. Les couvertures enregistrées passent par `mangadex-proxy`.
+
+Le corps JSON optionnel règle le plan ; les valeurs hors bornes sont ramenées
+aux limites, les langues inconnues ignorées :
+
+| Champ | Défaut | Bornes |
+|---|---|---|
+| `languages` | `["fr", "en"]` | sous-ensemble de `fr`, `en` |
+| `pages` | `3` (par langue) | 1 à 10 |
+
+Le cron quotidien n’envoie pas de corps et utilise donc le plan par défaut. Pour
+un import ponctuel plus large, appeler la fonction avec la clé de service et
+`{"pages": 10}`.
 
 Pour une identité `mangadex_id` existante, il actualise le titre, les auteurs,
 la description, la couverture, le statut, les genres, la classification et les dates
-`source_updated_at` / `last_synced_at`. Il conserve le type canonique `manga_type`,
-les alias et la provenance de l’enrichissement. Pour une nouvelle identité, le type
-est déduit de la langue d’origine ; un conflit concurrent est ignoré pour préserver
-la ligne déjà créée.
+`source_updated_at` / `last_synced_at`, par lots de 200. Il conserve le type
+canonique `manga_type`, les alias et la provenance de l’enrichissement.
 
-Les écritures sont séquentielles, sans transaction globale : une erreur peut laisser
-un lot partiellement actualisé. La réponse `200` contient `synced` (nombre de lignes
-exploitables traitées, pas nécessairement de nouvelles insertions) et `synced_at`.
+Un titre MangaDex inconnu peut déjà exister depuis une source de scans (fiche sans
+`mangadex_id`). Avant toute insertion, `find_canonical_manga` est consulté : si une
+**seule** fiche correspond exactement par titre ou alias normalisé (confiance ≥ 0,95,
+jamais de correspondance approximative), n’a pas encore de `mangadex_id` et a un
+auteur compatible (identique ou inconnu d’un côté), l’identité MangaDex et les champs
+rafraîchissables y sont rattachés au lieu de créer un doublon. Sinon une nouvelle
+fiche est créée, avec un type déduit de la langue d’origine ; un conflit concurrent
+est ignoré pour préserver la ligne déjà créée.
+
+Les écritures sont groupées par lots, sans transaction globale : une erreur peut
+laisser un lot partiellement actualisé. La réponse `200` contient `synced` (titres
+uniques traités), `inserted`, `attached`, `refreshed`, `pages` (pages lues par
+langue) et `synced_at`.
+
+Mesure à blanc du plan par défaut, le 24 octobre 2026, contre l’API MangaDex et le
+catalogue de production en lecture seule : 6 requêtes, 370 titres uniques, 101 déjà
+connus, 7 rattachements à une fiche de source de scans, 262 nouvelles fiches.
 
 ## File multi-source et délais réels
 

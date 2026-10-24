@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
+import * as mangadexCatalog from '../supabase/functions/_shared/mangadex-catalog.ts';
 import { AniListApiError, AniListClient } from '../scripts/metadata/anilist-client.ts';
 import {
   mergeAliases,
@@ -161,7 +162,9 @@ test('AniList client reports a non-retryable service shutdown without looping', 
 });
 
 test('catalog sync cannot use MangaDex format tags as canonical manga_type', () => {
-  const source = readFileSync(new URL('../supabase/functions/catalog-sync/index.ts', import.meta.url), 'utf8');
+  // Row mapping lives in the shared MangaDex module used by the catalog-sync function.
+  const source = readFileSync(new URL('../supabase/functions/catalog-sync/index.ts', import.meta.url), 'utf8')
+    + readFileSync(new URL('../supabase/functions/_shared/mangadex-catalog.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /formats\[0\]/);
   assert.match(source, /canonicalTypeFromCountry\(country\)/);
   assert.match(source, /originalLanguage/);
@@ -511,33 +514,99 @@ test('MangaDex availability failure cascades in MetadataProvider', async () => {
   assert.equal(provider.outages[0].source, 'mangadex');
 });
 
-test('real catalog-sync handler preserves existing enrichment and inserts only normalized new types', async () => {
-  const writes: Array<{ kind: string; patch: Record<string, unknown>; options?: unknown }> = [];
-  const sdk = { createClient: () => ({ from: () => ({
-    select: () => ({ in: async () => ({ data: [{ mangadex_id: 'existing' }], error: null }) }),
-    update: (patch: Record<string, unknown>) => ({ eq: async () => { writes.push({ kind: 'update', patch }); return { error: null }; } }),
-    upsert: async (patch: Record<string, unknown>, options: unknown) => { writes.push({ kind: 'insert', patch, options }); return { error: null }; },
-  }) }) };
+type HandlerWrite = { kind: string; patch: unknown; options?: unknown; id?: unknown };
+
+async function runCatalogSyncHandler(options: {
+  pages: Array<Array<Record<string, unknown>>>;
+  known: string[];
+  matches?: Record<string, Array<{ manga_id: number; confidence: number }>>;
+  details?: Array<{ id: number; mangadex_id: string | null; author: string | null }>;
+  body?: unknown;
+}) {
+  const writes: HandlerWrite[] = [];
+  const requested: string[] = [];
+  const sdk = { createClient: () => ({
+    rpc: async (_name: string, args: { candidate_title: string }) => ({ data: options.matches?.[args.candidate_title] || [], error: null }),
+    from: () => ({
+      select: (columns: string) => ({ in: async (_column: string, values: unknown[]) => (
+        columns === 'mangadex_id'
+          ? { data: options.known.filter((id) => values.includes(id)).map((id) => ({ mangadex_id: id })), error: null }
+          : { data: (options.details || []).filter((row) => values.includes(row.id)), error: null }
+      ) }),
+      update: (patch: Record<string, unknown>) => ({ eq: (_column: string, id: unknown) => ({ is: async () => { writes.push({ kind: 'attach', patch, id }); return { error: null }; } }) }),
+      upsert: async (patch: unknown, upsertOptions: { ignoreDuplicates?: boolean }) => {
+        writes.push({ kind: upsertOptions?.ignoreDuplicates ? 'insert' : 'refresh', patch, options: upsertOptions });
+        return { error: null };
+      },
+    }),
+  }) };
   const source = readFileSync(new URL('../supabase/functions/catalog-sync/index.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const exports: { default?: { fetch: (request: Request) => Promise<Response> } } = {};
+  let page = 0;
   runInNewContext(compiled, {
-    exports, require: (name: string) => name.startsWith('jsr:') ? {} : name.startsWith('npm:') ? sdk : { canonicalTypeFromCountry, countryFromMangaDexLanguage },
+    exports, require: (name: string) => name.startsWith('jsr:') ? {} : name.startsWith('npm:') ? sdk : mangadexCatalog,
     Deno: { env: { get: (name: string) => name === 'SUPABASE_SERVICE_ROLE_KEY' ? 'test-key' : name === 'SUPABASE_URL' ? 'https://example.invalid' : undefined } },
-    Request, Response, URL, URLSearchParams, atob,
-    fetch: async () => new Response(JSON.stringify({ data: [
-      { id: 'existing', attributes: { title: { en: 'Existing' }, originalLanguage: 'ja', status: 'ongoing' } },
-      { id: 'new', attributes: { title: { en: 'New' }, originalLanguage: 'ko', status: 'ongoing', tags: [{ attributes: { group: 'format', name: { en: 'Adaptation' } } }] } },
-    ] })),
+    Request, Response, URL, URLSearchParams, atob, setTimeout: (callback: () => void) => setTimeout(callback, 0),
+    fetch: async (url: string) => { requested.push(url); return new Response(JSON.stringify({ data: options.pages[page++] || [] })); },
   });
   const serviceRolePayload = Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url');
   const response = await exports.default!.fetch(new Request('https://example.invalid/catalog-sync', {
     method: 'POST',
-    headers: { Authorization: `Bearer test.${serviceRolePayload}.signature` },
+    headers: { Authorization: `Bearer test.${serviceRolePayload}.signature`, 'Content-Type': 'application/json' },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
   }));
+  return { response, writes, requested };
+}
+
+test('real catalog-sync handler preserves existing enrichment and inserts only normalized new types', async () => {
+  const { response, writes } = await runCatalogSyncHandler({
+    known: ['existing'],
+    pages: [[
+      { id: 'existing', attributes: { title: { en: 'Existing' }, originalLanguage: 'ja', status: 'ongoing' } },
+      { id: 'new', attributes: { title: { en: 'New' }, originalLanguage: 'ko', status: 'ongoing', tags: [{ attributes: { group: 'format', name: { en: 'Adaptation' } } }] } },
+    ]],
+  });
   assert.equal(response.status, 200);
-  assert.equal(writes.length, 2);
-  for (const key of ['manga_type', 'aliases', 'country_of_origin', 'metadata_source', 'metadata_confidence']) assert.equal(key in writes[0].patch, false);
-  assert.equal(writes[1].patch.manga_type, 'manhwa');
+  assert.deepEqual(writes.map((write) => write.kind), ['refresh', 'insert']);
+  const refreshed = (writes[0].patch as Array<Record<string, unknown>>)[0];
+  for (const key of ['manga_type', 'aliases', 'country_of_origin', 'metadata_source', 'metadata_confidence']) assert.equal(key in refreshed, false);
+  assert.equal((writes[1].patch as Array<Record<string, unknown>>)[0].manga_type, 'manhwa');
   assert.equal((writes[1].options as { ignoreDuplicates: boolean }).ignoreDuplicates, true);
+});
+
+test('real catalog-sync handler attaches a new MangaDex title to its scan-source twin instead of duplicating it', async () => {
+  const { response, writes } = await runCatalogSyncHandler({
+    known: [],
+    body: { languages: ['fr'], pages: 1 },
+    pages: [[
+      { id: 'md-bc', attributes: { title: { en: 'Black Clover' }, originalLanguage: 'ja', status: 'ongoing' } },
+      { id: 'md-new', attributes: { title: { en: 'Brand New' }, originalLanguage: 'ja', status: 'ongoing' } },
+    ]],
+    matches: { 'Black Clover': [{ manga_id: 284, confidence: 1 }] },
+    details: [{ id: 284, mangadex_id: null, author: null }],
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.attached, 1);
+  assert.equal(body.inserted, 1);
+  const attach = writes.find((write) => write.kind === 'attach')!;
+  assert.equal(attach.id, 284);
+  assert.equal((attach.patch as Record<string, unknown>).mangadex_id, 'md-bc');
+  assert.equal('manga_type' in (attach.patch as Record<string, unknown>), false);
+  // Array.from: the handler runs in a vm context, whose arrays have another prototype.
+  assert.deepEqual(Array.from((writes.find((write) => write.kind === 'insert')!.patch as Array<{ mangadex_id: string }>), (row) => row.mangadex_id), ['md-new']);
+});
+
+test('real catalog-sync handler stops paginating at the last page and honours the requested plan', async () => {
+  const full = Array.from({ length: 100 }, (_, index) => ({ id: `fr-${index}`, attributes: { title: { en: `T${index}` }, originalLanguage: 'ja', status: 'ongoing' } }));
+  const { response, requested } = await runCatalogSyncHandler({
+    known: [],
+    body: { languages: ['fr', 'en'], pages: 3 },
+    pages: [full, [], [{ id: 'en-1', attributes: { title: { en: 'E1' }, originalLanguage: 'ko', status: 'ongoing' } }]],
+  });
+  assert.equal(response.status, 200);
+  assert.equal(requested.length, 3);
+  assert.match(requested[1], /offset=100/);
+  assert.match(requested[2], /availableTranslatedLanguage%5B%5D=en/);
 });
