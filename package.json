@@ -52,6 +52,7 @@
     "test:e2e:t3017": "playwright test tests/e2e/t3017-library.spec.ts",
     "verify:t3014:db": "node --experimental-strip-types scripts/verify-t3014-db.mjs",
     "verify:t3013:db": "node scripts/verify-t3013-db.mjs",
+    "verify:user-lists:db": "node scripts/verify-user-lists-db.mjs --allow-temporary-users",
     "preview": "vite preview"
   },
   "dependencies": {
