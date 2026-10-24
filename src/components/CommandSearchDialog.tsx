@@ -131,6 +131,7 @@ export const CommandSearchDialog: React.FC = () => {
       <DialogContent
         className="max-w-2xl overflow-hidden p-0 border border-white/[0.12] bg-[#0b131f]/95 backdrop-blur-2xl shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85)] rounded-2xl text-white top-[25%] translate-y-[-20%] sm:rounded-2xl"
         data-testid="command-search-dialog"
+        hideClose
       >
         <DialogTitle className="sr-only">Recherche et commandes rapides</DialogTitle>
         <DialogDescription className="sr-only">
