@@ -45,6 +45,7 @@ import { useDocumentMetadata } from '@/hooks/useDocumentMetadata';
 import { formatDocumentTitle } from '@/domain/documentMetadata';
 import { AddToListMenu, CreateListAndAddDialog } from '@/components/lists/AddToListMenu';
 import { UserListsPanel } from '@/components/lists/UserListsPanel';
+import { LibraryExportMenu } from '@/components/lists/LibraryExportMenu';
 
 const SECTIONS: { id: LibrarySectionId; label: string; icon: typeof LibraryBig }[] = [
   { id: 'all', label: 'Tous', icon: LibraryBig },
@@ -290,9 +291,12 @@ const Library = () => {
               <Link to="/stats" className="inline-flex min-h-11 items-center text-cyan-300">Mes statistiques</Link>
             </div>
             <p className="text-manga-cyan font-semibold tracking-widest text-xs mb-2">ESPACE PERSONNEL</p>
-            <h1 className="text-4xl md:text-5xl font-bold font-japanese mb-2">
-              Ma <span className="glow-text">Bibliothèque</span>
-            </h1>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <h1 className="text-4xl md:text-5xl font-bold font-japanese mb-2">
+                Ma <span className="glow-text">Bibliothèque</span>
+              </h1>
+              {user && <LibraryExportMenu items={items} />}
+            </div>
             <p className="text-white/50 text-sm md:text-base">
               Un seul endroit pour retrouver, suivre et reprendre vos mangas — quelle que soit la source.
             </p>
