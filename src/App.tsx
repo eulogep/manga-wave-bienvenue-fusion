@@ -20,6 +20,7 @@ const Random = lazy(() => import("./pages/Random"));
 const Collections = lazy(() => import("./pages/Collections"));
 const Collection = lazy(() => import("./pages/Collection"));
 const Stats = lazy(() => import("./pages/Stats"));
+const ForYou = lazy(() => import("./pages/ForYou"));
 const Reader = lazy(() => import("./pages/Reader"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/read/:source/:mangaId/:chapterId" element={<Reader />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/stats" element={<Stats />} />
+                <Route path="/pour-toi" element={<ForYou />} />
                 <Route path="/library" element={<Library />} />
                 <Route path="/trending" element={<Trending />} />
                 <Route path="/ranking" element={<Ranking />} />

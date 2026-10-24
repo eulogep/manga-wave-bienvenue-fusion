@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, BookMarked, BarChart3, LogOut, X, Compass, Dices, Home, Layers, Library, TrendingUp } from 'lucide-react';
+import { Search, Menu, User, BookMarked, BarChart3, LogOut, X, Compass, Dices, Home, Layers, Library, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useCommandSearch } from '@/hooks/useCommandSearch';
@@ -30,6 +30,7 @@ const MangaWaveLogo = () => (
 
 const navLinks = [
   { label: 'Accueil', to: '/', icon: Home },
+  { label: 'Pour toi', to: '/pour-toi', icon: Sparkles },
   { label: 'Mangas', to: '/search', icon: Compass },
   { label: 'Collections', to: '/collections', icon: Layers },
   { label: 'Surprise', to: '/random', icon: Dices },
@@ -102,26 +103,26 @@ const Header = () => {
                 <Link
                   key={to}
                   to={to}
-                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-2.5 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors 2xl:px-4 ${
+                  className={`nav-link relative flex min-h-11 items-center gap-1.5 whitespace-nowrap px-2 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors min-[1700px]:px-4 ${
                     isActive(to)
-                      ? 'text-white after:absolute after:inset-x-2.5 2xl:after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
+                      ? 'text-white after:absolute after:inset-x-2 min-[1700px]:after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
                       : 'text-[var(--mw-text-secondary)] hover:text-white'
                   }`}
                 >
-                  <Icon className="hidden h-3.5 w-3.5 opacity-70 2xl:block" aria-hidden="true" />
+                  <Icon className="hidden h-3.5 w-3.5 opacity-70 min-[1700px]:block" aria-hidden="true" />
                   {label}
                 </Link>
               ))}
               {user && (
                 <Link
                   to="/library"
-                  className={`nav-link relative flex min-h-11 items-center gap-1.5 px-2.5 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors 2xl:px-4 ${
+                  className={`nav-link relative flex min-h-11 items-center gap-1.5 whitespace-nowrap px-2 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors min-[1700px]:px-4 ${
                     isActive('/library')
-                      ? 'text-white after:absolute after:inset-x-2.5 2xl:after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
+                      ? 'text-white after:absolute after:inset-x-2 min-[1700px]:after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-[var(--mw-accent-coral)]'
                       : 'text-[var(--mw-text-secondary)] hover:text-white'
                   }`}
                 >
-                  <Library className="hidden h-3.5 w-3.5 opacity-70 2xl:block" aria-hidden="true" />
+                  <Library className="hidden h-3.5 w-3.5 opacity-70 min-[1700px]:block" aria-hidden="true" />
                   Bibliothèque
                 </Link>
               )}

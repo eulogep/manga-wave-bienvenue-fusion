@@ -435,6 +435,16 @@ export const CommandSearchDialog: React.FC = () => {
                   </CommandItem>
 
                   <CommandItem
+                    value="nav-for-you"
+                    onSelect={() => handleSelect(() => navigate('/pour-toi'))}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"
+                    data-testid="command-nav-for-you"
+                  >
+                    <Sparkles className="h-4 w-4 text-[var(--mw-accent-coral)] shrink-0" />
+                    <span className="text-sm font-medium">Pour toi : flux personnalisé</span>
+                  </CommandItem>
+
+                  <CommandItem
                     value="nav-collections"
                     onSelect={() => handleSelect(() => navigate('/collections'))}
                     className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-white/90 data-[selected=true]:bg-white/[0.08]"

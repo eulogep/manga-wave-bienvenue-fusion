@@ -9,11 +9,10 @@ export const STATS_WINDOW_DAYS = 365;
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 20;
 
-export function useReadingStats() {
+/** The signed-in reader's own sessions over the last 12 months (shared by stats and the feed). */
+export function useReadingSessions() {
   const { user } = useAuth();
-  const catalog = useCanonicalSearch(Boolean(user));
-
-  const sessions = useQuery({
+  return useQuery({
     queryKey: ['reading-stats', user?.id],
     enabled: Boolean(user),
     staleTime: 60_000,
@@ -37,6 +36,12 @@ export function useReadingStats() {
       return rows;
     },
   });
+}
+
+export function useReadingStats() {
+  const { user } = useAuth();
+  const catalog = useCanonicalSearch(Boolean(user));
+  const sessions = useReadingSessions();
 
   const genresByManga = useMemo(
     () => new Map((catalog.data || []).map((work) => [work.id, work.genre])),
