@@ -1,8 +1,12 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MangaCover from '@/components/MangaCover';
 import { useCanonicalSearch } from '@/hooks/useCanonicalSearch';
-import { findSimilarWorks } from '@/domain/recommendations';
+import { explainSimilarity, findSimilarWorks } from '@/domain/recommendations';
+import { genreLabel } from '@/domain/genres';
+import { ToastAction } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
+import { useDismissedRecommendations } from '@/hooks/useDismissedRecommendations';
 import { discoveryStatusLabel, discoveryTypeBadgeClass } from '@/domain/discoveryPresentation';
 
 export type SimilarWorksSectionProps = {
@@ -20,8 +24,19 @@ export type SimilarWorksSectionProps = {
  */
 const SimilarWorksSection = ({ canonicalMangaId, limit = 6 }: SimilarWorksSectionProps) => {
   const { data: catalog } = useCanonicalSearch(Boolean(canonicalMangaId));
+  const { dismissed, dismiss, restore } = useDismissedRecommendations();
+  const { toast } = useToast();
   const target = catalog?.find((work) => work.id === canonicalMangaId);
-  const similar = target && catalog ? findSimilarWorks(target, catalog, limit) : [];
+  const similar = target && catalog ? findSimilarWorks(target, catalog, limit, { excludeIds: dismissed }) : [];
+
+  const handleDismiss = (id: number, title: string) => {
+    dismiss(id);
+    toast({
+      title: 'Suggestion masquée',
+      description: `« ${title} » ne sera plus proposé sur cet appareil.`,
+      action: <ToastAction altText={`Annuler et réafficher ${title}`} onClick={() => restore(id)}>Annuler</ToastAction>,
+    });
+  };
 
   if (!target || similar.length === 0) return null;
 
@@ -37,12 +52,13 @@ const SimilarWorksSection = ({ canonicalMangaId, limit = 6 }: SimilarWorksSectio
         {similar.map((result) => {
           const work = byId.get(result.canonicalMangaId);
           if (!work) return null;
+          const reason = explainSimilarity(result, genreLabel);
           return (
+            <div key={work.id} className="group relative">
             <Link
-              key={work.id}
               to={`/manga/${work.id}`}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1520]/80 shadow-card transition-all duration-300 hover:border-manga-purple/40 hover:shadow-card-hover"
-              aria-label={`Voir ${work.title}${result.sharedGenres.length ? `, genres communs : ${result.sharedGenres.join(', ')}` : ''}`}
+              className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1520]/80 shadow-card transition-all duration-300 hover:border-manga-purple/40 hover:shadow-card-hover"
+              aria-label={`Voir ${work.title}${reason ? `. Suggéré pour : ${reason}` : ''}`}
             >
               <div className="relative aspect-[3/4] overflow-hidden bg-black/40">
                 <MangaCover
@@ -59,16 +75,22 @@ const SimilarWorksSection = ({ canonicalMangaId, limit = 6 }: SimilarWorksSectio
               </div>
               <div className="p-3">
                 <p className="line-clamp-2 min-h-10 font-outfit text-sm font-semibold text-white">{work.title}</p>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <span className="truncate text-[10px] font-medium text-white/50">
-                    {result.sharedGenres[0] || (result.sameAuthor ? 'Même auteur' : '')}
-                  </span>
-                  {work.status && (
-                    <span className="shrink-0 text-[10px] text-white/40">{discoveryStatusLabel(work.status)}</span>
-                  )}
-                </div>
+                {reason && <p className="mt-1.5 line-clamp-2 text-[11px] leading-4 text-white/55">{reason}</p>}
+                {work.status && (
+                  <p className="mt-1 text-[10px] text-white/40">{discoveryStatusLabel(work.status)}</p>
+                )}
               </div>
             </Link>
+            <button
+              type="button"
+              onClick={() => handleDismiss(work.id, work.title)}
+              aria-label={`Pas intéressé par ${work.title}`}
+              title="Pas intéressé"
+              className="absolute left-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/70 text-white/80 opacity-100 transition-opacity hover:text-white focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+            </div>
           );
         })}
       </div>

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { findSimilarWorks, SIMILARITY_WEIGHTS, type SimilarityCandidate } from '../src/domain/recommendations.ts';
+import { explainSimilarity, findSimilarWorks, SIMILARITY_WEIGHTS, type SimilarityCandidate } from '../src/domain/recommendations.ts';
 
 const work = (
   id: number,
@@ -84,4 +85,48 @@ test('results are limited and deterministic, ties broken by canonical manga id',
   const results = findSimilarWorks(target, catalog, 2);
   assert.deepEqual(results.map((result) => result.canonicalMangaId), [2, 3]);
   assert.deepEqual(results, findSimilarWorks(target, catalog, 2));
+});
+
+const candidate = (id: number, patch: Partial<SimilarityCandidate> = {}): SimilarityCandidate => ({
+  id, title: `Œuvre ${id}`, author: null, genre: ['Action'], manga_type: 'manhwa', status: 'ongoing', content_rating: 'safe', ...patch,
+});
+
+test('explicit works are never suggested next to a non-explicit work, since suggestion covers are not blurred', () => {
+  const target = candidate(1);
+  const catalog = [target, candidate(2, { content_rating: 'erotica' }), candidate(3, { genre: ['Action', 'Smut'] }), candidate(4)];
+  assert.deepEqual(findSimilarWorks(target, catalog).map((result) => result.canonicalMangaId), [4]);
+  const adultTarget = candidate(5, { content_rating: 'erotica' });
+  assert.ok(findSimilarWorks(adultTarget, [...catalog, adultTarget]).some((result) => result.canonicalMangaId === 2));
+});
+
+test('a work imported from another source never recommends itself, and duplicates appear once', () => {
+  const target = candidate(1, { title: 'Solo Leveling' });
+  const catalog = [
+    target,
+    candidate(2, { title: 'solo leveling' }),
+    candidate(3, { title: 'Omniscient Reader', author: 'Sing' }),
+    candidate(4, { title: 'Omniscient  Reader', author: 'sing' }),
+  ];
+  assert.deepEqual(findSimilarWorks(target, catalog).map((result) => result.canonicalMangaId), [3]);
+});
+
+test('dismissed suggestions are excluded and the next best one takes their place', () => {
+  const target = candidate(1);
+  const catalog = [target, candidate(2), candidate(3), candidate(4)];
+  assert.deepEqual(findSimilarWorks(target, catalog, 2, { excludeIds: new Set([2]) }).map((result) => result.canonicalMangaId), [3, 4]);
+});
+
+test('the explanation names the author first, then up to two genres with display labels', () => {
+  const label = (genre: string) => ({ Comedy: 'Comédie', Drama: 'Drame' }[genre] || genre);
+  assert.equal(explainSimilarity({ canonicalMangaId: 1, score: 9, sharedGenres: ['Comedy', 'Drama', 'Action'], sameAuthor: true, sameType: true }, label), 'Même auteur · Comédie · Drame');
+  assert.equal(explainSimilarity({ canonicalMangaId: 1, score: 1, sharedGenres: [], sameAuthor: false, sameType: true }), 'Même format');
+});
+
+test('"pas intéressé" stays on the device and the card offers an undo', () => {
+  const hook = readFileSync(new URL('../src/hooks/useDismissedRecommendations.ts', import.meta.url), 'utf8');
+  assert.match(hook, /window\.localStorage/);
+  assert.doesNotMatch(hook, /supabase|fetch\(/);
+  const section = readFileSync(new URL('../src/components/SimilarWorksSection.tsx', import.meta.url), 'utf8');
+  assert.match(section, /aria-label=\{`Pas intéressé par \$\{work\.title\}`\}/);
+  assert.match(section, /<ToastAction altText=\{`Annuler et réafficher/);
 });

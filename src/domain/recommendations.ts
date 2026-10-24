@@ -26,6 +26,7 @@ export type SimilarityCandidate = {
   genre: string[];
   manga_type: string | null;
   status: string;
+  content_rating?: string | null;
 };
 
 export type SimilarWorkResult = {
@@ -44,6 +45,8 @@ export const SIMILARITY_WEIGHTS = {
 } as const;
 
 const normalizedSet = (values: string[]): Set<string> => new Set(values.map((value) => normalizeQuery(value)).filter(Boolean));
+const isAdultCandidate = (work: SimilarityCandidate) => work.content_rating === 'erotica' || work.genre.includes('Smut');
+const workIdentity = (work: SimilarityCandidate) => `${normalizeQuery(work.title)}|${normalizeQuery(work.author || '')}`;
 
 /**
  * Pure, deterministic content-based similarity over already-cached canonical
@@ -56,12 +59,23 @@ export function findSimilarWorks(
   target: SimilarityCandidate,
   catalog: SimilarityCandidate[],
   limit = 8,
+  options: { excludeIds?: ReadonlySet<number> } = {},
 ): SimilarWorkResult[] {
   const targetGenres = normalizedSet(target.genre);
   const targetAuthor = target.author ? normalizeQuery(target.author) : '';
+  const targetIdentity = workIdentity(target);
+  // Explicit works are only suggested next to an explicit work: these cards are not blurred.
+  const allowAdult = isAdultCandidate(target);
+  const seen = new Set<string>([targetIdentity]);
+  const byId = new Map(catalog.map((work) => [work.id, work]));
 
   return catalog
-    .filter((candidate) => candidate.id !== target.id)
+    .filter((candidate) => (
+      candidate.id !== target.id
+      && !options.excludeIds?.has(candidate.id)
+      && (allowAdult || !isAdultCandidate(candidate))
+      && normalizeQuery(candidate.title) !== normalizeQuery(target.title)
+    ))
     .map((candidate) => {
       const sharedGenres = candidate.genre.filter((genre) => targetGenres.has(normalizeQuery(genre)));
       const sameAuthor = Boolean(targetAuthor && candidate.author && normalizeQuery(candidate.author) === targetAuthor);
@@ -79,5 +93,21 @@ export function findSimilarWorks(
       || right.sharedGenres.length - left.sharedGenres.length
       || left.canonicalMangaId - right.canonicalMangaId
     ))
+    // Display-only: the same work imported from several sources is suggested once.
+    .filter((result) => {
+      const identity = workIdentity(byId.get(result.canonicalMangaId)!);
+      if (seen.has(identity)) return false;
+      seen.add(identity);
+      return true;
+    })
     .slice(0, Math.max(0, limit));
+}
+
+/** Short French reason shown under a suggestion: author first, then up to two shared genres. */
+export function explainSimilarity(result: SimilarWorkResult, label: (genre: string) => string = (genre) => genre): string {
+  const parts: string[] = [];
+  if (result.sameAuthor) parts.push('Même auteur');
+  if (result.sharedGenres.length) parts.push(result.sharedGenres.slice(0, 2).map(label).join(' · '));
+  if (parts.length === 0 && result.sameType) parts.push('Même format');
+  return parts.join(' · ');
 }
