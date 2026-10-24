@@ -81,14 +81,24 @@ grant select, insert, delete on public.user_lists to authenticated;
 grant update (name, position) on public.user_lists to authenticated;
 grant select, insert, delete on public.user_list_items to authenticated;
 grant update (note, position) on public.user_list_items to authenticated;
+grant usage, select on sequence public.user_lists_id_seq to authenticated;
+grant usage, select on sequence public.user_list_items_id_seq to authenticated;
 
 create policy "Lists are visible to their owner"
 on public.user_lists for select to authenticated
 using ((select auth.uid()) = user_id);
 
-create policy "Custom lists are created by their owner"
+create policy "Allowed lists are created by their owner"
 on public.user_lists for insert to authenticated
-with check ((select auth.uid()) = user_id and kind = 'custom');
+with check (
+  (select auth.uid()) = user_id
+  and (
+    kind = 'custom'
+    or (kind = 'to_read' and name = 'À lire')
+    or (kind = 'on_hold' and name = 'En pause')
+    or (kind = 'completed' and name = 'Terminé')
+  )
+);
 
 create policy "Lists are updated by their owner"
 on public.user_lists for update to authenticated
@@ -124,12 +134,12 @@ create policy "List items are deleted by their owner"
 on public.user_list_items for delete to authenticated
 using ((select auth.uid()) = user_id);
 
--- System lists cannot be inserted through the insert policy, so this definer function
--- creates them for the calling user only. It is idempotent.
+-- The exact three system list pairs are allowed by RLS. This invoker function
+-- creates them for the calling user only and remains idempotent.
 create or replace function public.ensure_default_user_lists()
 returns setof public.user_lists
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 declare

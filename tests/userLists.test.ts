@@ -88,11 +88,19 @@ test('migration enables RLS and scopes every policy to the owner', () => {
   for (const policy of policies) assert.match(policy, /\(select auth\.uid\(\)\) = user_id/);
 });
 
-test('system lists cannot be created or deleted by clients, and list kind cannot be changed', () => {
-  assert.match(migration, /for insert to authenticated\s+with check \(\(select auth\.uid\(\)\) = user_id and kind = 'custom'\)/);
+test('clients can create only custom lists or the three exact system list pairs', () => {
+  assert.match(migration, /kind = 'custom'/);
+  assert.match(migration, /kind = 'to_read' and name = 'À lire'/);
+  assert.match(migration, /kind = 'on_hold' and name = 'En pause'/);
+  assert.match(migration, /kind = 'completed' and name = 'Terminé'/);
   assert.match(migration, /for delete to authenticated\s+using \(\(select auth\.uid\(\)\) = user_id and kind = 'custom'\)/);
   assert.match(migration, /grant update \(name, position\) on public\.user_lists to authenticated/);
   assert.doesNotMatch(migration, /grant update on public\.user_lists/);
+});
+
+test('authenticated users receive explicit access to both identity sequences', () => {
+  assert.match(migration, /grant usage, select on sequence public\.user_lists_id_seq to authenticated/);
+  assert.match(migration, /grant usage, select on sequence public\.user_list_items_id_seq to authenticated/);
 });
 
 test('an item can only reference a list owned by the same user', () => {
@@ -101,10 +109,12 @@ test('an item can only reference a list owned by the same user', () => {
   assert.match(migration, /where list\.id = list_id and list\.user_id = \(select auth\.uid\(\)\)/);
 });
 
-test('the definer function only creates lists for the authenticated caller and is not exposed to anon', () => {
+test('the invoker function only creates lists for the authenticated caller and is not exposed to anon', () => {
   const body = migration.slice(migration.indexOf('function public.ensure_default_user_lists'));
   assert.match(body, /caller uuid := auth\.uid\(\)/);
   assert.match(body, /if caller is null then/);
+  assert.match(body, /security invoker/);
+  assert.doesNotMatch(body, /security definer/);
   assert.match(body, /set search_path = public/);
   assert.match(migration, /revoke all on function public\.ensure_default_user_lists\(\) from public, anon/);
 });
