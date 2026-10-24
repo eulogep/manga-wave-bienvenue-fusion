@@ -7,6 +7,8 @@ import { asuraScansSource } from './asurascans';
 import { mangaPillSource } from './mangapill';
 import { sushiScanSource } from './sushiscan';
 import { mangaKatanaSource } from './mangakatana';
+import { mangasOriginesSource } from '../mangasorigines/source';
+import { scantradSource } from '../scantrad/source';
 import type { MangaSource, SourceSearchResult, SourceType } from './types';
 
 export * from './types';
@@ -19,6 +21,8 @@ export { asuraScansSource } from './asurascans';
 export { mangaPillSource } from './mangapill';
 export { sushiScanSource } from './sushiscan';
 export { mangaKatanaSource } from './mangakatana';
+export { mangasOriginesSource } from '../mangasorigines/source';
+export { scantradSource } from '../scantrad/source';
 
 export const sources: Record<string, MangaSource> = {
   mangadex: mangaDexSource,
@@ -30,6 +34,8 @@ export const sources: Record<string, MangaSource> = {
   mangapill: mangaPillSource,
   sushiscan: sushiScanSource,
   mangakatana: mangaKatanaSource,
+  mangasorigines: mangasOriginesSource,
+  scantrad: scantradSource,
 };
 
 export const sourceList: MangaSource[] = [
@@ -42,6 +48,8 @@ export const sourceList: MangaSource[] = [
   mangaPillSource,
   sushiScanSource,
   mangaKatanaSource,
+  mangasOriginesSource,
+  scantradSource,
 ];
 
 export function getSource(sourceId: SourceType | string): MangaSource | undefined {

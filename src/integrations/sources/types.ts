@@ -11,7 +11,9 @@ export type SourceType =
   | 'shikimori'
   | 'kitsu'
   | 'anilist'
-  | 'jikan';
+  | 'jikan'
+  | 'mangasorigines'
+  | 'scantrad';
 
 export type SourceSearchResult = {
   id: string;

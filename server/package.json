@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "start": "node dist/index.js",
+    "scantrad:login": "tsx scripts/scantrad-login.ts",
     "install:browsers": "node -e \"console.log('Chromium serverless est fourni par @sparticuz/chromium')\""
   },
   "dependencies": {

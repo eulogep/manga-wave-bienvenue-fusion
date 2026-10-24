@@ -8,6 +8,8 @@ import { mangaPillExtractor } from './mangapill.js';
 import { originMangaExtractor } from './originmanga.js';
 import { sushiScanExtractor } from './sushiscan.js';
 import type { SourceExtractor } from '../lib/extractor-types.js';
+import { mangasoriginesExtractor } from './mangasorigines-extractor.js';
+import { scantradExtractor } from './scantrad-extractor.js';
 
 export const extractors: Record<string, SourceExtractor> = {
   mangadex: mangaDexExtractor,
@@ -19,6 +21,8 @@ export const extractors: Record<string, SourceExtractor> = {
   mangapill: mangaPillExtractor,
   sushiscan: sushiScanExtractor,
   mangakatana: mangaKatanaExtractor,
+  mangasorigines: mangasoriginesExtractor,
+  scantrad: scantradExtractor,
 };
 
 export function getExtractor(sourceId: string): SourceExtractor | null {

@@ -26,3 +26,7 @@ dist-ssr
 .env
 supabase/.temp/
 test-results/
+
+# Persistent browser sessions and exported clearance cookies
+.playwright_user_data/
+scantrad-cookies.json
