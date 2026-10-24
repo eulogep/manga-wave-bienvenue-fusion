@@ -80,5 +80,5 @@ test('searching a French genre label finds works tagged with the English key', (
 
 test('both catalogue loaders normalize metadata before any consumer sees it', () => {
   assert.match(read('src/hooks/useCanonicalSearch.ts'), /works\.push\(\.\.\.data\.map\(normalizeWorkMetadata\)\)/);
-  assert.match(read('src/hooks/useManga.tsx'), /\.map\(normalizeWorkMetadata\)/);
+  assert.match(read('src/hooks/useManga.tsx'), /normalizeWorkMetadata\(\{ \.\.\.row, description: null, artist: null \}\)/);
 });

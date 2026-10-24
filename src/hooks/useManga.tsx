@@ -22,6 +22,11 @@ export interface Manga {
   created_at: string;
 }
 
+// Home rails never show synopses or artists; skipping them keeps the payload
+// small as the catalogue grows (description is most of each row). Those two
+// fields are therefore null in the rows returned by useManga.
+const HOME_CATALOG_COLUMNS = 'id, mangadex_id, title, author, cover_image, rating, views, status, genre, manga_type, content_rating, source_updated_at, last_synced_at, created_at';
+
 export const useManga = () => {
   const { user } = useAuth();
 
@@ -30,11 +35,11 @@ export const useManga = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mangas')
-        .select('*')
+        .select(HOME_CATALOG_COLUMNS)
         .order('source_updated_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
-      return (data as Manga[]).map(normalizeWorkMetadata);
+      return (data as Omit<Manga, 'description' | 'artist'>[]).map((row) => normalizeWorkMetadata({ ...row, description: null, artist: null }));
     },
   });
 
