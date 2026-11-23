@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CommandSearchProvider, useCommandSearch } from "@/hooks/useCommandSearch";
 import Index from "./pages/Index";
@@ -26,6 +27,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+
 const RouteLoading = () => (
   <main className="flex min-h-[60vh] items-center justify-center bg-[var(--mw-background)] px-6 text-[var(--mw-text-primary)]">
     <p role="status" className="text-sm text-[var(--mw-text-secondary)]">Chargement de Manga Wave…</p>
@@ -39,6 +41,7 @@ const DeferredCommandSearchDialog = () => {
 };
 
 const App = () => (
+  <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
@@ -72,6 +75,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
