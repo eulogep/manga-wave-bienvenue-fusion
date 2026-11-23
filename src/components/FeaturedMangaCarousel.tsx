@@ -57,7 +57,7 @@ export default function FeaturedMangaCarousel({ items, loading, failed, onRetry 
               <Link to={`/manga/${work.id}`} tabIndex={current ? 0 : -1}
                 aria-label={`Voir la fiche de ${work.title}`} aria-current={current ? 'true' : undefined}
                 onClick={(event) => { if (!current) { event.preventDefault(); setSelectedId(work.id); } }}>
-                <MangaCover src={work.cover_image} alt={current ? `Couverture de ${work.title}` : ''} loading={Math.abs(offset) <= 1 ? 'eager' : 'lazy'} deferProxy className="mw-spotlight-cover" />
+                <MangaCover src={work.cover_image} alt={current ? `Couverture de ${work.title}` : ''} loading={Math.abs(offset) <= 1 ? 'eager' : 'lazy'} priority={current} deferProxy className="mw-spotlight-cover" />
                 {current ? <span className="mw-spotlight-badge">{badge}</span> : <span className="mw-spotlight-caption">{work.title}</span>}
               </Link>
             </div>;

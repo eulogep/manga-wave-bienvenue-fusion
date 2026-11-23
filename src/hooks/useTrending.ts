@@ -38,10 +38,9 @@ const FETCH_LIMIT = 20;
  * or would require exposing raw per-event ages the view intentionally never
  * stores. One decayed ranking, refreshed hourly, is the whole point.
  */
-export function useTrendingRanking() {
-  const canonicalQuery = useCanonicalSearch(true);
-
-  const rankingQuery = useQuery({
+/** The hourly materialized trending rows, shared by the trending page and the hero. */
+export function useTrendingRows() {
+  return useQuery({
     queryKey: ['trending-manga-scores'],
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<TrendingRow[]> => {
@@ -55,19 +54,24 @@ export function useTrendingRanking() {
       return (data || []) as TrendingRow[];
     },
   });
+}
 
-  const results = useMemo((): TrendingResult[] => (
-    (rankingQuery.data ?? []).map((row, index) => ({
-      canonicalMangaId: row.canonical_manga_id,
-      score: Number(row.score),
-      uniqueUsers: row.unique_users,
-      followEvents: row.follow_events,
-      favoriteEvents: row.favorite_events,
-      readingSessionEvents: row.reading_session_events,
-      progressUpdateEvents: row.progress_update_events,
-      rank: index + 1,
-    }))
-  ), [rankingQuery.data]);
+export const toTrendingResults = (rows: TrendingRow[]): TrendingResult[] => rows.map((row, index) => ({
+  canonicalMangaId: row.canonical_manga_id,
+  score: Number(row.score),
+  uniqueUsers: row.unique_users,
+  followEvents: row.follow_events,
+  favoriteEvents: row.favorite_events,
+  readingSessionEvents: row.reading_session_events,
+  progressUpdateEvents: row.progress_update_events,
+  rank: index + 1,
+}));
+
+export function useTrendingRanking() {
+  const canonicalQuery = useCanonicalSearch(true);
+  const rankingQuery = useTrendingRows();
+
+  const results = useMemo(() => toTrendingResults(rankingQuery.data ?? []), [rankingQuery.data]);
 
   const items = useMemo((): TrendingItem[] => {
     if (!canonicalQuery.data) return [];

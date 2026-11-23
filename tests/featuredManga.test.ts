@@ -25,3 +25,26 @@ test('circular placement has exactly five visible slots for seven works', () => 
   }
   assert.equal(slideOffset(0,0,0),0);
 });
+
+test('the hero query (trending ids + most recent eligible) selects exactly what the full catalogue would', async () => {
+  const { FEATURED_LIMIT } = await import('../src/domain/featuredManga.ts');
+  const day = (n: number) => new Date(Date.UTC(2026, 10, n)).toISOString();
+  const catalogue = Array.from({ length: 60 }, (_, index) => work(index + 1, {
+    created_at: day(1 + (index % 20)),
+    cover_image: index % 7 === 0 ? null : `c${index}`,
+    content_rating: index % 11 === 0 ? 'erotica' : index % 3 === 0 ? null : 'safe',
+  }));
+  const trendingIds = [44, 3, 21, 7, 999];
+  // Mirrors useFeaturedWorks: trending rows by id, plus recent rows with a cover, not explicit.
+  const recent = catalogue
+    .filter((entry) => entry.cover_image !== null && entry.content_rating !== 'erotica')
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || a.id - b.id)
+    .slice(0, FEATURED_LIMIT + 5);
+  const trending = catalogue.filter((entry) => trendingIds.includes(entry.id));
+  for (const ids of [trendingIds, []]) {
+    assert.deepEqual(
+      selectFeaturedWorks([...trending, ...recent], ids).map((entry) => `${entry.work.id}:${entry.badge}`),
+      selectFeaturedWorks(catalogue, ids).map((entry) => `${entry.work.id}:${entry.badge}`),
+    );
+  }
+});

@@ -15,9 +15,11 @@ type MangaCoverProps = {
   className?: string;
   loading?: 'eager' | 'lazy';
   deferProxy?: boolean;
+  /** Fetch ahead of other images (the hero's active cover is the homepage LCP). */
+  priority?: boolean;
 };
 
-const MangaCover = ({ src, alt, className, loading = 'lazy', deferProxy = false }: MangaCoverProps) => {
+const MangaCover = ({ src, alt, className, loading = 'lazy', deferProxy = false, priority = false }: MangaCoverProps) => {
   const imageRef = useRef<HTMLImageElement>(null);
   const [visible, setVisible] = useState(false);
   const shouldLoad = !deferProxy || loading === 'eager' || visible;
@@ -49,7 +51,9 @@ const MangaCover = ({ src, alt, className, loading = 'lazy', deferProxy = false 
         const response = await fetch(src, {
           headers: { apikey: MANGADEX_PROXY_PUBLISHABLE_KEY },
           signal: controller.signal,
-        });
+          // Fetch Priority API; not yet in TypeScript's RequestInit.
+          ...(priority ? { priority: 'high' } : {}),
+        } as RequestInit);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         objectUrl = URL.createObjectURL(await response.blob());
@@ -66,7 +70,7 @@ const MangaCover = ({ src, alt, className, loading = 'lazy', deferProxy = false 
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [src, shouldLoad]);
+  }, [src, shouldLoad, priority]);
 
   return (
     <img
@@ -74,6 +78,7 @@ const MangaCover = ({ src, alt, className, loading = 'lazy', deferProxy = false 
       src={resolvedSource || FALLBACK_COVER}
       alt={alt}
       loading={loading}
+      fetchPriority={priority ? 'high' : undefined}
       className={className}
       onError={() => setResolvedSource(null)}
     />

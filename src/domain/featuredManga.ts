@@ -1,7 +1,8 @@
 import type { SearchWork } from './canonicalSearch.ts';
 export type FeaturedWork = { work: SearchWork; badge: 'Tendance' | 'Découverte' };
+export const FEATURED_LIMIT = 7;
 /** Canonical IDs only; provider ordering never implies popularity. */
-export function selectFeaturedWorks(works: SearchWork[], trendingIds: number[], limit = 7): FeaturedWork[] {
+export function selectFeaturedWorks(works: SearchWork[], trendingIds: number[], limit = FEATURED_LIMIT): FeaturedWork[] {
   const candidates = new Map(works.filter((work) => Number.isSafeInteger(work.id) && work.id > 0
     && work.title.trim() && work.cover_image && work.content_rating !== 'erotica').map((work) => [work.id, work]));
   const selected: FeaturedWork[] = [];
