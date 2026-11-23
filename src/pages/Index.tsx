@@ -17,7 +17,9 @@ const Index = () => {
       <Header />
       <main>
         {loading ? (
-          <section className="flex min-h-[55vh] items-center justify-center bg-[#06101a] text-sm text-[var(--mw-text-secondary)]" aria-live="polite">
+          // Full viewport height: a shorter placeholder put the footer on screen, then the real
+          // sections pushed it away (0.36 CLS on slow connections).
+          <section className="flex min-h-[100dvh] items-center justify-center bg-[#06101a] text-sm text-[var(--mw-text-secondary)]" aria-live="polite">
             Préparation de Manga Wave…
           </section>
         ) : user ? (

@@ -79,7 +79,7 @@ export default {
       fontFamily: {
         outfit: ["'Outfit'", "sans-serif"],
         inter: ["'Inter'", "sans-serif"],
-        japanese: ["'Noto Sans JP'", "sans-serif"],
+        japanese: ["'Inter'", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

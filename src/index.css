@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+/* Web fonts are linked from index.html (preconnect + parallel load, no CSS @import chain). */
 
 @tailwind base;
 @tailwind components;
@@ -107,7 +107,8 @@
   }
 
   .font-japanese {
-    font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    /* Noto Sans JP was 459 kB of render-blocking CSS for Latin-only headings. */
+    font-family: 'Inter', sans-serif;
   }
 
   .font-editorial {

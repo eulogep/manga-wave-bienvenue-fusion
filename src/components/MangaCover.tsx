@@ -4,8 +4,10 @@ import {
   MANGADEX_PROXY_PUBLISHABLE_KEY,
 } from '@/integrations/mangadex/client';
 
-const FALLBACK_COVER =
-  'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=900&fit=crop';
+// Neutral, inline placeholder shown while a cover loads or when it is missing.
+// It used to be a remote stock photo: an unrelated image posing as the cover,
+// downloaded before real covers and reported as the page's LCP element.
+const FALLBACK_COVER = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 450'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23182431'/><stop offset='1' stop-color='%230b131f'/></linearGradient></defs><rect width='300' height='450' fill='url(%23g)'/><path d='M105 238c22-26 44-26 66 0s44 26 66 0' fill='none' stroke='%23ff4d5a' stroke-opacity='.35' stroke-width='8' stroke-linecap='round'/></svg>`;
 
 type MangaCoverProps = {
   src: string | null;
