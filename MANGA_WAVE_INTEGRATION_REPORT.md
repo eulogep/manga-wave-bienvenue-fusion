@@ -84,7 +84,17 @@ mesure après le changement.
   dépendance externe (Unsplash) disparaît.
 - **Retour arrière** : `git revert 8998c25`.
 
-### 3. Réduction de la surface de dépendances
+### 3. Carrousel de l’accueil sans le catalogue complet
+
+- **Constat** : le carrousel attendait ~970 lignes pour en afficher 7.
+- **Changement** : `useFeaturedWorks` lit les identifiants en tendance et les ajouts récents
+  éligibles, puis applique la même `selectFeaturedWorks`. Couverture active en priorité haute.
+- **Preuve** : sélection identique sur les données de production (7 mêmes titres, 12 lignes
+  lues) et test unitaire d’équivalence avec et sans tendances fiables ; Lighthouse mobile,
+  médiane de 5 : LCP 9,7 → 8,7 s, FCP 4,5 → 4,2 s, CLS 0 ; E2E carrousel et tendances PASS.
+- **Retour arrière** : revert du commit ; `HeroSection` reprend le catalogue complet.
+
+### 4. Réduction de la surface de dépendances
 
 - `zod` 3.23 et `@hookform/resolvers` n’étaient importés nulle part (vérifié sur tout le
   dépôt) mais portaient la seule alerte **haute** de production.
