@@ -14,6 +14,10 @@
     --mw-surface: #141c28;
     --mw-surface-elevated: #182431;
     --mw-brand-primary: #ff4d5a;
+    /* Used across components (badges, CTAs, nav underline) but was never defined: */
+    /* every bg/text/border-[var(--mw-accent-coral)] silently fell back to transparent. */
+    --mw-accent-coral: var(--mw-brand-primary);
+    --mw-ink-on-coral: #061622;
     --mw-brand-secondary: #1ea7ff;
     --mw-text-primary: #edeff2;
     --mw-text-secondary: #98a4b3;
@@ -33,13 +37,13 @@
     --popover-foreground: 220 40% 95%;
 
     --primary: 356 100% 65%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 208 70% 8%; /* #061622: dark ink on coral, 4.5:1+ like .catalogue-primary */
 
     --secondary: 222 44% 14%;        /* #162030 */
     --secondary-foreground: 220 40% 80%;
 
     --muted: 222 44% 12%;
-    --muted-foreground: 220 20% 55%; /* #8b98b9 */
+    --muted-foreground: 220 20% 62%; /* raised from 55% for 4.5:1 on dark surfaces */
 
     --accent: 356 100% 65%;
     --accent-foreground: 0 0% 100%;

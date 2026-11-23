@@ -92,7 +92,7 @@ const FeaturedSection = () => {
             value={selectedStatus}
             onValueChange={(v) => { setSelectedStatus(v as 'all' | MangaDexStatus); setPage(0); }}
           >
-            <SelectTrigger className="w-40 rounded-none border-[var(--mw-border)] bg-[var(--mw-surface)] text-white/80">
+            <SelectTrigger aria-label="Filtrer par statut" className="w-40 rounded-none border-[var(--mw-border)] bg-[var(--mw-surface)] text-white/80">
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
             <SelectContent className="rounded-none border-[var(--mw-border)] bg-[var(--mw-surface)]">
@@ -179,7 +179,7 @@ const FeaturedSection = () => {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-white/40 min-w-16 text-center">
+            <span className="text-sm text-white/65 min-w-16 text-center">
               {currentPage + 1} / {totalPages}
             </span>
             <Button
@@ -195,7 +195,7 @@ const FeaturedSection = () => {
           </div>
         )}
 
-        <p className="mt-10 text-center text-[11px] text-white/25">
+        <p className="mt-10 text-center text-[11px] text-white/60">
           Données et couvertures fournies par MangaDex. Contenus propriété de leurs ayants droit.
         </p>
       </div>

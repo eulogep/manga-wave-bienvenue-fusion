@@ -215,7 +215,7 @@ export const UserListsPanel = ({ selectedListId, onSelectList }: UserListsPanelP
             aria-current={selected?.id === list.id ? 'true' : undefined}
             className={`flex min-h-11 shrink-0 items-center justify-between gap-3 rounded-lg px-4 py-2 text-left text-sm font-semibold transition-all ${
               selected?.id === list.id
-                ? 'bg-manga-purple text-white shadow-glow-purple'
+                ? 'bg-manga-purple text-[var(--mw-ink-on-coral)] shadow-glow-purple'
                 : 'border border-white/[0.08] bg-white/[0.05] text-white/60 hover:text-white'
             }`}
           >
@@ -300,7 +300,7 @@ export const UserListsPanel = ({ selectedListId, onSelectList }: UserListsPanelP
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/20 bg-transparent">Annuler</AlertDialogCancel>
-            <AlertDialogAction className="bg-[var(--mw-accent-coral)] text-white hover:bg-[#ff6671]" onClick={() => void handleDelete()}>
+            <AlertDialogAction className="bg-[var(--mw-accent-coral)] text-[var(--mw-ink-on-coral)] hover:bg-[#ff6671]" onClick={() => void handleDelete()}>
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>

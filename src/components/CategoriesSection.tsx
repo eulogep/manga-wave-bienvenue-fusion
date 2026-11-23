@@ -39,7 +39,8 @@ const CategoriesSection = () => (
           return (
             <Link key={category.name} to={category.link} className="group relative min-h-40 overflow-hidden border-b border-r border-[var(--mw-border)] bg-[var(--mw-surface)] p-5 transition-colors hover:bg-[var(--mw-elevated)]" aria-label={`Explorer ${category.name}`}>
               <div className="flex items-start justify-between">
-                <span className="font-editorial text-4xl leading-none text-white/10">0{index + 1}</span>
+                {/* Decorative index, drawn from a data attribute so it stays out of the text and accessibility tree. */}
+                <span aria-hidden="true" data-index={`0${index + 1}`} className="font-editorial text-4xl leading-none text-white/10 before:content-[attr(data-index)]" />
                 <Icon className="h-5 w-5" style={{ color: category.tone }} />
               </div>
               <h3 className="mt-6 font-editorial text-lg font-semibold uppercase text-white">{category.name}</h3>

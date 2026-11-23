@@ -104,7 +104,7 @@ const MangaCard = ({
         )}
         <span className={`absolute left-2 top-2 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${statusConfig.cls}`}>{statusConfig.label}</span>
         {newChapterCount > 0 && (
-          <span className="absolute left-2 top-10 bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+          <span className="absolute left-2 top-10 bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--mw-ink-on-coral)]">
             {newChapterCount} nouveau{newChapterCount > 1 ? 'x' : ''}
           </span>
         )}
@@ -116,9 +116,9 @@ const MangaCard = ({
           {rating != null ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/85"><Star className="h-3 w-3 fill-manga-gold text-manga-gold" />{rating.toFixed(1)}</span> : <span />}
           <div className="relative z-20 translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
             {detailUrl ? (
-              <AdultGatedLink to={detailUrl} contentRating={contentRating} className="flex h-10 w-10 items-center justify-center bg-[var(--mw-accent-coral)] text-white hover:bg-[#ff6671]" onClick={(event) => event.stopPropagation()} aria-label={`Découvrir ${title}`}><BookOpen className="h-4 w-4" /></AdultGatedLink>
+              <AdultGatedLink to={detailUrl} contentRating={contentRating} className="flex h-10 w-10 items-center justify-center bg-[var(--mw-accent-coral)] text-[var(--mw-ink-on-coral)] hover:bg-[#ff6671]" onClick={(event) => event.stopPropagation()} aria-label={`Découvrir ${title}`}><BookOpen className="h-4 w-4" /></AdultGatedLink>
             ) : externalUrl ? (
-              <Button size="sm" className="h-10 w-10 bg-[var(--mw-accent-coral)] p-0 text-white" onClick={handleReadClick} aria-label={`Lire ${title}`}><BookOpen className="h-4 w-4" /></Button>
+              <Button size="sm" className="h-10 w-10 bg-[var(--mw-accent-coral)] p-0 text-[var(--mw-ink-on-coral)]" onClick={handleReadClick} aria-label={`Lire ${title}`}><BookOpen className="h-4 w-4" /></Button>
             ) : null}
           </div>
         </div>

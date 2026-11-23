@@ -102,7 +102,7 @@ const Random = () => {
               type="button"
               onClick={() => choose(filters)}
               disabled={catalog.isPending || eligible.length < 2}
-              className="min-h-11 gap-2 bg-[var(--mw-accent-coral)] text-white hover:bg-[#ff6671]"
+              className="min-h-11 gap-2 bg-[var(--mw-accent-coral)] text-[var(--mw-ink-on-coral)] hover:bg-[#ff6671]"
               data-testid="random-reroll"
             >
               <Dices className="h-4 w-4" aria-hidden="true" /> Une autre
@@ -133,7 +133,7 @@ const Random = () => {
                 <h2 className="font-japanese text-3xl font-bold leading-tight md:text-5xl">{selected.title}</h2>
                 <p className="mt-3 text-sm text-white/50">{selected.author || 'Auteur non renseigné'}</p>
                 {selected.genre?.length ? <p className="mt-5 text-sm leading-7 text-white/65">{selected.genre.slice(0, 6).map(genreLabel).join(' · ')}</p> : null}
-                <p className="mt-8 text-xs uppercase tracking-widest text-white/35">1 œuvre parmi {eligible.length}</p>
+                <p className="mt-8 text-xs uppercase tracking-widest text-white/60">1 œuvre parmi {eligible.length}</p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <Button asChild className="min-h-11 bg-white text-[#08111b] hover:bg-white/90">
                     <Link to={`/manga/${selected.id}`}>Découvrir cette œuvre</Link>

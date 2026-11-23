@@ -77,7 +77,7 @@ const SimilarWorksSection = ({ canonicalMangaId, limit = 6 }: SimilarWorksSectio
                 <p className="line-clamp-2 min-h-10 font-outfit text-sm font-semibold text-white">{work.title}</p>
                 {reason && <p className="mt-1.5 line-clamp-2 text-[11px] leading-4 text-white/55">{reason}</p>}
                 {work.status && (
-                  <p className="mt-1 text-[10px] text-white/40">{discoveryStatusLabel(work.status)}</p>
+                  <p className="mt-1 text-[10px] text-white/60">{discoveryStatusLabel(work.status)}</p>
                 )}
               </div>
             </Link>

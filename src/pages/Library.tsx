@@ -139,7 +139,7 @@ const LibraryCard = ({ item }: { item: LibraryItem }) => {
             </span>
           )}
           {item.unreadUpdate && item.unreadUpdate.count > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[var(--mw-ink-on-coral)]">
               Nouveau
             </span>
           )}
@@ -204,7 +204,7 @@ const LibraryCard = ({ item }: { item: LibraryItem }) => {
 
         <div className="mt-3">
           {updateUrl ? (
-            <Button asChild size="sm" className="h-11 w-full bg-[var(--mw-accent-coral)] text-xs font-bold uppercase text-white hover:bg-[#ff6671]">
+            <Button asChild size="sm" className="h-11 w-full bg-[var(--mw-accent-coral)] text-xs font-bold uppercase text-[var(--mw-ink-on-coral)] hover:bg-[#ff6671]">
               <Link to={updateUrl} aria-label={`Lire le nouveau chapitre ${item.unreadUpdate?.chapterNumber} de ${item.title}`}>
                 Nouveau chapitre {item.unreadUpdate?.chapterNumber}
               </Link>
@@ -353,7 +353,7 @@ const Library = () => {
                     onClick={() => setSection(id)}
                     className={`flex min-h-11 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                       section === id
-                        ? 'bg-manga-purple text-white shadow-glow-purple'
+                        ? 'bg-manga-purple text-[var(--mw-ink-on-coral)] shadow-glow-purple'
                         : 'bg-white/[0.05] text-white/60 border border-white/[0.08] hover:text-white'
                     }`}
                   >

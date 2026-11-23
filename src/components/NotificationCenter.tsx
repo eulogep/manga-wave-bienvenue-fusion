@@ -59,7 +59,7 @@ export function NotificationCenter() {
           <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
             <span
-              className="absolute right-0.5 top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--mw-accent-coral)] px-1 text-[10px] font-bold leading-none text-white ring-2 ring-[#06101a]"
+              className="absolute right-0.5 top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--mw-accent-coral)] px-1 text-[10px] font-bold leading-none text-[var(--mw-ink-on-coral)] ring-2 ring-[#06101a]"
               data-testid="notification-badge"
             >
               {unreadCount > 99 ? '99+' : unreadCount}

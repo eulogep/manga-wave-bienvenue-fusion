@@ -50,7 +50,7 @@ const RankingSection = ({
                 aria-selected={window === option}
                 onClick={() => onWindowChange(option)}
                 className={`min-h-9 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  window === option ? 'bg-manga-purple text-white' : 'text-white/60 hover:text-white'
+                  window === option ? 'bg-manga-purple text-[#061622]' : 'text-white/60 hover:text-white'
                 }`}
               >
                 {WINDOW_LABELS[option]}

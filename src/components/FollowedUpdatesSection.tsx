@@ -41,11 +41,11 @@ const FollowedUpdatesSection = () => {
                 </Link>
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
                   <div>
-                    <span className="inline-flex bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white">{newChapterCount} nouveau{newChapterCount > 1 ? 'x' : ''}</span>
+                    <span className="inline-flex bg-[var(--mw-accent-coral)] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[var(--mw-ink-on-coral)]">{newChapterCount} nouveau{newChapterCount > 1 ? 'x' : ''}</span>
                     <h3 className="mt-2 line-clamp-2 font-editorial text-lg uppercase text-white">{manga.title}</h3>
                     <p className="mt-1 text-xs text-[var(--mw-text-secondary)]">Chapitre {latestChapter.chapterNumber} · {latestChapter.language.toUpperCase()}</p>
                   </div>
-                  <Link to={readerUrl} className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 bg-[var(--mw-accent-coral)] px-3 text-xs font-bold uppercase text-white hover:bg-[#ff6671]">
+                  <Link to={readerUrl} className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 bg-[var(--mw-accent-coral)] px-3 text-xs font-bold uppercase text-[var(--mw-ink-on-coral)] hover:bg-[#ff6671]">
                     <BookOpen className="h-4 w-4" /> Lire maintenant <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>

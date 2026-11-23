@@ -71,7 +71,7 @@ const ContinueReadingSection = () => {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => void historyActions.clear()} className="bg-[var(--mw-accent-coral)] text-white hover:bg-[var(--mw-accent-coral)]/90">
+                    <AlertDialogAction onClick={() => void historyActions.clear()} className="bg-[var(--mw-accent-coral)] text-[var(--mw-ink-on-coral)] hover:bg-[var(--mw-accent-coral)]/90">
                       Tout effacer
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -91,7 +91,7 @@ const ContinueReadingSection = () => {
             <BookOpen className="mb-3 h-6 w-6 text-[var(--mw-accent-blue)]" />
             <p className="font-medium text-[var(--mw-text-primary)]">Aucune lecture récente</p>
             <p className="mt-1 text-sm text-[var(--mw-text-secondary)]">Commencez un chapitre : il apparaîtra ici automatiquement.</p>
-            <Button className="mt-4 bg-[var(--mw-accent-coral)] text-white hover:bg-[var(--mw-accent-coral)]/90" asChild>
+            <Button className="mt-4 bg-[var(--mw-accent-coral)] text-[var(--mw-ink-on-coral)] hover:bg-[var(--mw-accent-coral)]/90" asChild>
               <Link to="/search">Découvrir le catalogue</Link>
             </Button>
           </div>
@@ -142,7 +142,7 @@ const ContinueReadingSection = () => {
                         <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--mw-text-secondary)]"><Clock3 className="h-2.5 w-2.5" />{relativeDate(item.readAt)}</span>
                       </div>
 
-                      <Button size="sm" className="mt-2 h-8 w-full bg-[var(--mw-accent-coral)] text-xs font-semibold text-white hover:bg-[var(--mw-accent-coral)]/90" asChild>
+                      <Button size="sm" className="mt-2 h-8 w-full bg-[var(--mw-accent-coral)] text-xs font-semibold text-[var(--mw-ink-on-coral)] hover:bg-[var(--mw-accent-coral)]/90" asChild>
                         <Link to={resumeUrl}><Play className="mr-1 h-3 w-3 fill-current" />Reprendre</Link>
                       </Button>
                     </div>

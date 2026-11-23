@@ -60,7 +60,7 @@ const Footer = () => (
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-[var(--mw-border)] py-6 text-[10px] uppercase tracking-[0.16em] text-white/30 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-[var(--mw-border)] py-6 text-[10px] uppercase tracking-[0.16em] text-white/60 sm:flex-row sm:items-center sm:justify-between">
         <p>© 2026 Manga Wave</p>
         <p>Les contenus appartiennent à leurs ayants droit.</p>
       </div>

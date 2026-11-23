@@ -142,7 +142,7 @@ const Header = () => {
                 data-testid="header-command-search-button"
               >
                 <Search className="h-4 w-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
-                <span className="hidden sm:inline-block flex-1 text-left truncate text-white/40 group-hover:text-white/70">
+                <span className="hidden sm:inline-block flex-1 text-left truncate text-white/65 group-hover:text-white/85">
                   Rechercher un manga...
                 </span>
                 <kbd className="hidden sm:inline-flex items-center rounded bg-white/[0.08] border border-white/[0.12] px-1.5 py-0.5 text-[10px] font-mono tracking-tight text-white/60 group-hover:text-white">
