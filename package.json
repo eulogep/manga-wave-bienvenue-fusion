@@ -53,7 +53,9 @@
     "verify:t3014:db": "node --experimental-strip-types scripts/verify-t3014-db.mjs",
     "verify:t3013:db": "node scripts/verify-t3013-db.mjs",
     "verify:user-lists:db": "node scripts/verify-user-lists-db.mjs --allow-temporary-users",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "perf:lighthouse": "node scripts/perf/lighthouse-median.mjs",
+    "test:e2e:a11y": "playwright test tests/e2e/a11y-routes.spec.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.0",
